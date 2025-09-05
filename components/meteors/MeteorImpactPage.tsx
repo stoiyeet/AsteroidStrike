@@ -156,7 +156,7 @@ export default function MeteorImpactPage({ meteor }: { meteor: Meteor }) {
 
       {/* RIGHT HUD */}
       <div className={styles.hud}>
-        <ImpactEffects effects={damage} impactLat={impactLat} impactLon={impactLon} />
+        <ImpactEffects effects={damage} impactLat={impactLat} impactLon={impactLon} name={meteor.name} />
       </div>
 
       {/* 3D CANVAS */}

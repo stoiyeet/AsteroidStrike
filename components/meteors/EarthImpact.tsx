@@ -69,7 +69,7 @@ export default function EarthImpact({
   );
 
   const entryStart = useMemo(
-    () => latLonToVec3(impact.lat + 90 - meteor.angle, impact.lon, EARTH_R * 1.8),
+    () => latLonToVec3(impact.lat + (90 - meteor.angle)*12/17, impact.lon, EARTH_R * 1.8),
     [impact, meteor.angle]
   );
 

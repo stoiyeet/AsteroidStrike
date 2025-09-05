@@ -52,9 +52,10 @@ interface ImpactEffectsProps {
   };
   impactLat: number;
   impactLon: number;
+  name: string;
 }
 
-export default function ImpactEffects({ effects, impactLat, impactLon }: ImpactEffectsProps) {
+export default function ImpactEffects({ effects, impactLat, impactLon, name }: ImpactEffectsProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState('overview');
   
@@ -116,6 +117,10 @@ export default function ImpactEffects({ effects, impactLat, impactLon }: ImpactE
       <div className={styles.scrollContent}>
         {activeTab === 'overview' && (
           <div className={styles.section}>
+            <div className={styles.dataRow}>
+              <span className={styles.label}>Name</span>
+              <span className={styles.value}>{name}</span>
+            </div>
             <div className={styles.dataRow}>
               <span className={styles.label}>Location</span>
               <span className={styles.value}>{impactLat.toFixed(1)}°N, {impactLon.toFixed(1)}°E</span>
