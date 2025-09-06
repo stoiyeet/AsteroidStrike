@@ -49,6 +49,8 @@ interface ImpactEffectsProps {
     airblast_radius_building_collapse_m: number | null;
     airblast_radius_glass_shatter_m: number | null;
     airblast_peak_overpressure: number | null;
+    deathCount: number | null;
+    injuryCount: number | null;
   };
   impactLat: number;
   impactLon: number;
@@ -62,7 +64,7 @@ export default function ImpactEffects({ effects, impactLat, impactLon, name }: I
   // Get descriptive text for earth effect
   const earthEffectText = {
     destroyed: 'Earth Forms a new asteroid belt orbiting the sun',
-    strongly_disturbed: 'Earth\'s orbit is shifted substantially. Apocolypse is inevitable.',
+    strongly_disturbed: 'Earth\'s orbit is shifted substantially. Life as we know it is wiped out.',
     negligible_disturbed: 'Earth Loses Negligible Mass'
   }[effects.earth_effect];
 
@@ -111,6 +113,12 @@ export default function ImpactEffects({ effects, impactLat, impactLon, name }: I
           onClick={() => setActiveTab('seismic')}
         >
           Seismic
+        </button>
+        <button
+          className={`${styles.tab} ${activeTab === 'effects_on_life' ? styles.active : ''}`}
+          onClick={() => setActiveTab('effects_on_life')}
+        >
+          Effects on Life
         </button>
       </div>
 
@@ -304,6 +312,35 @@ export default function ImpactEffects({ effects, impactLat, impactLon, name }: I
               </div>
             )}
             <Link href="/meteors/formulas?category=seismic" className={styles.scienceButton}>
+              🧪 Check the Science
+            </Link>
+          </div>
+        )}
+
+        {activeTab === 'effects_on_life' && (
+          <div className={styles.section}>
+            <div className={styles.sectionInfo}>
+              The ultimate highest concern
+            </div>
+            {effects.deathCount && (
+              <div className={styles.dataRow}>
+                <span className={styles.label}>Mortality Estimate</span>
+                <span className={styles.value}>{effects.deathCount}</span>
+              </div>
+            )}
+            {effects.injuryCount && (
+              <div className={styles.dataRow}>
+                <span className={styles.label}>Injury Estimate</span>
+                <span className={styles.value}>{formatDistance(effects.injuryCount)}</span>
+              </div>
+            )}
+            <div className={styles.sectionInfo}>
+              {(
+                <span>This Approximation is based on regional population density and the hazardous effects of meteroid strike</span>
+              )
+              }
+            </div>
+            <Link href="/meteors/formulas?category=mortality" className={styles.scienceButton}>
               🧪 Check the Science
             </Link>
           </div>
