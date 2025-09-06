@@ -80,7 +80,7 @@
 }
 
 .effectsPanel.collapsed {
-  transform: translateX(calc(100% - 10px));
+  transform: translateX(calc(100% + 5px));
 }
 
 .toggleButton {
