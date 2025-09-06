@@ -7,7 +7,7 @@ import { OrbitControls, Html, Stars } from '@react-three/drei';
 import EarthImpact from './EarthImpact';
 import ImpactEffects from './ImpactEffects';
 import styles from './MeteorImpactPage.module.css';
-import { Damage_Inputs, Damage_Results, computeImpactEffects } from './DamageValues';
+import { Damage_Inputs, computeImpactEffects, estimateAsteroidDeaths } from './DamageValues';
 
 // NEW: styles outside Canvas
 import ImpactStyles from './styles/ImpactStyles';
@@ -32,34 +32,6 @@ type EffectsState = {
   labels: boolean;
 };
 
-const defaultDamage: Damage_Results = {
-  E_J: 0,
-  E_Mt: 0,
-  Tre_years: 0,
-  m_kg: 0,
-  zb_breakup: 0,
-  airburst: false,
-  v_impact_for_crater: 0,
-  Rf_m: null,
-  r_clothing_m: 0,
-  r_2nd_burn_m: 0,
-  r_3rd_burn_m: 0,
-  Dtc_m: null,
-  dtc_m: null,
-  Dfr_m: null,
-  dfr_m: null,
-  Vtc_km3: null,
-  Vtc_over_Ve: null,
-  earth_effect: 'negligible_disturbed',
-  M: null,
-  radius_M_ge_7_5_m: null,
-  airblast_radius_building_collapse_m: null,
-  airblast_radius_glass_shatter_m: null,
-  airblast_peak_overpressure: null,
-  deathCount: 0,
-  injuryCount: 0
-};
-
 const IMPACT_TIME = 0.40;
 
 const formatAsteroidName = (id: string): string =>
@@ -70,7 +42,7 @@ export default function MeteorImpactPage({ meteor }: { meteor: Meteor }) {
   const [impactLon, setImpactLon] = useState(79.47);
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(true);
-  const [damage, setDamage] = useState<Damage_Results>(defaultDamage);
+  const [mortality, setMortality] = useState<{deathCount: number; injuryCount: number} | null>(null);
 
 
   const [effects, setEffects] = useState<EffectsState>({
@@ -93,17 +65,20 @@ export default function MeteorImpactPage({ meteor }: { meteor: Meteor }) {
     longitude: impactLon,
   };
 
+
   const typedName = formatAsteroidName(meteor.name);
+  const damage = useMemo(() => computeImpactEffects(inputs), [inputs]);
+
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      const result = await computeImpactEffects(inputs);
-      if (!cancelled) setDamage(result);
+      const result = await estimateAsteroidDeaths(impactLat, impactLon, damage.r_clothing_m, damage.Dtc_m || 0, damage.r_2nd_burn_m, damage.earth_effect, damage.radius_M_ge_7_5_m || 0);
+      if (!cancelled) setMortality(result);
     })();
 
     return () => { cancelled = true; }; // cleanup if inputs change or component unmounts
-  }, [inputs]);
+  }, [inputs, impactLat, impactLon]);
 
   const toggles: ReadonlyArray<[keyof EffectsState, string]> = [
     ['fireball', 'Fireball Flash'],
@@ -198,7 +173,7 @@ export default function MeteorImpactPage({ meteor }: { meteor: Meteor }) {
 
       {/* RIGHT HUD */}
       <div className={styles.hud}>
-        <ImpactEffects effects={damage} impactLat={impactLat} impactLon={impactLon} name={meteor.name} />
+        <ImpactEffects effects={damage} mortality={mortality} impactLat={impactLat} impactLon={impactLon} name={meteor.name} />
       </div>
 
       {/* 3D CANVAS */}

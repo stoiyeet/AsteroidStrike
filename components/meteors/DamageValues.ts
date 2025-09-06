@@ -40,8 +40,6 @@ export type Damage_Results = {
   airblast_radius_building_collapse_m: number | null; // p=42600 Pa
   airblast_radius_glass_shatter_m: number | null; // p=6900 Pa
   airblast_peak_overpressure: number | null;
-  deathCount: number | null,
-  injuryCount: number | null
 };
 
 // Constants
@@ -420,7 +418,7 @@ async function populationDensityAt(
 }
 
 
-async function estimateAsteroidDeaths(
+export async function estimateAsteroidDeaths(
   lat: number,
   lon: number,
   r_clothing_m: number,
@@ -473,7 +471,7 @@ async function estimateAsteroidDeaths(
 
 
 
-export async function computeImpactEffects(inputs: Damage_Inputs): Promise<Damage_Results> {
+export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
   const { L0, rho_i, v0, theta_deg, is_water, mass, latitude, longitude } = inputs;
   const K = inputs.K ?? DEFAULTS.K;
   const Cd = inputs.Cd ?? DEFAULTS.Cd;
@@ -526,10 +524,6 @@ export async function computeImpactEffects(inputs: Damage_Inputs): Promise<Damag
   const peakoverpressure =  peakOverpressureAtR(Dtc || L0*1.1, E_Mt, zb);
 
 
-  const {deathCount, injuryCount} = await estimateAsteroidDeaths(latitude || 44.6, longitude || 79.4, burns.clothing, Dtc || 0, burns.second, effect, radius_m || 0)
-
-
-
   const results: Damage_Results = {
     E_J,
     E_Mt,
@@ -554,8 +548,6 @@ export async function computeImpactEffects(inputs: Damage_Inputs): Promise<Damag
     airblast_radius_building_collapse_m: r_building,
     airblast_radius_glass_shatter_m: r_glass,
     airblast_peak_overpressure: peakoverpressure,
-    deathCount,
-    injuryCount
   };
 
   return results;
