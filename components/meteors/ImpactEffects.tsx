@@ -24,6 +24,14 @@ function formatOverPressure(pascals: number | null): string {
     return `${pascals.toFixed(1)} Pa`;
 }
 
+function formatPopulation(pop: number | null): string {
+  if (pop === null) return 'Waiting for results';
+  if (pop > 1e9) return `${(pop / 1e9).toFixed(2)} Billion`;
+  if (pop > 1e6) return `${(pop / 1e6).toFixed(2)} Million`;
+  if (pop > 1000) return `${(pop / 1000).toFixed(2)} Thousand`;
+  return `${(pop)}`;
+}
+
 interface ImpactEffectsProps {
   effects: {
     E_J: number;
@@ -190,7 +198,7 @@ export default function ImpactEffects({ effects, impactLat, impactLon, name }: I
                 <span className={styles.value}>{formatDistance(effects.r_clothing_m)}</span>
               </div>
             )}
-            {effects.Rf_m && effects.Rf_m >= 1500 && (
+            {effects.Rf_m && effects.r_2nd_burn_m >= 1500000 && (
               <div className={styles.dataRow}>
                 <span className={styles.label} style={{ color: '#d34646ff' }}>Due to the curvature of the earth, the fireball cannot exceed a max of about 1500km in radius at sea level*</span>
               </div>
@@ -325,13 +333,13 @@ export default function ImpactEffects({ effects, impactLat, impactLon, name }: I
             {effects.deathCount && (
               <div className={styles.dataRow}>
                 <span className={styles.label}>Mortality Estimate</span>
-                <span className={styles.value}>{effects.deathCount}</span>
+                <span className={styles.value}>{formatPopulation(effects.deathCount)} 💀</span>
               </div>
             )}
             {effects.injuryCount && (
               <div className={styles.dataRow}>
                 <span className={styles.label}>Injury Estimate</span>
-                <span className={styles.value}>{formatDistance(effects.injuryCount)}</span>
+                <span className={styles.value}>{formatPopulation(effects.injuryCount)} 🤕</span>
               </div>
             )}
             <div className={styles.sectionInfo}>
