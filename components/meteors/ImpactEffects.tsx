@@ -1,7 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
 import styles from './ImpactEffects.module.css';
-import { isNullOrUndefined } from 'node:util';
 
 // Helper function to format distances
 function formatDistance(meters: number | null): string {
@@ -60,8 +59,8 @@ interface ImpactEffectsProps {
     airblast_peak_overpressure: number | null;
   };
   mortality: {
-    deathCount: number;
-    injuryCount: number;
+    deathCount: number | undefined;
+    injuryCount: number | undefined;
   } | null;
   impactLat: number;
   impactLon: number;

@@ -9,7 +9,7 @@ import { GLTF } from 'three-stdlib';
 import { getGlbFile } from './asteroidGLB';
 import AsteroidExplosion from './AsteroidExplosion';
 import Earth from "@/components/Earth";
-import { Damage_Results } from './DamageValues';
+import { Damage_Results } from './DamageValuesOptimized';
 import { computeWaveRadii } from './utils/waveRadii';
 
 type Meteor = {

@@ -496,7 +496,7 @@ export async function estimateAsteroidDeaths(
 
   const scaledPop = (area_km2: number) =>
     area_km2 * GLOBAL_AVG_DENSITY +
-    LOCAL_SAMPLE_AREA * (localDensity - GLOBAL_AVG_DENSITY);
+    (area_km2 > LOCAL_SAMPLE_AREA? LOCAL_SAMPLE_AREA * (localDensity - GLOBAL_AVG_DENSITY): 0);
 
   const certainRadius_km = Math.max(r_clothing_m, Dtc_m) / 1000;
   const certainArea_km2 = Math.PI * certainRadius_km ** 2;
