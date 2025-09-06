@@ -1,3 +1,4 @@
+// Optimized version of DamageValues.ts with performance improvements
 // impact_effects.ts
 // Functions extracted from study at https://impact.ese.ic.ac.uk/ImpactEarth/ImpactEffects/effects.pdf
 
@@ -59,6 +60,13 @@ const DEFAULTS = {
   rho_air_for_wind: 1.2,
   burn_horizon_m: 1_500_000, // 1500 km cap
 };
+
+// Add caching for API results
+const populationCache = new Map<string, { density: number; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Add request deduplication
+const pendingRequests = new Map<string, Promise<number>>();
 
 // energy and mass
 export function energyFromDiameter(m: number, v0: number) {
@@ -343,8 +351,8 @@ interface WorldPopResponse {
 
 async function fetchWithRetry<T>(
   url: string,
-  maxRetries = 5,
-  intervalMs = 4000
+  maxRetries = 3, // Reduced from 5
+  intervalMs = 2000 // Reduced from 4000
 ): Promise<T> {
   let lastErr: any;
 
@@ -365,59 +373,91 @@ async function fetchWithRetry<T>(
   throw lastErr ?? new Error("Unknown fetch error"); 
 }
 
-
+// Optimized population density function with caching and deduplication
 async function populationDensityAt(
   lat: number,
   lon: number,
   kmSide = 300,
-  maxRetries = 5,
-  intervalMs = 4000
+  maxRetries = 3, // Reduced from 5
+  intervalMs = 2000 // Reduced from 4000
 ): Promise<number> {
-  const degLat = kmSide / 111;
-  const degLon = kmSide / (111 * Math.cos((lat * Math.PI) / 180));
-
-  const geojson = {
-    type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        properties: {},
-        geometry: {
-          type: "Polygon",
-          coordinates: [[
-            [lon - degLon / 2, lat + degLat / 2],
-            [lon - degLon / 2, lat - degLat / 2],
-            [lon + degLon / 2, lat - degLat / 2],
-            [lon + degLon / 2, lat + degLat / 2],
-            [lon - degLon / 2, lat + degLat / 2]
-          ]]
-        }
-      }
-    ]
-  };
-
-  const url = `https://api.worldpop.org/v1/services/stats?dataset=wpgppop&year=2020&geojson=${encodeURIComponent(JSON.stringify(geojson))}`;
-
-  const data: WorldPopTaskResponse = await fetchWithRetry<WorldPopTaskResponse>(url, maxRetries, intervalMs);
-  if (data.error_message) return 0;
-
-  const populationUrl = `https://api.worldpop.org/v1/tasks/${data.taskid}`;
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const popData = await fetchWithRetry<WorldPopResponse>(populationUrl, 3, intervalMs);
-    if (popData.status === "finished") {
-      return popData.data.total_population / (kmSide * kmSide);
-    } else if (popData.status === "failed" || popData.error_message) {
-      return 0;
-    }
-    // wait before next attempt
-    await new Promise(resolve => setTimeout(resolve, intervalMs));
+  // Create cache key
+  const cacheKey = `${lat.toFixed(2)},${lon.toFixed(2)},${kmSide}`;
+  
+  // Check cache first
+  const cached = populationCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.density;
   }
 
-  throw new Error("Task did not finish within time limit");
+  // Check if request is already pending
+  if (pendingRequests.has(cacheKey)) {
+    return pendingRequests.get(cacheKey)!;
+  }
+
+  // Create new request
+  const requestPromise = (async () => {
+    try {
+      const degLat = kmSide / 111;
+      const degLon = kmSide / (111 * Math.cos((lat * Math.PI) / 180));
+
+      const geojson = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "Polygon",
+              coordinates: [[
+                [lon - degLon / 2, lat + degLat / 2],
+                [lon - degLon / 2, lat - degLat / 2],
+                [lon + degLon / 2, lat - degLat / 2],
+                [lon + degLon / 2, lat + degLat / 2],
+                [lon - degLon / 2, lat + degLat / 2]
+              ]]
+            }
+          }
+        ]
+      };
+
+      const url = `https://api.worldpop.org/v1/services/stats?dataset=wpgppop&year=2020&geojson=${encodeURIComponent(JSON.stringify(geojson))}`;
+
+      const data: WorldPopTaskResponse = await fetchWithRetry<WorldPopTaskResponse>(url, maxRetries, intervalMs);
+      if (data.error_message) return GLOBAL_AVG_DENSITY;
+
+      const populationUrl = `https://api.worldpop.org/v1/tasks/${data.taskid}`;
+
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const popData = await fetchWithRetry<WorldPopResponse>(populationUrl, 2, intervalMs);
+        if (popData.status === "finished") {
+          const density = popData.data.total_population / (kmSide * kmSide);
+          
+          // Cache the result
+          populationCache.set(cacheKey, { density, timestamp: Date.now() });
+          
+          return density;
+        } else if (popData.status === "failed" || popData.error_message) {
+          return GLOBAL_AVG_DENSITY;
+        }
+        // wait before next attempt
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+
+      return GLOBAL_AVG_DENSITY;
+    } finally {
+      // Remove from pending requests
+      pendingRequests.delete(cacheKey);
+    }
+  })();
+
+  // Store pending request
+  pendingRequests.set(cacheKey, requestPromise);
+  
+  return requestPromise;
 }
 
-
+// Add AbortController support for cancelling requests
 export async function estimateAsteroidDeaths(
   lat: number,
   lon: number,
@@ -425,17 +465,32 @@ export async function estimateAsteroidDeaths(
   Dtc_m: number,
   r_2nd_burn_m: number,
   earth_effect: string,
-  BadEarthquake: number
+  BadEarthquake: number,
+  signal?: AbortSignal // Add abort signal support
 ): Promise<{ deathCount: number; injuryCount: number }> {
 
+  // Early return for global catastrophes - no API call needed
   if (earth_effect === "destroyed" || earth_effect === "strongly_disturbed") {
     return { deathCount: GLOBAL_POP, injuryCount: 0 };
+  }
+
+  // Check if request was cancelled
+  if (signal?.aborted) {
+    throw new Error('Request cancelled');
   }
 
   let localDensity: number;
   try {
     localDensity = await populationDensityAt(lat, lon, 300);
-  } catch {
+    
+    // Check again if request was cancelled after API call
+    if (signal?.aborted) {
+      throw new Error('Request cancelled');
+    }
+  } catch (error) {
+    if (signal?.aborted) {
+      throw error;
+    }
     localDensity = GLOBAL_AVG_DENSITY;
   }
 
@@ -467,9 +522,6 @@ export async function estimateAsteroidDeaths(
     deathCount: Math.round(total),
   };
 }
-
-
-
 
 export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
   const { L0, rho_i, v0, theta_deg, is_water, mass, latitude, longitude } = inputs;
@@ -507,7 +559,7 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
   if (!airburst) {
     const crater = transientCrater(L0, rho_i, v_i, theta_rad, is_water);
     Dtc = crater.Dtc; dtc = crater.dtc; Dfr = crater.Dfr; dfr = crater.dfr;
-    const vol = craterVolumeAndEffect(Dtc);
+  const vol = craterVolumeAndEffect(Dtc);
     Vtc_km3 = Math.min(vol.Vtc_km3,VE_KM3) ; ratio = vol.ratio; effect = vol.effect;
   }
 

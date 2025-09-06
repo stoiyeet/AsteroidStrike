@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import MeteorImpactPage from '@/components/meteors/MeteorImpactPage';
+import MeteorImpactPageOptimized from '@/components/meteors/MeteorImpactPageOptimized';
 
 export default function ImpactPage() {
   const params = useSearchParams();
@@ -16,5 +16,5 @@ export default function ImpactPage() {
           // default selection id from list page
 
   const meteor = { name, mass, diameter, speed, angle, density, isCustom };
-  return <MeteorImpactPage meteor={meteor} />;
+  return <MeteorImpactPageOptimized meteor={meteor} />;
 }

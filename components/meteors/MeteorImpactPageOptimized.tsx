@@ -1,13 +1,13 @@
 'use client';
 import * as THREE from 'three';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Html, Stars } from '@react-three/drei';
 import EarthImpact from './EarthImpact';
 import ImpactEffects from './ImpactEffects';
 import styles from './MeteorImpactPage.module.css';
-import { Damage_Inputs, computeImpactEffects, estimateAsteroidDeaths } from './DamageValues';
+import { Damage_Inputs, computeImpactEffects, estimateAsteroidDeaths } from './DamageValuesOptimized';
 
 // NEW: styles outside Canvas
 import ImpactStyles from './styles/ImpactStyles';
@@ -37,13 +37,16 @@ const IMPACT_TIME = 0.40;
 const formatAsteroidName = (id: string): string =>
   (id || 'Demo Meteor').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
-export default function MeteorImpactPage({ meteor }: { meteor: Meteor }) {
+export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }) {
   const [impactLat, setImpactLat] = useState(44.60);
   const [impactLon, setImpactLon] = useState(79.47);
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [mortality, setMortality] = useState<{deathCount: number; injuryCount: number} | null>(null);
+  const [mortalityLoading, setMortalityLoading] = useState(false);
 
+  // Add AbortController ref for cancelling requests
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const [effects, setEffects] = useState<EffectsState>({
     fireball: true,
@@ -55,7 +58,7 @@ export default function MeteorImpactPage({ meteor }: { meteor: Meteor }) {
     labels: false,
   });
 
-  const inputs: Damage_Inputs = {
+  const inputs: Damage_Inputs = useMemo(() => ({
     mass: meteor.mass,
     L0: meteor.diameter,
     rho_i: meteor.density,
@@ -63,22 +66,79 @@ export default function MeteorImpactPage({ meteor }: { meteor: Meteor }) {
     theta_deg: meteor.angle,
     latitude: impactLat,
     longitude: impactLon,
-  };
-
+  }), [meteor.mass, meteor.diameter, meteor.density, meteor.speed, meteor.angle, impactLat, impactLon]);
 
   const typedName = formatAsteroidName(meteor.name);
   const damage = useMemo(() => computeImpactEffects(inputs), [inputs]);
 
+  // Debounced mortality calculation with AbortController
+  const calculateMortality = useCallback(async (
+    lat: number, 
+    lon: number, 
+    damageData: ReturnType<typeof computeImpactEffects>
+  ) => {
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Early return for global catastrophes - no API call needed
+    if (damageData.earth_effect === "destroyed" || damageData.earth_effect === "strongly_disturbed") {
+      setMortality({ deathCount: 8_250_000_000, injuryCount: 0 });
+      setMortalityLoading(false);
+      return;
+    }
+
+    // Create new AbortController
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setMortalityLoading(true);
+
+    try {
+      const result = await estimateAsteroidDeaths(
+        lat, 
+        lon, 
+        damageData.r_clothing_m, 
+        damageData.Dtc_m || 0, 
+        damageData.r_2nd_burn_m, 
+        damageData.earth_effect, 
+        damageData.radius_M_ge_7_5_m || 0,
+        controller.signal
+      );
+      
+      if (!controller.signal.aborted) {
+        setMortality(result);
+        setMortalityLoading(false);
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        console.warn('Mortality calculation failed:', error);
+        setMortality(null);
+        setMortalityLoading(false);
+      }
+    }
+  }, []);
+
+  // Debounced effect for mortality calculation
   useEffect(() => {
-    let cancelled = false;
+    const timeoutId = setTimeout(() => {
+      calculateMortality(impactLat, impactLon, damage);
+    }, 500); // 500ms debounce
 
-    (async () => {
-      const result = await estimateAsteroidDeaths(impactLat, impactLon, damage.r_clothing_m, damage.Dtc_m || 0, damage.r_2nd_burn_m, damage.earth_effect, damage.radius_M_ge_7_5_m || 0);
-      if (!cancelled) setMortality(result);
-    })();
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [impactLat, impactLon, damage, calculateMortality]);
 
-    return () => { cancelled = true; }; // cleanup if inputs change or component unmounts
-  }, [inputs, impactLat, impactLon]);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const toggles: ReadonlyArray<[keyof EffectsState, string]> = [
     ['fireball', 'Fireball Flash'],
@@ -113,14 +173,22 @@ export default function MeteorImpactPage({ meteor }: { meteor: Meteor }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [playing]);
+  }, [playing, meteor.speed]);
 
   useEffect(() => {
     if (t >= 1) setPlaying(false);
   }, [t]);
 
-  const handleToggle = (key: keyof EffectsState) =>
-    setEffects((prev) => ({ ...prev, [key]: !prev[key] }));
+  const handleToggle = useCallback((key: keyof EffectsState) =>
+    setEffects((prev) => ({ ...prev, [key]: !prev[key] })), []);
+
+  // Memoize the mortality data to prevent unnecessary re-renders
+  const mortalityData = useMemo(() => {
+    if (mortalityLoading) {
+      return { deathCount: undefined, injuryCount: undefined };
+    }
+    return mortality;
+  }, [mortality, mortalityLoading]);
 
   return (
     <div className={styles.container}>
@@ -169,11 +237,25 @@ export default function MeteorImpactPage({ meteor }: { meteor: Meteor }) {
           <div className={styles.statusTitle}>STATUS: {getTimelineStatus()}</div>
           <div className={styles.statusText}>Timeline: {(t * 100).toFixed(1)}%</div>
         </div>
+
+        {/* Add loading indicator for mortality calculation */}
+        {mortalityLoading && (
+          <div className={styles.statusBox} style={{ marginTop: 10 }}>
+            <div className={styles.statusTitle}>🔄 Calculating casualties...</div>
+            <div className={styles.statusText}>Fetching population data</div>
+          </div>
+        )}
       </div>
 
       {/* RIGHT HUD */}
       <div className={styles.hud}>
-        <ImpactEffects effects={damage} mortality={mortality} impactLat={impactLat} impactLon={impactLon} name={meteor.name} />
+        <ImpactEffects 
+          effects={damage} 
+          mortality={mortalityData} 
+          impactLat={impactLat} 
+          impactLon={impactLon} 
+          name={meteor.name} 
+        />
       </div>
 
       {/* 3D CANVAS */}
