@@ -351,6 +351,12 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
               )
               }
             </div>
+            <div className={styles.sectionInfo}>
+              {(
+                <span style={{ color: "#d34646ff" }}>This is a heuristic based approximation and can't consider effects like ejecta, airborne debris, or supply chain crash</span>
+              )
+              }
+            </div>
             <Link href="/meteors/formulas?category=mortality" className={styles.scienceButton}>
               🧪 Check the Science
             </Link>

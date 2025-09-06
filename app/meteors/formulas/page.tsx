@@ -146,6 +146,25 @@ export default function FormulasPage() {
           priority: "SECONDARY"
         }
       ]
+    },
+    mortality: {
+      title: "Effect on Life",
+      subtitle: "Global and Localised human impact predictions",
+      debrief: "This section presents the heuristics and reasoning being estimating loss of life and injury from sever asteroid impact",
+      equations: [
+        {
+          "title": "Population within Bounding Square",
+          "equation": "density = \\frac{population_{square}}{s^2}, \\quad population_{outside} = 50 \\text{ people/km}^2",
+          "description": "The bounding square is defined with center at the impact latitude and longitude, and side length s. The square's corners are latitude ± s/2 and longitude ± s/2. Population inside the square is retrieved via API, and density is computed as total population divided by s². For effects outside the bounding square, we approximate a global average density of 50 people/km² to account for water and sparsely populated regions.",
+          "priority": "PRIMARY"
+        },
+        {
+          "title": "Mortality and Injury Heuristic",
+          "equation": "mortality = \\max(R_{clothes}, R_{crater}) \\cdot density + 0.8 \\cdot R_{2nd\\ degree} - 0.8 \\cdot R_{certain}, \\quad injury = \\mathbf{1}_{M \\ge 7.5} \\cdot density",
+          "description": "Mortality is estimated using the maximum radius of the clothes ignition area and transient crater area, plus 0.8 times the area affected by second-degree burns, minus 0.8 times the certain death area to avoid double counting. Injury is approximated as density multiplied by an indicator for earthquakes with magnitude ≥ 7.5.",
+          "priority": "PRIMARY"
+        }
+      ]
     }
   };
 

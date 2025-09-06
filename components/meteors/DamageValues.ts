@@ -47,7 +47,7 @@ const MT_TO_J = 4.184e15;
 const G = 9.81;
 const VE_KM3 = 1.083e12; // Earth's volume km^3 for comparison
 const GLOBAL_POP = 8_250_000_000;
-const GLOBAL_AVG_DENSITY = 61;
+const GLOBAL_AVG_DENSITY = 50;
 const LOCAL_SAMPLE_AREA = 90_000; // About max area that API can get loalized aread
 
 const DEFAULTS = {
