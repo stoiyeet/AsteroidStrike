@@ -344,26 +344,36 @@ interface WorldPopResponse {
 }
 
 
-async function fetchWithRetry<T>(
+function fetchWithRetry<T>(
   url: string,
   maxRetries = 5,
   intervalMs = 4000
 ): Promise<T> {
+  let attempt = 0;
   let lastErr: any;
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return (await res.json()) as T;
-    } catch (err) {
-      lastErr = err;
-      await new Promise(r => setTimeout(r, intervalMs));
-    }
+
+  function tryFetch(resolve: (v: T) => void, reject: (e: any) => void) {
+    fetch(url)
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json() as Promise<T>;
+      })
+      .then(resolve)
+      .catch(err => {
+        lastErr = err;
+        attempt++;
+        if (attempt < maxRetries) {
+          setTimeout(() => tryFetch(resolve, reject), intervalMs);
+        } else {
+          reject(lastErr ?? new Error("Unknown fetch error"));
+        }
+      });
   }
-  throw lastErr ?? new Error("Unknown fetch error");
+
+  return new Promise(tryFetch);
 }
 
-async function populationDensityAt(
+function populationDensityAt(
   lat: number,
   lon: number,
   kmSide = 300,
@@ -373,7 +383,6 @@ async function populationDensityAt(
   const degLat = kmSide / 111;
   const degLon = kmSide / (111 * Math.cos((lat * Math.PI) / 180));
 
-  // square polygon
   const geojson = {
     type: "FeatureCollection",
     features: [
@@ -396,100 +405,81 @@ async function populationDensityAt(
 
   const url = `https://api.worldpop.org/v1/services/stats?dataset=wpgppop&year=2020&geojson=${encodeURIComponent(JSON.stringify(geojson))}`;
 
-  // retry initial stats call
-  const data = await fetchWithRetry<WorldPopTaskResponse>(url, maxRetries, intervalMs);
-  if (data.error_message) return 0; // Probably just got rate limited
+  return fetchWithRetry<WorldPopTaskResponse>(url, maxRetries, intervalMs)
+    .then(data => {
+      if (data.error_message) return 0;
+      const populationUrl = `https://api.worldpop.org/v1/tasks/${data.taskid}`;
 
-  const populationUrl = `https://api.worldpop.org/v1/tasks/${data.taskid}`;
+      function pollTask(resolve: (v: number) => void, reject: (e: any) => void, attempts = 0) {
+        fetchWithRetry<WorldPopResponse>(populationUrl, 3, intervalMs)
+          .then(popData => {
+            if (popData.status === "finished") {
+              resolve(popData.data.total_population / (kmSide * kmSide));
+            } else if (popData.status === "failed" || popData.error_message) {
+              resolve(0);
+            } else if (attempts + 1 < maxRetries) {
+              setTimeout(() => pollTask(resolve, reject, attempts + 1), intervalMs);
+            } else {
+              reject(new Error("Task did not finish within time limit"));
+            }
+          })
+          .catch(err => reject(err));
+      }
 
-  // poll task until finished or failed
-  for (let i = 0; i < maxRetries; i++) {
-    const popData = await fetchWithRetry<WorldPopResponse>(populationUrl, 3, intervalMs);
-    if (popData.status === "finished") {
-      return popData.data.total_population / (kmSide * kmSide);
-    }
-    if (popData.status === "failed" || popData.error_message) {
-      return 0; // Probably just rate limited
-    }
-    await new Promise(r => setTimeout(r, intervalMs));
-  }
-
-  throw new Error("Task did not finish within time limit");
+      return new Promise<number>((resolve, reject) => pollTask(resolve, reject));
+    });
 }
 
-async function estimateAsteroidDeaths(
+function estimateAsteroidDeaths(
   lat: number,
   lon: number,
-  r_clothing_m: number,  // clothing ignition radius
-  Dtc_m: number,         // transient crater radius
-  r_2nd_burn_m: number,   // 2nd-degree burn radius
+  r_clothing_m: number,
+  Dtc_m: number,
+  r_2nd_burn_m: number,
   earth_effect: string,
   BadEarthquake: number
-
-) {
-  // global override first
-  if (
-    earth_effect === "destroyed" ||
-    earth_effect === "strongly_disturbed"
-  ) {
-    return {
-      deathCount: GLOBAL_POP,
-      injuryCount: 0,
-    };
+): Promise<{ deathCount: number; injuryCount: number }> {
+  if (earth_effect === "destroyed" || earth_effect === "strongly_disturbed") {
+    return Promise.resolve({ deathCount: GLOBAL_POP, injuryCount: 0 });
   }
 
-  // get density at impact point (for ~90,000 km² box)
-  let localDensity: number;
-  try {
-    localDensity = await populationDensityAt(lat, lon, 300);
-  } catch {
-    localDensity = GLOBAL_AVG_DENSITY; // fallback if API fails
-  }
+  return populationDensityAt(lat, lon, 300)
+    .catch(() => GLOBAL_AVG_DENSITY)
+    .then(localDensity => {
+      const scaledPop = (area_km2: number) =>
+        area_km2 * GLOBAL_AVG_DENSITY +
+        LOCAL_SAMPLE_AREA * (localDensity - GLOBAL_AVG_DENSITY);
 
-  // Effective density scaling
-  //  area * 61 + 90k*(localDensity - 61)
-  const scaledPop = (area_km2: number) =>
-    area_km2 * GLOBAL_AVG_DENSITY +
-    LOCAL_SAMPLE_AREA * (localDensity - GLOBAL_AVG_DENSITY);
+      const certainRadius_km = Math.max(r_clothing_m, Dtc_m) / 1000;
+      const certainArea_km2 = Math.PI * certainRadius_km ** 2;
+      const deathCount = scaledPop(certainArea_km2);
 
-  // certain-death zone = max of crater or ignition
-  const certainRadius_km = Math.max(
-    r_clothing_m,
-    Dtc_m
-  ) / 1000;
-  const certainArea_km2 = Math.PI * certainRadius_km ** 2;
-  const deathCount = scaledPop(certainArea_km2);
+      const burnRadius_km = r_2nd_burn_m / 1000;
+      let burnDeaths = 0;
+      let burnInjuries = 0;
+      if (burnRadius_km > certainRadius_km) {
+        const burnArea_km2 = Math.PI * (burnRadius_km ** 2 - certainRadius_km ** 2);
+        burnDeaths = 0.8 * scaledPop(burnArea_km2);
+        burnInjuries = scaledPop(burnArea_km2) - burnDeaths;
+      }
 
-  // burn-death zone = ring between certain radius and 2nd-degree burn radius
-  const burnRadius_km = r_2nd_burn_m / 1000;
-  let burnDeaths = 0;
-  let burnInjuries = 0;
-  if (burnRadius_km > certainRadius_km) {
-    const burnArea_km2 =
-      Math.PI * (burnRadius_km ** 2 - certainRadius_km ** 2);
-    burnDeaths = 0.8 * scaledPop(burnArea_km2);
-    burnInjuries = scaledPop(burnArea_km2) - burnDeaths
-  }
+      const earthQuakeArea = Math.PI * (BadEarthquake ** 2);
+      const earthQuakeInjuries = Math.max(scaledPop(earthQuakeArea) - deathCount, 0);
 
+      const total = Math.min(deathCount + burnDeaths, GLOBAL_POP);
+      const injuries = Math.min(burnInjuries + earthQuakeInjuries, GLOBAL_POP);
 
-  const earthQuakeArea = Math.PI*(BadEarthquake**2);
-  const earthQuakeInjuries = Math.max(scaledPop(earthQuakeArea) - deathCount, 0)
-
-
-
-  // cap at global population
-  const total = Math.min(deathCount + burnDeaths, GLOBAL_POP);
-  const injuries = Math.min(burnInjuries + earthQuakeInjuries, GLOBAL_POP);
-
-  return {
-    injuryCount: Math.round(injuries),
-    deathCount: Math.round(total)
-  };
+      return {
+        injuryCount: Math.round(injuries),
+        deathCount: Math.round(total),
+      };
+    });
 }
 
 
 
-export async function computeImpactEffects(inputs: Damage_Inputs): Promise<Damage_Results> {
+
+export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
   const { L0, rho_i, v0, theta_deg, is_water, mass, latitude, longitude } = inputs;
   const K = inputs.K ?? DEFAULTS.K;
   const Cd = inputs.Cd ?? DEFAULTS.Cd;
@@ -542,7 +532,14 @@ export async function computeImpactEffects(inputs: Damage_Inputs): Promise<Damag
   const peakoverpressure =  peakOverpressureAtR(Dtc || L0*1.1, E_Mt, zb);
 
 
-  const { deathCount, injuryCount } = await estimateAsteroidDeaths(latitude || 44.6, longitude || 79.4, burns.clothing, Dtc || 0, burns.second, effect, radius_m || 0);
+  let deathCount_var = 0;
+  let injuryCount_var = 0;
+
+
+  estimateAsteroidDeaths(latitude || 44.6, longitude || 79.4, burns.clothing, Dtc || 0, burns.second, effect, radius_m || 0).then(({ deathCount, injuryCount }) => {
+    deathCount_var = deathCount;
+    injuryCount_var = injuryCount;
+  });
 
 
   const results: Damage_Results = {
@@ -569,8 +566,8 @@ export async function computeImpactEffects(inputs: Damage_Inputs): Promise<Damag
     airblast_radius_building_collapse_m: r_building,
     airblast_radius_glass_shatter_m: r_glass,
     airblast_peak_overpressure: peakoverpressure,
-    deathCount,
-    injuryCount
+    deathCount: deathCount_var,
+    injuryCount: injuryCount_var
   };
 
   return results;
