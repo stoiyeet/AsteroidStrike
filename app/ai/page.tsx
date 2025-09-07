@@ -2,7 +2,8 @@
 import React, { useState } from "react";
 import SpaceScene from "@/components/SpaceScene";
 import ChatBot from "@/components/ChatBot";
-import { ChevronUp, ChevronDown, MessageSquare } from "lucide-react";
+import { ChevronUp, MessageSquare } from "lucide-react";
+import Image from "next/image";
 
 /* ---------------------------- Types ---------------------------- */
 type EffectKey =
@@ -73,7 +74,7 @@ const Page: React.FC = () => {
             </div>
           </div>
 
-          {/* Manual Mitigation Controls (enforce single-effect) */}
+          {/* Manual Mitigation Controls (single-effect) */}
           <div className="absolute bottom-4 left-4 z-20">
             <details className="bg-gray-900/80 backdrop-blur-md rounded-xl border border-gray-700 w-56">
               <summary className="cursor-pointer px-3 py-2 text-sm font-semibold flex items-center justify-between">
@@ -94,11 +95,16 @@ const Page: React.FC = () => {
                       <span className="text-lg">{icon}</span>
                       <span className="font-medium">{label}</span>
                     </div>
-                    <img
-                      src={`/images/${key}.jpg`}
-                      alt={label}
-                      className="w-full h-20 object-cover rounded-md border border-gray-600"
-                    />
+                    <div className="relative w-full h-20">
+                      <Image
+                        src={`/images/${key}.jpg`}
+                        alt={label}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 224px"
+                        className="rounded-md border border-gray-600 object-cover"
+                        priority={false}
+                      />
+                    </div>
                     <p className="text-xs text-gray-300">{description}.</p>
                     <button
                       onClick={() => setSingleEffect(key as EffectKey)}
@@ -113,7 +119,7 @@ const Page: React.FC = () => {
                   onClick={() => setSingleEffect(null)}
                   className="w-full mt-2 bg-gray-700 hover:bg-gray-600 text-xs px-3 py-2 rounded-md"
                 >
-                  -- complete --
+                  Complete
                 </button>
               </div>
             </details>

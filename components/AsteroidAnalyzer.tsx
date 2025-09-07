@@ -1,19 +1,16 @@
-// components/AsteroidAnalyzer.tsx
-'use client';
-
 import React, { useState, useEffect } from 'react';
-import { X, Zap, Info, AlertTriangle, Target } from 'lucide-react';
+import { X, Info, AlertTriangle, Target } from 'lucide-react';
 import * as THREE from 'three';
 
 interface AsteroidAnalyzerProps {
   isActive: boolean;
-  asteroidPosition: THREE.Vector3; // not used in this DOM HUD, but kept for future use
+  asteroidPosition: THREE.Vector3; // kept for API, not used yet
   onComplete: () => void;
 }
 
 const AsteroidAnalyzer: React.FC<AsteroidAnalyzerProps> = ({
   isActive,
-  asteroidPosition,
+  asteroidPosition: _asteroidPosition,
   onComplete,
 }) => {
   const [showHUD, setShowHUD] = useState(false);
@@ -24,13 +21,14 @@ const AsteroidAnalyzer: React.FC<AsteroidAnalyzerProps> = ({
     if (isActive && !isScanning && !showHUD) {
       startScan();
     }
-  }, [isActive]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, isScanning, showHUD]);
 
   const startScan = () => {
     setIsScanning(true);
     setScanProgress(0);
 
-    const scanDuration = 3000; // 3 seconds
+    const scanDuration = 3000;
     const startTime = Date.now();
 
     const updateProgress = () => {

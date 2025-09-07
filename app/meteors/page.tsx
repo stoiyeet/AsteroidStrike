@@ -563,7 +563,7 @@ const info = asteroidInfo[selected as keyof typeof asteroidInfo];
               className={styles.launchButton}
               onClick={() => {
                 // Parse size from km to meters
-                let sizeMeters = parseSize(info.size || '0') * 1000;
+const sizeMeters = parseSize(info.size || '0') * 1000;
                 // Parse weight
                 let weight_kg = parseWeight(info.weight || '0');
                 // If either is 0, try to estimate from the other
