@@ -1,6 +1,8 @@
 // Optimized version of DamageValues.ts with performance improvements
 // impact_effects.ts
 // Functions extracted from study at https://impact.ese.ic.ac.uk/ImpactEarth/ImpactEffects/effects.pdf
+import { number } from "framer-motion";
+import { fromUrl, GeoTIFF, GeoTIFFImage } from "geotiff";
 
 export type Damage_Inputs = {
   mass: number; // kg
@@ -48,7 +50,7 @@ const MT_TO_J = 4.184e15;
 const G = 9.81;
 const VE_KM3 = 1.083e12; // Earth's volume km^3 for comparison
 const GLOBAL_POP = 8_250_000_000;
-const GLOBAL_AVG_DENSITY = 50;
+const GLOBAL_AVERAGE_DENSITY = 50;
 const LOCAL_SAMPLE_AREA = 90_000; // About max area that API can get loalized aread
 
 const DEFAULTS = {
@@ -373,88 +375,81 @@ async function fetchWithRetry<T>(
   throw lastErr ?? new Error("Unknown fetch error"); 
 }
 
+let gpwTiff: GeoTIFF | null = null;
+let gpwImage: GeoTIFFImage | null = null;
+
+async function initGPW() {
+  if (!gpwTiff) {
+    gpwTiff = await fromUrl("/populationData/gpw_v4_population_density_2020_30_min.tif");
+    gpwImage = await gpwTiff.getImage();
+  }
+}
+
 // Optimized population density function with caching and deduplication
 async function populationDensityAt(
   lat: number,
   lon: number,
-  kmSide = 300,
-  maxRetries = 3, // Reduced from 5
-  intervalMs = 2000 // Reduced from 4000
+  kmSide = 300
 ): Promise<number> {
-  // Create cache key
+  await initGPW();
+
   const cacheKey = `${lat.toFixed(2)},${lon.toFixed(2)},${kmSide}`;
-  
-  // Check cache first
   const cached = populationCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
     return cached.density;
   }
 
-  // Check if request is already pending
-  if (pendingRequests.has(cacheKey)) {
-    return pendingRequests.get(cacheKey)!;
+  const degLat = kmSide / 111;
+  const degLon = kmSide / (111 * Math.cos((lat * Math.PI) / 180));
+
+  const minLon = lon - degLon / 2;
+  const maxLon = lon + degLon / 2;
+  const minLat = lat - degLat / 2;
+  const maxLat = lat + degLat / 2;
+
+  const tiepoint = gpwImage?.getTiePoints()[0];        // top-left corner
+  const pixelScale = gpwImage?.getFileDirectory().ModelPixelScale; // [scaleX, scaleY, scaleZ]
+
+  const lonOrigin = tiepoint.x;
+  const latOrigin = tiepoint.y;
+  const scaleX = pixelScale[0];
+  const scaleY = pixelScale[1]; // usually positive, Y decreases downward
+
+  function latLonToPixel(lon: number, lat: number): [number, number] {
+    const x = (lon - lonOrigin) / scaleX;
+    const y = (latOrigin - lat) / scaleY; // flip Y
+    return [x, y];
   }
 
-  // Create new request
-  const requestPromise = (async () => {
-    try {
-      const degLat = kmSide / 111;
-      const degLon = kmSide / (111 * Math.cos((lat * Math.PI) / 180));
+  // Convert to pixel window
+  const [minX, minY] = latLonToPixel(minLon, maxLat) // note Y flipped
+  const [maxX, maxY] = latLonToPixel(maxLon, minLat)
 
-      const geojson = {
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "Polygon",
-              coordinates: [[
-                [lon - degLon / 2, lat + degLat / 2],
-                [lon - degLon / 2, lat - degLat / 2],
-                [lon + degLon / 2, lat - degLat / 2],
-                [lon + degLon / 2, lat + degLat / 2],
-                [lon - degLon / 2, lat + degLat / 2]
-              ]]
-            }
-          }
-        ]
-      };
+  const window = [
+    Math.floor(minX),
+    Math.floor(minY),
+    Math.ceil(maxX),
+    Math.ceil(maxY)
+  ];
 
-      const url = `https://api.worldpop.org/v1/services/stats?dataset=wpgppop&year=2020&geojson=${encodeURIComponent(JSON.stringify(geojson))}`;
+  const data = await gpwImage?.readRasters({ window });
+  const rasterValues = data?.[0] as number[] | Float32Array | Uint16Array;
+  const values: number[] = Array.from(rasterValues).filter((v: number) => v > 0); //filter out nodata
+  if (values.length === 0) return 0;
 
-      const data: WorldPopTaskResponse = await fetchWithRetry<WorldPopTaskResponse>(url, maxRetries, intervalMs);
-      if (data.error_message) return GLOBAL_AVG_DENSITY;
+  const meanDensity = values.reduce((a, b) => a + b, 0) / values.length;
 
-      const populationUrl = `https://api.worldpop.org/v1/tasks/${data.taskid}`;
+  populationCache.set(cacheKey, { density: meanDensity, timestamp: Date.now() });
+  return meanDensity;
+}
 
-      for (let attempt = 0; attempt < maxRetries; attempt++) {
-        const popData = await fetchWithRetry<WorldPopResponse>(populationUrl, 2, intervalMs);
-        if (popData.status === "finished") {
-          const density = popData.data.total_population / (kmSide * kmSide);
-          
-          // Cache the result
-          populationCache.set(cacheKey, { density, timestamp: Date.now() });
-          
-          return density;
-        } else if (popData.status === "failed" || popData.error_message) {
-          return GLOBAL_AVG_DENSITY;
-        }
-        // wait before next attempt
-        await new Promise(resolve => setTimeout(resolve, intervalMs));
-      }
-
-      return GLOBAL_AVG_DENSITY;
-    } finally {
-      // Remove from pending requests
-      pendingRequests.delete(cacheKey);
-    }
-  })();
-
-  // Store pending request
-  pendingRequests.set(cacheKey, requestPromise);
-  
-  return requestPromise;
+function effectiveDensity(area_km2: number, localDensity: number) {
+  localDensity *= 5
+  const threshold = 150000; // km²
+  if (area_km2 <= threshold) return localDensity;
+  const weightLocal = threshold / area_km2;
+  const weightedDensity = weightLocal * localDensity + (1 - weightLocal) * GLOBAL_AVERAGE_DENSITY;
+  return Math.pow(weightedDensity, 0.5)*6
 }
 
 // Add AbortController support for cancelling requests
@@ -481,7 +476,7 @@ export async function estimateAsteroidDeaths(
 
   let localDensity: number;
   try {
-    localDensity = await populationDensityAt(lat, lon, 300);
+    localDensity = await populationDensityAt(lat, lon, 100);
     
     // Check again if request was cancelled after API call
     if (signal?.aborted) {
@@ -491,12 +486,11 @@ export async function estimateAsteroidDeaths(
     if (signal?.aborted) {
       throw error;
     }
-    localDensity = GLOBAL_AVG_DENSITY;
+    localDensity = 0;
   }
 
   const scaledPop = (area_km2: number) =>
-    area_km2 * GLOBAL_AVG_DENSITY +
-    (area_km2 > LOCAL_SAMPLE_AREA? LOCAL_SAMPLE_AREA * (localDensity - GLOBAL_AVG_DENSITY): 0);
+    area_km2 * effectiveDensity(area_km2, localDensity)
 
   const certainRadius_km = Math.max(r_clothing_m, Dtc_m) / 1000;
   const certainArea_km2 = Math.PI * certainRadius_km ** 2;
@@ -515,7 +509,7 @@ export async function estimateAsteroidDeaths(
   const earthQuakeInjuries = Math.max(scaledPop(earthQuakeArea) - deathCount, 0);
 
   const total = Math.min(deathCount + burnDeaths, GLOBAL_POP);
-  const injuries = Math.min(burnInjuries + earthQuakeInjuries, GLOBAL_POP);
+  const injuries = Math.min(burnInjuries + earthQuakeInjuries, (2*total));
 
   return {
     injuryCount: Math.round(injuries),
