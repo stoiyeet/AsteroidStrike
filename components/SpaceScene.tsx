@@ -33,6 +33,7 @@ type SpaceSceneProps = {
   followingAsteroid: boolean;
   asteroidClicked: boolean;
   onAsteroidClick: () => void;
+  onAnalysisComplete?: () => void;
 };
 
 // === Stationary Asteroid (with deflection offset) ===
@@ -365,6 +366,7 @@ const SpaceScene: React.FC<SpaceSceneProps> = ({
   followingAsteroid,
   asteroidClicked,
   onAsteroidClick,
+  onAnalysisComplete,
 }) => {
   return (
     <>
@@ -383,7 +385,7 @@ const SpaceScene: React.FC<SpaceSceneProps> = ({
       <AsteroidAnalyzer
         isActive={effects.analyze}
         asteroidPosition={new THREE.Vector3(35, 0, 0)} // replace with live position if needed
-        onComplete={() => console.log("Analysis complete")}
+        onComplete={onAnalysisComplete ?? (() => console.log("Analysis complete"))}
       />
     </>
   );
