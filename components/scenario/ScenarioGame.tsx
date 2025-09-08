@@ -47,6 +47,9 @@ const V_ESC_EARTH = 11_186;             // m/s
 const LASER_CM_N_PER_W = 3e-5;          // momentum coupling N/W (laser ablation, order-of-magnitude)
 const ION_THRUST_N_PER_KW = 5e-3;       // N per kW (ion beam shepherd, order-of-magnitude)
 const GEOM_FACTOR = 0.7;                // projection to b-plane effectiveness
+const AU_M = 1.496e11;                  // meters per AU
+const MU_SUN = 1.327e20;                // m^3/s^2 (gravitational parameter of Sun)
+const SECONDS_PER_DAY = 86400;
 
 function erfApprox(x: number): number {
   // Abramowitz–Stegun approximation
@@ -68,14 +71,99 @@ function massFromDiameterAndDensity(diameterM: number, rhoKgM3: number): number 
   return volume * rhoKgM3;
 }
 
+// Orbital mechanics functions
+function meanAnomalyFromTime(t_days: number, a_au: number): number {
+  const a_m = a_au * AU_M;
+  const n = Math.sqrt(MU_SUN / (a_m * a_m * a_m)); // mean motion rad/s
+  return n * t_days * SECONDS_PER_DAY; // radians
+}
+
+function eccentricAnomalyFromMean(M: number, e: number, tolerance = 1e-8): number {
+  // Newton-Raphson iteration to solve Kepler's equation: M = E - e*sin(E)
+  let E = M; // initial guess
+  for (let i = 0; i < 20; i++) {
+    const f = E - e * Math.sin(E) - M;
+    const fp = 1 - e * Math.cos(E);
+    const deltaE = -f / fp;
+    E += deltaE;
+    if (Math.abs(deltaE) < tolerance) break;
+  }
+  return E;
+}
+
+function trueAnomalyFromEccentric(E: number, e: number): number {
+  const cosNu = (Math.cos(E) - e) / (1 - e * Math.cos(E));
+  const sinNu = Math.sqrt(1 - e * e) * Math.sin(E) / (1 - e * Math.cos(E));
+  return Math.atan2(sinNu, cosNu);
+}
+
+function orbitalRadiusFromTrueAnomaly(nu: number, a_au: number, e: number): number {
+  const a_m = a_au * AU_M;
+  return a_m * (1 - e * e) / (1 + e * Math.cos(nu));
+}
+
+function orbitalVelocityFromRadius(r_m: number, a_au: number): number {
+  const a_m = a_au * AU_M;
+  return Math.sqrt(MU_SUN * (2 / r_m - 1 / a_m));
+}
+
+type TrajectoryState = {
+  distance_au: number;
+  distance_km: number;
+  velocity_mps: number;
+  trueAnomaly_deg: number;
+  timeToEncounter_days: number;
+  encounterVelocity_mps: number;
+};
+
+function computeTrajectoryState(scenario: Scenario, elapsedDays: number): TrajectoryState {
+  const totalTime = scenario.initialTimeRemainingDays;
+  const timeFromStart = elapsedDays;
+  const timeToEncounter = totalTime - timeFromStart;
+  
+  // Current mean anomaly (time runs backwards toward encounter)
+  const M0 = meanAnomalyFromTime(-totalTime, scenario.semiMajorAxis_au);
+  const M_current = M0 + meanAnomalyFromTime(timeFromStart, scenario.semiMajorAxis_au);
+  
+  // Solve for current position
+  const E = eccentricAnomalyFromMean(M_current, scenario.eccentricity);
+  const nu = trueAnomalyFromEccentric(E, scenario.eccentricity);
+  const r_m = orbitalRadiusFromRadius(nu, scenario.semiMajorAxis_au, scenario.eccentricity);
+  const v_mps = orbitalVelocityFromRadius(r_m, scenario.semiMajorAxis_au);
+  
+  // At encounter, compute hyperbolic excess velocity
+  const encounterV = Math.sqrt(scenario.vInfMps * scenario.vInfMps + V_ESC_EARTH * V_ESC_EARTH);
+  
+  return {
+    distance_au: r_m / AU_M,
+    distance_km: r_m / 1000,
+    velocity_mps: v_mps,
+    trueAnomaly_deg: (nu * 180) / Math.PI,
+    timeToEncounter_days: Math.max(0, timeToEncounter),
+    encounterVelocity_mps: encounterV,
+  };
+}
+
+function orbitalRadiusFromRadius(nu: number, a_au: number, e: number): number {
+  const a_m = a_au * AU_M;
+  return a_m * (1 - e * e) / (1 + e * Math.cos(nu));
+}
+
 type Scenario = {
   meteor: ScenarioMeteor;
-  timeRemainingDays: number;
+  initialTimeRemainingDays: number;
   vInfMps: number;
   b0_km: number;             // nominal impact parameter (signed)
   sigma_b_km: number;        // 1-sigma miss uncertainty at B-plane
   keyholeCenter_km: number;  // center of a resonant keyhole corridor
   keyholeWidth_m: number;    // width of that corridor (meters)
+  // Orbital elements for trajectory
+  semiMajorAxis_au: number;  // a in AU
+  eccentricity: number;      // e
+  inclination_deg: number;   // i in degrees
+  longitude_deg: number;     // longitude of ascending node
+  periapsis_deg: number;     // argument of periapsis
+  trueAnomaly0_deg: number;  // true anomaly at t=0
 };
 
 function randomIn(min: number, max: number): number { return min + Math.random() * (max - min); }
@@ -100,6 +188,14 @@ function generateScenario(): Scenario {
   const keyholeCenter = randomChoice(keyholeCenters) + randomIn(-500, 500);
   const keyholeWidth = randomIn(200, 1200);         // meters
 
+  // Generate orbital elements for realistic trajectory
+  const semiMajorAxis = randomIn(1.1, 3.5);        // AU, typical NEO range
+  const eccentricity = randomIn(0.1, 0.8);         // moderately eccentric
+  const inclination = randomIn(0, 25);             // degrees, most NEOs low-inc
+  const longitude = randomIn(0, 360);              // degrees
+  const periapsis = randomIn(0, 360);              // degrees
+  const trueAnomaly0 = randomIn(0, 360);           // degrees
+
   const meteor: ScenarioMeteor = {
     name: 'custom_stone',
     diameterM: diamM,
@@ -111,12 +207,18 @@ function generateScenario(): Scenario {
 
   return {
     meteor,
-    timeRemainingDays: tDays,
+    initialTimeRemainingDays: tDays,
     vInfMps: vInf,
     b0_km: b0,
     sigma_b_km: sigma_km,
     keyholeCenter_km: keyholeCenter,
     keyholeWidth_m: keyholeWidth,
+    semiMajorAxis_au: semiMajorAxis,
+    eccentricity: eccentricity,
+    inclination_deg: inclination,
+    longitude_deg: longitude,
+    periapsis_deg: periapsis,
+    trueAnomaly0_deg: trueAnomaly0,
   };
 }
 
@@ -173,15 +275,16 @@ function getDensityKgM3(material: string | undefined, provided?: string): number
 }
 
 function formatNumber(n: number, digits = 1) {
-  return n.toLocaleString(undefined, { maximumFractionDigits: digits });
+  return n.toLocaleString('en-US', { maximumFractionDigits: digits });
 }
 
 export default function ScenarioGame() {
   const router = useRouter();
 
   // Scenario state
-  const [scenario, setScenario] = useState<Scenario>(() => generateScenario());
-  const meteor = scenario.meteor;
+  const [mounted, setMounted] = useState(false);
+  const [scenario, setScenario] = useState<Scenario | null>(null);
+  const meteor = scenario?.meteor as ScenarioMeteor | undefined;
 
   // Game state
   const [effects, setEffects] = useState<EffectsState>(makeEmptyEffects());
@@ -189,7 +292,7 @@ export default function ScenarioGame() {
   const [asteroidClicked, setAsteroidClicked] = useState(false);
   const [analyzerActive, setAnalyzerActive] = useState(false);
 
-  const [timeRemainingDays, setTimeRemainingDays] = useState(scenario.timeRemainingDays);
+  const [elapsedDays, setElapsedDays] = useState(0); // elapsed time since start
   const [budgetBn, setBudgetBn] = useState(0);
   const [deltaVApplied, setDeltaVApplied] = useState(0); // m/s
   const [deflectionMeters, setDeflectionMeters] = useState(0); // integrated b-plane miss distance from applied actions
@@ -197,7 +300,9 @@ export default function ScenarioGame() {
   const [stage, setStage] = useState(0);
   const [notes, setNotes] = useState<string>('');
   const [impactProbability, setImpactProbability] = useState(0.35);
-  const [trueWillImpact] = useState<boolean>(() => Math.random() < 0.6);
+  const [trueWillImpact, setTrueWillImpact] = useState<boolean>(false);
+  const [analysisCompleted, setAnalysisCompleted] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true); // auto-advance time
 
   // Technique configuration (user-tunable)
   const [gtMassTon, setGtMassTon] = useState(2.0);        // spacecraft mass (t)
@@ -213,10 +318,11 @@ export default function ScenarioGame() {
 
   // Derived focusing capture radius (impact cross section)
   const bCrit_km = useMemo(() => {
+    if (!scenario) return R_EARTH_KM * Math.sqrt(1 + (V_ESC_EARTH * V_ESC_EARTH) / (12_000 * 12_000));
     const vInf = scenario.vInfMps;
     const factor = Math.sqrt(1 + (V_ESC_EARTH * V_ESC_EARTH) / (vInf * vInf));
     return R_EARTH_KM * factor;
-  }, [scenario.vInfMps]);
+  }, [scenario]);
 
   // Update impact probability from B-plane Gaussian
   const recalcImpactProbability = useCallback((b0_km: number, sigma_km: number, bcrit_km: number) => {
@@ -225,18 +331,72 @@ export default function ScenarioGame() {
   }, []);
 
   useEffect(() => {
-    recalcImpactProbability(scenario.b0_km, scenario.sigma_b_km, bCrit_km);
-  }, [scenario.b0_km, scenario.sigma_b_km, bCrit_km, recalcImpactProbability]);
+    if (scenario) recalcImpactProbability(scenario.b0_km, scenario.sigma_b_km, bCrit_km);
+  }, [scenario, bCrit_km, recalcImpactProbability]);
+
+  // Current trajectory state (computed from orbital mechanics)
+  const trajectoryState = useMemo(() => {
+    if (!scenario) return null;
+    return computeTrajectoryState(scenario, elapsedDays);
+  }, [scenario, elapsedDays]);
+
+  // Generate non-deterministic scenario client-side only to avoid SSR hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+    if (!scenario) {
+      const s = generateScenario();
+      setScenario(s);
+    }
+    setTrueWillImpact(Math.random() < 0.6);
+  }, []);
+
+  // Auto-advance time when playing
+  useEffect(() => {
+    if (!isPlaying || !trajectoryState) return;
+    const interval = setInterval(() => {
+      setElapsedDays(prev => {
+        const next = prev + 0.5; // advance by 0.5 days per tick
+        if (trajectoryState.timeToEncounter_days <= 0) {
+          setIsPlaying(false); // stop when encounter reached
+        }
+        return next;
+      });
+    }, 100); // 100ms intervals for smooth animation
+    return () => clearInterval(interval);
+  }, [isPlaying, trajectoryState]);
 
   // Physics-based required delta-v approximation
   const deltaVRequired = useMemo(() => {
+    if (!trajectoryState) return 0;
     const safety = 1.2;
-    const t = Math.max(timeRemainingDays, 1) * 86400; // s
+    const t = Math.max(trajectoryState.timeToEncounter_days, 1) * SECONDS_PER_DAY; // s
     return (R_EARTH_M * safety) / t; // m/s
-  }, [timeRemainingDays]);
+  }, [trajectoryState]);
+
+  // Distance-based decision triggers
+  const currentPhase = useMemo(() => {
+    if (!trajectoryState) return 'loading';
+    const distAu = trajectoryState.distance_au;
+    if (distAu > 2.0) return 'early_detection';      // > 2 AU: early detection
+    if (distAu > 1.0) return 'mission_planning';     // 1-2 AU: mission planning
+    if (distAu > 0.1) return 'deployment';           // 0.1-1 AU: deployment phase
+    if (distAu > 0.01) return 'last_chance';         // 0.01-0.1 AU: last chance
+    return 'encounter';                              // < 0.01 AU: encounter
+  }, [trajectoryState]);
 
   // Compute headline effects for educational sidebar
   const damage = useMemo(() => {
+    if (!meteor) {
+      return computeImpactEffects({
+        mass: 1e10,
+        L0: 300,
+        rho_i: 2500,
+        v0: 15000,
+        theta_deg: 45,
+        latitude: 44.6,
+        longitude: 79.47,
+      });
+    }
     const inputs: Damage_Inputs = {
       mass: meteor.massKg,
       L0: meteor.diameterM,
@@ -259,17 +419,18 @@ export default function ScenarioGame() {
   const accelLaser = useMemo(() => {
     const P = laserPowerMW * 1e6;
     const F = LASER_CM_N_PER_W * P;
-    return F / Math.max(meteor.massKg, 1);
-  }, [laserPowerMW, meteor.massKg]);
+    return F / Math.max(meteor?.massKg || 1, 1);
+  }, [laserPowerMW, meteor?.massKg]);
 
   const accelIon = useMemo(() => {
     const F = ION_THRUST_N_PER_KW * ionPowerKW;
-    return F / Math.max(meteor.massKg, 1);
-  }, [ionPowerKW, meteor.massKg]);
+    return F / Math.max(meteor?.massKg || 1, 1);
+  }, [ionPowerKW, meteor?.massKg]);
 
   const applyTimeAdvance = useCallback((days: number) => {
-    const dt = Math.max(days, 0) * 86400;
-    const T = Math.max(timeRemainingDays, 0) * 86400; // lead time at start of interval
+    if (!trajectoryState) return;
+    const dt = Math.max(days, 0) * SECONDS_PER_DAY;
+    const T = Math.max(trajectoryState.timeToEncounter_days, 0) * SECONDS_PER_DAY; // lead time at start of interval
 
     // Sum active accelerations
     let aTotal = 0;
@@ -285,15 +446,15 @@ export default function ScenarioGame() {
       const dMiss = geomFactor * aTotal * (T * dt - 0.5 * dt * dt);
       setDeflectionMeters((m) => m + dMiss);
     }
-    setTimeRemainingDays((t) => Math.max(0, t - days));
-  }, [accelGravityTractor, accelIon, accelLaser, effects.gravityTractor, effects.ionBeamShepherd, effects.laserAblation, geomFactor, timeRemainingDays]);
+    setElapsedDays((t) => t + days);
+  }, [accelGravityTractor, accelIon, accelLaser, effects.gravityTractor, effects.ionBeamShepherd, effects.laserAblation, geomFactor, trajectoryState]);
 
   const applyImpulse = useCallback((tech: 'kineticImpactor' | 'nuclearDetonation') => {
     let dV = 0;
     if (tech === 'kineticImpactor') {
       const mImp = Math.max(impactorMassKg, 1);
       const vImp = Math.max(impactorSpeedKmps, 1) * 1000;
-      dV = (betaEnhancement * mImp * vImp) / Math.max(meteor.massKg, 1);
+      dV = (betaEnhancement * mImp * vImp) / Math.max(meteor?.massKg || 1, 1);
     } else {
       // Cube-root scaling with yield, reduced by standoff range factor
       const rangeFactor = 1 / (1 + nukeStandoffKm / 10);
@@ -301,11 +462,11 @@ export default function ScenarioGame() {
     }
     if (dV > 0) {
       setDeltaVApplied((v) => v + dV);
-      const T = Math.max(timeRemainingDays, 0) * 86400;
+      const T = Math.max(trajectoryState?.timeToEncounter_days || 0, 0) * SECONDS_PER_DAY;
       const dMiss = geomFactor * dV * T;
       setDeflectionMeters((m) => m + dMiss);
     }
-  }, [betaEnhancement, impactorMassKg, impactorSpeedKmps, meteor.massKg, nukeStandoffKm, nukeYieldMt, geomFactor, timeRemainingDays]);
+  }, [betaEnhancement, impactorMassKg, impactorSpeedKmps, meteor?.massKg, nukeStandoffKm, nukeYieldMt, geomFactor, trajectoryState?.timeToEncounter_days]);
 
   const toggleEffect = useCallback((key: EffectKey, value: boolean) => {
     setEffects((prev) => ({ ...prev, [key]: value }));
@@ -321,17 +482,9 @@ export default function ScenarioGame() {
         setAnalyzerActive(true);
         toggleEffect('analyze', true);
         setBudgetBn((b) => b + 0.2);
-        // After scan, tighten probability towards truth
-        setTimeout(() => {
-          setAnalyzerActive(false);
-          toggleEffect('analyze', false);
-          // Reduce covariance dramatically
-          const newSigma = Math.max(50, scenario.sigma_b_km * 0.15);
-          setScenario((s) => ({ ...s, sigma_b_km: newSigma }));
-          recalcImpactProbability(scenario.b0_km, newSigma, bCrit_km);
-          setNotes('Analysis complete. Trajectory refined.');
-        }, 3200);
+        // Don't auto-close; wait for user to close the analyzer
         applyTimeAdvance(60);
+        setNotes('Analyzing asteroid composition and trajectory...');
       } else if (choiceId === 'plan_mission') {
         setNotes('You funded mission design. This accelerates deployment timelines.');
         setBudgetBn((b) => b + 1.0);
@@ -383,15 +536,15 @@ export default function ScenarioGame() {
 
     if (stage === 3) {
       // Final evaluation
-      const bFinal_km = scenario.b0_km + (deflectionMeters / 1000);
-      const inKeyhole = Math.abs(bFinal_km - scenario.keyholeCenter_km) * 1000 < scenario.keyholeWidth_m / 2;
+      const bFinal_km = (scenario ? scenario.b0_km : 0) + (deflectionMeters / 1000);
+      const inKeyhole = scenario ? Math.abs(bFinal_km - scenario.keyholeCenter_km) * 1000 < scenario.keyholeWidth_m / 2 : false;
       const willHit = Math.abs(bFinal_km) < bCrit_km;
       if (willHit) {
         setOutcome('impact');
         setNotes(`Predicted impact: |b|=${Math.abs(bFinal_km).toFixed(0)} km < b_crit=${bCrit_km.toFixed(0)} km.`);
       } else if (inKeyhole) {
         setOutcome('averted');
-        setNotes(`Immediate miss (b=${bFinal_km.toFixed(0)} km), but you threaded a resonance keyhole (${scenario.keyholeCenter_km.toFixed(0)}±${(scenario.keyholeWidth_m/1000).toFixed(1)} km). Future return risk increased.`);
+        setNotes(`Immediate miss (b=${bFinal_km.toFixed(0)} km), but you threaded a resonance keyhole (${scenario?.keyholeCenter_km.toFixed(0)}±${((scenario?.keyholeWidth_m||0)/1000).toFixed(1)} km). Future return risk increased.`);
       } else {
         // Miss. If real was a miss and you acted, it's wasted spending
         if (!trueWillImpact && (effects.gravityTractor || effects.laserAblation || effects.ionBeamShepherd || effects.kineticImpactor || effects.nuclearDetonation)) {
@@ -405,18 +558,18 @@ export default function ScenarioGame() {
       setStage(4);
       return;
     }
-  }, [applyImpulse, applyTimeAdvance, bCrit_km, deflectionMeters, effects.gravityTractor, effects.ionBeamShepherd, effects.kineticImpactor, effects.laserAblation, effects.nuclearDetonation, recalcImpactProbability, scenario.b0_km, scenario.keyholeCenter_km, scenario.keyholeWidth_m, stage, toggleEffect, trueWillImpact]);
+  }, [applyImpulse, applyTimeAdvance, bCrit_km, deflectionMeters, effects.gravityTractor, effects.ionBeamShepherd, effects.kineticImpactor, effects.laserAblation, effects.nuclearDetonation, recalcImpactProbability, scenario, stage, toggleEffect, trueWillImpact]);
 
   useEffect(() => {
     if (outcome === 'impact') {
       // Route to the detailed impact viz using existing page
       const q = new URLSearchParams({
-        mass: String(meteor.massKg),
-        diameter: String(meteor.diameterM),
-        speed: String(meteor.speedMps),
-        name: meteor.name,
-        angle: String(meteor.angleDeg),
-        density: String(meteor.densityKgM3),
+        mass: String(meteor?.massKg ?? 0),
+        diameter: String(meteor?.diameterM ?? 0),
+        speed: String(meteor?.speedMps ?? 0),
+        name: meteor?.name ?? 'custom',
+        angle: String(meteor?.angleDeg ?? 45),
+        density: String(meteor?.densityKgM3 ?? 2500),
       });
       const to = `/meteors/impact?${q.toString()}`;
       // Give a short moment for the nuclear/kinetic visuals to show
@@ -425,24 +578,14 @@ export default function ScenarioGame() {
     }
   }, [outcome, meteor, router]);
 
-  const approachDistanceKm = useMemo(() => {
-    const secs = timeRemainingDays * 86400;
-    const d = meteor.speedMps * secs; // m
-    return d / 1000;
-  }, [meteor.speedMps, timeRemainingDays]);
-
-  const progressPct = useMemo(() => {
-    const start = 540;
-    const t = Math.max(0, Math.min(1, 1 - timeRemainingDays / start));
-    return Math.round(t * 100);
-  }, [timeRemainingDays]);
+  // Remove unused variables - we now use trajectoryState for all distance/time calculations
 
   const canContinue = stage <= 3;
 
   const resetToNewScenario = useCallback(() => {
     const s = generateScenario();
     setScenario(s);
-    setTimeRemainingDays(s.timeRemainingDays);
+    setElapsedDays(0);
     setBudgetBn(0);
     setDeltaVApplied(0);
     setDeflectionMeters(0);
@@ -450,7 +593,18 @@ export default function ScenarioGame() {
     setStage(0);
     setNotes('');
     setEffects(makeEmptyEffects());
+    setIsPlaying(true);
+    setAnalysisCompleted(false);
+    setTrueWillImpact(Math.random() < 0.6);
   }, []);
+
+  if (!mounted || !scenario || !meteor) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-black text-white">
+        Loading scenario…
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 grid grid-cols-5 gap-0">
@@ -462,6 +616,21 @@ export default function ScenarioGame() {
           onAsteroidClick={() => {
             setAsteroidClicked(true);
             setFollowingAsteroid((v) => !v);
+          }}
+          onAnalysisComplete={() => {
+            // Called when user closes the analyzer or clicks "Recommend Action"
+            if (!analysisCompleted) {
+              setAnalysisCompleted(true);
+              setAnalyzerActive(false);
+              toggleEffect('analyze', false);
+              // Reduce covariance dramatically
+              if (scenario) {
+                const newSigma = Math.max(50, scenario.sigma_b_km * 0.15);
+                setScenario((s) => (s ? { ...s, sigma_b_km: newSigma } : s));
+                recalcImpactProbability(scenario.b0_km, newSigma, bCrit_km);
+              }
+              setNotes('Analysis complete. Trajectory refined.');
+            }
           }}
         />
 
@@ -475,11 +644,17 @@ export default function ScenarioGame() {
 
         {/* Timeline footer */}
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center gap-4 text-xs">
-          <span>Time remaining: {Math.round(timeRemainingDays)} days</span>
+          <button onClick={() => setIsPlaying(!isPlaying)} className="text-white hover:text-blue-300">
+            {isPlaying ? '⏸' : '▶'}
+          </button>
           <span>|</span>
-          <span>Approach distance: {formatNumber(approachDistanceKm / 1e6, 2)} million km</span>
+          <span>Distance: {trajectoryState ? formatNumber(trajectoryState.distance_au, 3) : '...'} AU</span>
           <span>|</span>
-          <span>Progress: {progressPct}%</span>
+          <span>Velocity: {trajectoryState ? formatNumber(trajectoryState.velocity_mps / 1000, 1) : '...'} km/s</span>
+          <span>|</span>
+          <span>Time to encounter: {trajectoryState ? Math.round(trajectoryState.timeToEncounter_days) : '...'} days</span>
+          <span>|</span>
+          <span>Phase: {currentPhase.replace('_', ' ')}</span>
         </div>
       </div>
 
@@ -491,23 +666,43 @@ export default function ScenarioGame() {
         </div>
         <div className="text-sm text-gray-300 mb-4">You are the decision maker. Each choice advances time.</div>
 
-        {/* Encounter parameters */}
+        {/* Real-time trajectory parameters */}
         <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
           <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-            <div className="text-gray-400">v∞ (hyperbolic excess)</div>
-            <div className="text-lg font-bold">{(scenario.vInfMps/1000).toFixed(1)} km/s</div>
+            <div className="text-gray-400">Current distance</div>
+            <div className="text-lg font-bold">{trajectoryState ? formatNumber(trajectoryState.distance_au, 3) : '...'} AU</div>
           </div>
+          <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+            <div className="text-gray-400">Current velocity</div>
+            <div className="text-lg font-bold">{trajectoryState ? formatNumber(trajectoryState.velocity_mps/1000, 1) : '...'} km/s</div>
+          </div>
+          <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+            <div className="text-gray-400">True anomaly</div>
+            <div className="text-lg font-bold">{trajectoryState ? formatNumber(trajectoryState.trueAnomaly_deg, 1) : '...'}°</div>
+          </div>
+          <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+            <div className="text-gray-400">Encounter velocity</div>
+            <div className="text-lg font-bold">{trajectoryState ? formatNumber(trajectoryState.encounterVelocity_mps/1000, 1) : '...'} km/s</div>
+          </div>
+        </div>
+
+        {/* B-plane parameters */}
+        <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
           <div className="bg-white/5 rounded-lg p-3 border border-white/10">
             <div className="text-gray-400">b_crit (focusing)</div>
             <div className="text-lg font-bold">{bCrit_km.toFixed(0)} km</div>
           </div>
           <div className="bg-white/5 rounded-lg p-3 border border-white/10">
             <div className="text-gray-400">Nominal b</div>
-            <div className="text-lg font-bold">{scenario.b0_km.toFixed(0)} km</div>
+            <div className="text-lg font-bold">{scenario ? scenario.b0_km.toFixed(0) : '...'} km</div>
           </div>
           <div className="bg-white/5 rounded-lg p-3 border border-white/10">
             <div className="text-gray-400">σ_b (1σ)</div>
-            <div className="text-lg font-bold">{scenario.sigma_b_km.toFixed(0)} km</div>
+            <div className="text-lg font-bold">{scenario ? scenario.sigma_b_km.toFixed(0) : '...'} km</div>
+          </div>
+          <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+            <div className="text-gray-400">v∞ (hyperbolic excess)</div>
+            <div className="text-lg font-bold">{scenario ? (scenario.vInfMps/1000).toFixed(1) : '...'} km/s</div>
           </div>
         </div>
 

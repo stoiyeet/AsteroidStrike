@@ -54,6 +54,16 @@ const AsteroidAnalyzer: React.FC<AsteroidAnalyzerProps> = ({
     onComplete();
   };
 
+  // Keep HUD open until user closes it. When analysis finishes, we show HUD and do NOT auto-close.
+  // Ensure that when activated again while HUD open, we restart scan.
+  useEffect(() => {
+    if (isActive && showHUD) {
+      // If user re-triggers analyze while HUD is open, restart scanning to reflect fresh data
+      setShowHUD(false);
+      setTimeout(() => startScan(), 0);
+    }
+  }, [isActive]);
+
   if (!isActive) return null;
 
   return (
@@ -131,7 +141,10 @@ const AsteroidAnalyzer: React.FC<AsteroidAnalyzerProps> = ({
                   Close Analysis
                 </button>
                 <button
-                  onClick={handleClose}
+                  onClick={() => {
+                    // Keep HUD open; allow user to manually close only
+                    onComplete();
+                  }}
                   className="bg-red-600 hover:bg-red-500 px-6 py-2 rounded-lg"
                 >
                   Recommend Action
