@@ -79,7 +79,11 @@ const StationaryAsteroid = React.forwardRef<
         onPointerOver={() => (document.body.style.cursor = "pointer")}
         onPointerOut={() => (document.body.style.cursor = "default")}
       >
-        <Asteroid />
+        <Asteroid
+          orbitRadius={6}
+          orbitSpeed={0.2}
+          earthPosition={[50, 0, 0]}
+        />
       </mesh>
       {showLabel && (
         <Text
