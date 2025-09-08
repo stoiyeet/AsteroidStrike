@@ -33,6 +33,7 @@ const AsteroidScene: React.FC<AsteroidSceneProps> = ({
   const dir = new Vector3().subVectors(pos, earthCenter).normalize();
   const dist = pos.distanceTo(earthCenter);
 
+
   if (dist < minDistance) {
     // Push asteroid back so it stays outside
     pos = earthCenter.clone().add(dir.multiplyScalar(minDistance));

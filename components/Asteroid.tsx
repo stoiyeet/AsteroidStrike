@@ -3,7 +3,16 @@ import React, { useRef, useMemo } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
 import * as THREE from "three";
 
-const Asteroid: React.FC = () => {
+
+
+export interface AsteroidProps {
+  orbitRadius: number;
+  orbitSpeed: number;
+  earthPosition: [number, number, number]; // tuple preferred over number[]
+}
+
+
+const Asteroid: React.FC<AsteroidProps> = ({ orbitRadius, orbitSpeed, earthPosition }) => {
   const meshRef = useRef<THREE.Mesh>(null!);
 
   const map = useLoader(THREE.TextureLoader, "/textures/Asteroid.png");
