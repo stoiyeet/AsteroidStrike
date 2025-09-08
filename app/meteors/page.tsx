@@ -1,5 +1,8 @@
 "use client";
 
+import {  Mesh } from 'three';
+
+
 // Material density mapping (kg/m³)
 const materialDensities: Record<string, number> = {
   // Metallic/Iron-rich types
@@ -253,8 +256,8 @@ export default function AsteroidViewer() {
         (gltf) => {
           if (stopped) return;
           model = gltf.scene;
-          model.traverse((child: any) => {
-            if (child.isMesh) {
+          model.traverse((child: THREE.Object3D) => {
+            if (child instanceof Mesh) {
               child.castShadow = lighting === 'shadow';
               child.receiveShadow = lighting === 'shadow';
               // Add glossiness and contrast

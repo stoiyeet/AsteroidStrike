@@ -182,10 +182,10 @@ const handleOutgoingUserMessage = (raw: string) => {
       });
 
       const data = await res.json();
-      let assistantContent: string = data?.answer ?? "I couldn't process that strategy.";
+      const assistantContent: string = data?.answer ?? "I couldn't process that strategy.";
 
       // 1) Try to parse `-- effect -- rest`
-      let { key, body, rawEffect } = parsePrefixBlock(assistantContent);
+      let { key, body} = parsePrefixBlock(assistantContent);
 
       // 2) Fallback: sniff effect from free text if needed
       if (key === null) {

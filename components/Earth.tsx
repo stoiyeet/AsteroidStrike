@@ -2,12 +2,12 @@
 
 import * as THREE from 'three';
 import React, { useRef } from 'react';
-import { useLoader } from '@react-three/fiber';
+import { useLoader, ThreeEvent } from '@react-three/fiber';
 import { TextureLoader } from 'three';
 import Clouds from './Clouds';
 
 interface EarthProps {
-  onDoubleClick: (event: any) => void;
+  onDoubleClick: (event: ThreeEvent<PointerEvent>) => void;
   showClouds?: boolean;
   cloudIntensity?: number;
   impactPosition?: THREE.Vector3 | null;

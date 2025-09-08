@@ -21,7 +21,7 @@ const AsteroidAnalyzer: React.FC<AsteroidAnalyzerProps> = ({
     if (isActive && !isScanning && !showHUD) {
       startScan();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [isActive, isScanning, showHUD]);
 
   const startScan = () => {

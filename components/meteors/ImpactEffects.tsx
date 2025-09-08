@@ -243,7 +243,7 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
             </div>
             <div className={styles.sectionInfo}>
                 {effects.airblast_radius_building_collapse_m && effects.airblast_radius_building_collapse_m > 10000000 && (
-                    <span style = {{color: "#d34646ff"}}>The proposed meteor is too large for conventional wind blast calculations. Though the theoretical ranges are provided, with impacts of this size, global catastrophe is imminent and metrics like "flattened buildings" become irrelevant and calculations break</span>
+                <span style={{ color: "#d34646ff" }}>The proposed meteor is too large for conventional wind blast calculations.Though the theoretical ranges are provided, with impacts of this size, global catastrophe is imminent and metrics like &quot;flattened buildings&quot; become irrelevant and calculations break</span>
                 )
                 }
             </div>
@@ -352,7 +352,7 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
             </div>
             <div className={styles.sectionInfo}>
               {(
-                <span style={{ color: "#d34646ff" }}>This is a heuristic based approximation and can't consider effects like ejecta, airborne debris, or supply chain crash</span>
+                <span style={{ color: "#d34646ff" }}>This is a heuristic based approximation and can&apos;t consider effects like ejecta, airborne debris, or supply chain crash</span>
               )
               }
             </div>

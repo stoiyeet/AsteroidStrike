@@ -77,12 +77,12 @@ const Earth: React.FC = () => {
   });
 
   // Drag handlers
-  const onPointerDown = (e: any) => {
+  const onPointerDown = (e: React.PointerEvent) => {
     setIsDragging(true);
     setLastX(e.clientX);
   };
   const onPointerUp = () => setIsDragging(false);
-  const onPointerMove = (e: any) => {
+  const onPointerMove = (e: React.PointerEvent) => {
     if (isDragging && meshRef.current) {
       const deltaX = e.clientX - lastX;
       meshRef.current.rotation.y += deltaX * 0.005;

@@ -20,7 +20,7 @@ export const specialMap: Record<string, string> = {
 
 // Build the GLB path used by both the list and impact pages
 export function getGlbFile(selectionName: string): string {
-  if (!selectionName) return '/meteors/psyche.glb'; // safe fallback
+  if (selectionName.toLowerCase().includes("custom") || !selectionName) return '/meteors/psyche.glb'; // safe fallback
   if (specialMap[selectionName]) return `/meteors/${specialMap[selectionName]}`;
   const afterUnderscore = selectionName.substring(selectionName.indexOf('_') + 1);
   return `/meteors/${afterUnderscore}.glb`;

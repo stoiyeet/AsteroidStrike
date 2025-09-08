@@ -2,7 +2,7 @@
 
 import * as THREE from 'three';
 import React, { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, ThreeEvent } from '@react-three/fiber';
 import { Html, useGLTF } from '@react-three/drei';
 import { GLTF } from 'three-stdlib';
 
@@ -74,8 +74,12 @@ export default function EarthImpact({
   );
 
   // Asteroid model (only load GLB for non-custom asteroids)
-  const modelUrl = meteor.isCustom ? '' : getGlbFile(meteor.name || '');
-  const gltf = meteor.isCustom ? null : (useGLTF(modelUrl) as GLTFResult);
+  const modelUrl =  getGlbFile(meteor.name || '');
+  let gltf = (useGLTF(modelUrl) as GLTFResult | null);
+  if (meteor.isCustom)
+  {
+    gltf = null
+  }
   const asteroidRef = useRef<THREE.Group>(null!);
 
   // Asteroid size
@@ -151,7 +155,7 @@ export default function EarthImpact({
     return progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
   };
 
-  function handleDoubleClick(e: any) {
+  function handleDoubleClick(e: ThreeEvent<PointerEvent>) {
     if (!onImpactSelect) return;
     const p = e.point.clone().normalize();
     const lat = THREE.MathUtils.radToDeg(Math.asin(p.y));
@@ -409,7 +413,7 @@ export default function EarthImpact({
       {/* Impact label (DOM via Html overlay; uses CSS vars) */}
       {effects.labels && (
         <Html position={impactPos.clone().multiplyScalar(1.05)} center>
-          <div className="impact-label" style={{ ['--label-color' as any]: '#ffff00' }}>
+          <div className="impact-label" style={{ ['--label-color' as string]: '#ffff00' }}>
             <div className="impact-icon">⚡</div>
             <div className="impact-title">IMPACT POINT</div>
             <div className="impact-energy">{damage.E_Mt.toFixed(2)} MT TNT Equivalent</div>
@@ -506,7 +510,7 @@ function EnhancedDamageDisk({
       {/* DOM label (Html overlay) */}
       {label && (expansionFactor || 0) > 0.3 && (
         <Html position={[labelX, labelY, 0.025]} center>
-          <div className="damage-zone-label" style={{ ['--zone-color' as any]: borderColor }}>
+          <div className="damage-zone-label" style={{ ['--zone-color' as string]: borderColor }}>
             <div className="zone-type">{type.toUpperCase()}</div>
             <div className="zone-name">{label}</div>
             <div className="zone-radius">{(kmRadius / 1000).toFixed(1)} km</div>

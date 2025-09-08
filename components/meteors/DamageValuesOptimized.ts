@@ -202,7 +202,7 @@ export function seismicMagnitudeAndRadius(E_J: number, threshold = 7.5) {
   const exp3 = Math.pow(10, (M - 6.399 - threshold) / 1.66);
   if (exp3 > 700) return { M, radius_km: exp3, radius_m: exp3 * 1000 };
   // none satisfied => no radius where Meff >= threshold
-  return { M, radius_km: null, radius_m: null } as any;
+  return { M, radius_km: null, radius_m: null };
 }
 
 // peakOverpressure.ts
@@ -338,7 +338,7 @@ export function findRadiusForOverpressure(
 interface WorldPopTaskResponse {
   taskid ?: string;
   error_message ?: string;
-  [key: string]: any;
+  [key: string]: string | undefined;
 }
 
 interface WorldPopResponse {
@@ -354,7 +354,7 @@ async function fetchWithRetry<T>(
   maxRetries = 3, // Reduced from 5
   intervalMs = 2000 // Reduced from 4000
 ): Promise<T> {
-  let lastErr: any;
+  let lastErr: unknown;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
