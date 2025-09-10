@@ -385,31 +385,25 @@ async function initGPW() {
   }
 }
 
-// Optimized population density function with caching and deduplication
+// Optimized population density function with caching and max sampling over neighborhood
 async function populationDensityAt(
   lat: number,
   lon: number,
-  kmSide = 300
+  kmRadius = 30  // 30 km radius
 ): Promise<number> {
   await initGPW();
 
-  const cacheKey = `${lat.toFixed(2)},${lon.toFixed(2)},${kmSide}`;
+  const cacheKey = `${lat.toFixed(2)},${lon.toFixed(2)},${kmRadius}`;
   const cached = populationCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
     return cached.density;
   }
 
-  const degLat = kmSide / 111;
-  const degLon = kmSide / (111 * Math.cos((lat * Math.PI) / 180));
+  const degLat = kmRadius / 111; // ~1 deg ≈ 111 km
+  const degLon = kmRadius / (111 * Math.cos((lat * Math.PI) / 180));
 
-  const minLon = lon - degLon / 2;
-  const maxLon = lon + degLon / 2;
-  const minLat = lat - degLat / 2;
-  const maxLat = lat + degLat / 2;
-
-  const tiepoint = gpwImage?.getTiePoints()[0];        // top-left corner
+  const tiepoint = gpwImage?.getTiePoints()[0]; // top-left corner
   const pixelScale = gpwImage?.getFileDirectory().ModelPixelScale; // [scaleX, scaleY, scaleZ]
-
   const lonOrigin = tiepoint.x;
   const latOrigin = tiepoint.y;
   const scaleX = pixelScale[0];
@@ -421,27 +415,49 @@ async function populationDensityAt(
     return [x, y];
   }
 
-  // Convert to pixel window
-  const [minX, minY] = latLonToPixel(minLon, maxLat) // note Y flipped
-  const [maxX, maxY] = latLonToPixel(maxLon, minLat)
-
-  const window = [
-    Math.floor(minX),
-    Math.floor(minY),
-    Math.ceil(maxX),
-    Math.ceil(maxY)
+  // Sample points: center + 8 points around the radius (like a compass)
+  const sampleOffsets: [number, number][] = [
+    [0, 0],             // center
+    [degLat, 0],        // north
+    [-degLat, 0],       // south
+    [0, degLon],        // east
+    [0, -degLon],       // west
+    [degLat / 1.414, degLon / 1.414],    // northeast
+    [degLat / 1.414, -degLon / 1.414],   // northwest
+    [-degLat / 1.414, degLon / 1.414],   // southeast
+    [-degLat / 1.414, -degLon / 1.414],  // southwest
   ];
 
-  const data = await gpwImage?.readRasters({ window });
-  const rasterValues = data?.[0] as number[] | Float32Array | Uint16Array;
-  const values: number[] = Array.from(rasterValues).filter((v: number) => v > 0); //filter out nodata
-  if (values.length === 0) return 0;
+  let maxDensity = 0;
 
-  const meanDensity = values.reduce((a, b) => a + b, 0) / values.length;
+  for (const [dLat, dLon] of sampleOffsets) {
+    const sampleLat = lat + dLat;
+    const sampleLon = lon + dLon;
 
-  populationCache.set(cacheKey, { density: meanDensity, timestamp: Date.now() });
-  return meanDensity;
+    const [px, py] = latLonToPixel(sampleLon, sampleLat);
+    const ix = Math.floor(px);
+    const iy = Math.floor(py);
+
+    // read a small 3x3 pixel window around this point
+    const window = [
+      ix - 1, iy - 1,
+      ix + 2, iy + 2
+    ];
+
+    const data = await gpwImage?.readRasters({ window });
+    const rasterValues = data?.[0] as number[] | Float32Array | Uint16Array;
+    const values: number[] = Array.from(rasterValues).filter(v => v > 0);
+
+    if (values.length > 0) {
+      const localMax = Math.max(...values);
+      if (localMax > maxDensity) maxDensity = localMax;
+    }
+  }
+
+  populationCache.set(cacheKey, { density: maxDensity, timestamp: Date.now() });
+  return maxDensity;
 }
+
 
 function effectiveDensity(area_km2: number, localDensity: number) {
   localDensity *= 5
@@ -476,7 +492,7 @@ export async function estimateAsteroidDeaths(
 
   let localDensity: number;
   try {
-    localDensity = await populationDensityAt(lat, lon, 100);
+    localDensity = await populationDensityAt(lat, lon, 300);
     
     // Check again if request was cancelled after API call
     if (signal?.aborted) {
