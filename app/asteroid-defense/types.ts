@@ -8,6 +8,12 @@ export interface Asteroid {
   massKg: number;
   velocityKmps: number;
   
+  // Real asteroid data for education
+  realAsteroidKey?: string; // Key to asteroidInfo.json
+  material?: string; // e.g., "Carbonaceous (C-type)"
+  density?: number; // g/cm3
+  educationalBlurb?: string; // Educational description
+  
   // Detection properties
   detectionDate: Date;
   detectionChance: number;

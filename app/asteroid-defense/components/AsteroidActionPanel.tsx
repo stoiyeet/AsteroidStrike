@@ -35,8 +35,43 @@ export default function AsteroidActionPanel({
   const torinoColors = ['bg-gray-600', 'bg-green-600', 'bg-green-600', 'bg-yellow-600', 'bg-yellow-600', 'bg-orange-600', 'bg-orange-600', 'bg-red-600', 'bg-red-700', 'bg-red-800', 'bg-red-900'];
   
   return (
-    <div className="h-full relative">
+    <div className="relative">
       <h3 className="font-semibold mb-3">{asteroid.name} - Action Options</h3>
+      
+      {/* Educational Information Section */}
+      {asteroid.realAsteroidKey && (
+        <div className="mb-4 p-3 bg-blue-900/30 border border-blue-600/30 rounded">
+          <h4 className="font-semibold text-blue-300 mb-2">🔬 Scientific Data</h4>
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {asteroid.material && (
+              <div className="text-sm">
+                <div className="text-gray-400">Composition</div>
+                <div className="font-semibold text-blue-200">{asteroid.material}</div>
+              </div>
+            )}
+            {asteroid.density && (
+              <div className="text-sm">
+                <div className="text-gray-400">Density</div>
+                <div className="font-semibold text-blue-200">{asteroid.density} g/cm³</div>
+              </div>
+            )}
+            <div className="text-sm">
+              <div className="text-gray-400">Mass (Estimated)</div>
+              <div className="font-semibold text-blue-200">{(asteroid.massKg / 1e12).toExponential(2)} × 10¹² kg</div>
+            </div>
+            <div className="text-sm">
+              <div className="text-gray-400">Velocity</div>
+              <div className="font-semibold text-blue-200">{asteroid.velocityKmps.toFixed(1)} km/s</div>
+            </div>
+          </div>
+          {asteroid.educationalBlurb && (
+            <div className="text-sm text-blue-100 leading-relaxed border-t border-blue-600/30 pt-2">
+              <div className="text-gray-300 mb-1">📖 Educational Info:</div>
+              <div>{asteroid.educationalBlurb}</div>
+            </div>
+          )}
+        </div>
+      )}
       
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div className="space-y-2">
@@ -202,10 +237,14 @@ export default function AsteroidActionPanel({
           {showTooltip === 'mission' && (
             <div>
               <div className="font-semibold mb-1">Deflection Missions</div>
-              <div><strong>Kinetic:</strong> Direct collision to change asteroid's momentum<br/>
-              <strong>Nuclear:</strong> Standoff detonation using X-ray vaporization<br/>
-              <strong>Gravity Tractor:</strong> Long-term gravitational nudging</div>
-              <div className="text-gray-400 mt-1">Requires 30+ days lead time for effectiveness</div>
+              <div className="space-y-1">
+                <div><strong>Kinetic Impactor:</strong> Direct collision to change momentum (like NASA's DART mission at Dimorphos)</div>
+                <div><strong>Nuclear Standoff:</strong> Detonation at distance using X-ray vaporization to push asteroid</div>
+                <div><strong>Gravity Tractor:</strong> Spacecraft flies alongside asteroid, using gravity to slowly nudge trajectory</div>
+              </div>
+              <div className="text-gray-400 mt-2 text-xs">
+                💡 NASA's DART successfully changed Dimorphos' orbit in 2022, proving kinetic deflection works!
+              </div>
             </div>
           )}
           {showTooltip === 'evacuate' && (

@@ -402,9 +402,12 @@ export default function AsteroidDefensePage() {
       <header className="bg-gray-800 border-b border-gray-700 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold">🛡️ Asteroid Defense Command</h1>
+            <h1 className="text-2xl font-bold">🛡️ NASA Planetary Defense Coordination Office</h1>
             <div className="text-sm text-gray-300">
               {gameState.currentTime.toISOString().replace('T', ' ').slice(0, 19)} UTC
+            </div>
+            <div className="text-xs text-blue-300 bg-blue-900/30 px-2 py-1 rounded border border-blue-600/30">
+              Educational Simulation
             </div>
           </div>
           
@@ -478,13 +481,30 @@ export default function AsteroidDefensePage() {
             <div className="text-red-300 text-sm font-semibold">
               🚨 IMMEDIATE THREAT: {immediateThreat.name} - {formatTimeToImpact(immediateThreat.timeToImpactHours)} to impact!
             </div>
+            <div className="text-red-200 text-xs mt-1">
+              Initiate PLANETARY DEFENSE PROTOCOLS • Alert international partners • Begin trajectory analysis
+            </div>
+          </div>
+        )}
+        
+        {/* NASA-style Mission Brief */}
+        {gameState.currentTime.getTime() - new Date('2025-01-01T00:00:00Z').getTime() < 300000 && ( // Show for first 5 minutes
+          <div className="mt-2 p-3 bg-blue-900/30 border border-blue-600/30 rounded">
+            <div className="text-blue-300 text-sm font-semibold mb-1">
+              📋 MISSION BRIEFING - Operation: Planetary Shield
+            </div>
+            <div className="text-blue-200 text-xs leading-relaxed">
+              You are leading NASA's Planetary Defense Coordination Office. Your mission: detect, track, and deflect potentially hazardous asteroids. 
+              Use real scientific methods and technologies currently deployed by NASA. Every decision impacts public safety and trust.
+              <span className="text-yellow-300 block mt-1">Remember: Early detection is key to successful deflection!</span>
+            </div>
           </div>
         )}
       </header>
 
-      <div className="flex min-h-screen">
+      <div className="flex h-[calc(100vh-64px)] min-h-0">
         {/* Sidebar - Asteroid List */}
-        <div className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col max-h-screen">
+        <div className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col min-h-0">
           <div className="p-4 border-b border-gray-700 flex-shrink-0">
             <h2 className="font-semibold mb-2">Detected Asteroids</h2>
             <div className="text-xs text-gray-400">
@@ -536,7 +556,7 @@ export default function AsteroidDefensePage() {
         </div>
 
         {/* Main Panel */}
-        <div className="flex-1 flex flex-col max-h-screen">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Quick Action Bar */}
           {selectedAsteroid && (() => {
             const asteroid = asteroids.find(a => a.id === selectedAsteroid);
@@ -657,8 +677,8 @@ export default function AsteroidDefensePage() {
               );
             }
             return (
-              <div className="bg-gray-800 border-t border-gray-700 p-4 overflow-y-auto max-h-64">
-                <div className="flex items-center justify-between mb-3">
+              <div className="bg-gray-800 border-t border-gray-700 flex flex-col max-h-80">
+                <div className="flex items-center justify-between p-3 border-b border-gray-700 flex-shrink-0">
                   <h3 className="font-semibold text-white">Action Panel - {asteroid.name}</h3>
                   <button
                     onClick={() => setSelectedAsteroid(null)}
@@ -668,48 +688,85 @@ export default function AsteroidDefensePage() {
                     ✕
                   </button>
                 </div>
-                <AsteroidActionPanel
-                  asteroid={asteroid}
-                  gameState={gameState}
-                  onTrack={() => trackAsteroid(selectedAsteroid)}
-                  onAlert={() => alertPublic(selectedAsteroid)}
-                  onLaunchMission={(missionType) => launchDeflectionMission(selectedAsteroid, missionType)}
-                  onEvacuate={() => evacuateArea(selectedAsteroid)}
-                />
+                <div className="flex-1 overflow-y-auto p-4">
+                  <AsteroidActionPanel
+                    asteroid={asteroid}
+                    gameState={gameState}
+                    onTrack={() => trackAsteroid(selectedAsteroid)}
+                    onAlert={() => alertPublic(selectedAsteroid)}
+                    onLaunchMission={(missionType) => launchDeflectionMission(selectedAsteroid, missionType)}
+                    onEvacuate={() => evacuateArea(selectedAsteroid)}
+                  />
+                </div>
               </div>
             );
           })()}
         </div>
 
-        {/* Event Log */}
-        <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col max-h-screen">
+        {/* Educational Resources & Event Log */}
+        <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col min-h-0">
           <div className="p-4 border-b border-gray-700 flex-shrink-0">
-            <h2 className="font-semibold">Event Log</h2>
+            <h2 className="font-semibold">Mission Control</h2>
           </div>
           
-          <div className="space-y-1 p-2 overflow-y-auto flex-1">
-            {eventLog.map(event => (
-              <div
-                key={event.id}
-                className={`p-2 rounded text-sm border-l-2 ${
-                  event.severity === 'critical' ? 'bg-red-900/30 border-red-500' :
-                  event.severity === 'warning' ? 'bg-yellow-900/30 border-yellow-500' :
-                  event.severity === 'success' ? 'bg-green-900/30 border-green-500' :
-                  'bg-gray-700/30 border-gray-500'
-                }`}
-              >
-                <div className="text-xs text-gray-400 mb-1">
-                  {event.timestamp.toISOString().slice(11, 19)} UTC
+          {/* Educational Resources Section */}
+          <div className="p-3 border-b border-gray-700 bg-gradient-to-b from-blue-900/20 to-gray-800">
+            <h3 className="font-semibold text-blue-300 mb-2">🌌 NASA Resources</h3>
+            <div className="space-y-2 text-xs">
+              <div>
+                <div className="text-yellow-300 font-medium">Planetary Defense</div>
+                <div className="text-gray-300">NASA's Planetary Defense Coordination Office monitors potentially hazardous asteroids and develops deflection technologies.</div>
+              </div>
+              <div>
+                <div className="text-yellow-300 font-medium">DART Mission</div>
+                <div className="text-gray-300">In 2022, NASA successfully changed the orbit of asteroid Dimorphos using a kinetic impactor, proving deflection technology works!</div>
+              </div>
+              <div>
+                <div className="text-yellow-300 font-medium">Near-Earth Objects</div>
+                <div className="text-gray-300">Over 34,000 near-Earth objects have been discovered, with about 2,300 classified as potentially hazardous.</div>
+              </div>
+              <div className="pt-2 border-t border-gray-600">
+                <div className="text-blue-300 font-medium">Torino Scale Guide:</div>
+                <div className="text-xs grid grid-cols-2 gap-1 mt-1">
+                  <div className="text-green-300">0-1: No hazard</div>
+                  <div className="text-yellow-300">2-4: Merits attention</div>
+                  <div className="text-orange-300">5-7: Threatening</div>
+                  <div className="text-red-300">8-10: Collision certain</div>
                 </div>
-                <div>{event.message}</div>
               </div>
-            ))}
+            </div>
+          </div>
+          
+          {/* Event Log */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="p-3 border-b border-gray-700">
+              <h3 className="font-semibold text-sm">Event Log</h3>
+            </div>
             
-            {eventLog.length === 0 && (
-              <div className="text-center py-8 text-gray-400">
-                <div>No events yet</div>
-              </div>
-            )}
+            <div className="space-y-1 p-2 overflow-y-auto flex-1">
+              {eventLog.map(event => (
+                <div
+                  key={event.id}
+                  className={`p-2 rounded text-sm border-l-2 ${
+                    event.severity === 'critical' ? 'bg-red-900/30 border-red-500' :
+                    event.severity === 'warning' ? 'bg-yellow-900/30 border-yellow-500' :
+                    event.severity === 'success' ? 'bg-green-900/30 border-green-500' :
+                    'bg-gray-700/30 border-gray-500'
+                  }`}
+                >
+                  <div className="text-xs text-gray-400 mb-1">
+                    {event.timestamp.toISOString().slice(11, 19)} UTC
+                  </div>
+                  <div>{event.message}</div>
+                </div>
+              ))}
+              
+              {eventLog.length === 0 && (
+                <div className="text-center py-8 text-gray-400">
+                  <div>No events yet</div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

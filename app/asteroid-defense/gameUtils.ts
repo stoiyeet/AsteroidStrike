@@ -1,5 +1,6 @@
 import { Asteroid, AsteroidSize } from './types';
 import { ASTEROID_SIZE_CONFIGS } from './constants';
+import asteroidInfo from '../../data/asteroidInfo.json';
 
 function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min);
@@ -12,18 +13,72 @@ function massFromDiameter(diameterM: number, densityKgM3: number): number {
 }
 
 export function generateAsteroid(currentTime: Date): Asteroid {
-  // Randomly select size category (better distribution for gameplay)
-  const sizeRoll = Math.random();
+  // Get real asteroid data for educational purposes
+  const realAsteroidKeys = Object.keys(asteroidInfo);
+  const useRealData = Math.random() < 0.7; // 70% chance to use real asteroid data
+  
+  let realAsteroidKey: string | undefined;
+  let realAsteroidData: any;
   let size: AsteroidSize;
-  if (sizeRoll < 0.35) size = 'tiny';        // 35% tiny (reduced from 60%)
-  else if (sizeRoll < 0.70) size = 'small';  // 35% small (increased from 25%)
-  else if (sizeRoll < 0.92) size = 'medium'; // 22% medium (increased from 13%)
-  else size = 'large';                       // 8% large (increased from 2%)
+  
+  if (useRealData && realAsteroidKeys.length > 0) {
+    realAsteroidKey = realAsteroidKeys[Math.floor(Math.random() * realAsteroidKeys.length)];
+    realAsteroidData = asteroidInfo[realAsteroidKey as keyof typeof asteroidInfo];
+    
+    // Determine size from real asteroid dimensions
+    const sizeString = realAsteroidData.size;
+    const diameterMatch = sizeString.match(/(\d+\.?\d*)\s*km/);
+    const diameterKm = diameterMatch ? parseFloat(diameterMatch[1]) : 1;
+    
+    if (diameterKm < 0.02) size = 'tiny';
+    else if (diameterKm < 0.14) size = 'small';
+    else if (diameterKm < 140) size = 'medium';
+    else size = 'large';
+  } else {
+    // Randomly select size category (better distribution for gameplay)
+    const sizeRoll = Math.random();
+    if (sizeRoll < 0.35) size = 'tiny';        // 35% tiny (reduced from 60%)
+    else if (sizeRoll < 0.70) size = 'small';  // 35% small (increased from 25%)
+    else if (sizeRoll < 0.92) size = 'medium'; // 22% medium (increased from 13%)
+    else size = 'large';                       // 8% large (increased from 2%)
+  }
   
   const config = ASTEROID_SIZE_CONFIGS[size];
   
-  const diameterM = randomBetween(config.diameterRange[0], config.diameterRange[1]);
-  const massKg = massFromDiameter(diameterM, config.densityKgM3);
+  let diameterM, massKg, density, material, educationalBlurb;
+  
+  if (realAsteroidData) {
+    // Use real asteroid data
+    const sizeString = realAsteroidData.size;
+    const diameterMatch = sizeString.match(/(\d+\.?\d*)\s*km/);
+    diameterM = diameterMatch ? parseFloat(diameterMatch[1]) * 1000 : randomBetween(config.diameterRange[0], config.diameterRange[1]);
+    
+    // Extract mass if available
+    if (realAsteroidData.weight && realAsteroidData.weight !== 'unknown') {
+      const massMatch = realAsteroidData.weight.match(/(\d+\.?\d*)×10\^(\d+)/);
+      massKg = massMatch ? parseFloat(massMatch[1]) * Math.pow(10, parseInt(massMatch[2])) : massFromDiameter(diameterM, config.densityKgM3);
+    } else {
+      massKg = massFromDiameter(diameterM, config.densityKgM3);
+    }
+    
+    material = realAsteroidData.material;
+    educationalBlurb = realAsteroidData.blurb;
+    
+    // Use real density if available
+    if (realAsteroidData.density && realAsteroidData.density !== 'unknown') {
+      const densityMatch = realAsteroidData.density.match(/(\d+\.?\d*)/);
+      density = densityMatch ? parseFloat(densityMatch[1]) : config.densityKgM3 / 1000;
+    } else {
+      density = config.densityKgM3 / 1000; // Convert to g/cm3
+    }
+  } else {
+    // Use generated values
+    diameterM = randomBetween(config.diameterRange[0], config.diameterRange[1]);
+    massKg = massFromDiameter(diameterM, config.densityKgM3);
+    density = config.densityKgM3 / 1000; // Convert to g/cm3
+    material = size === 'large' ? 'Stony (S-type)' : size === 'medium' ? 'Carbonaceous (C-type)' : 'Metallic (M-type)';
+  }
+  
   const velocityKmps = randomBetween(11, 70); // Typical Earth encounter velocities
   
   const timeToImpactHours = randomBetween(config.timeToImpactRange[0], config.timeToImpactRange[1]);
@@ -41,11 +96,17 @@ export function generateAsteroid(currentTime: Date): Asteroid {
   
   const asteroid: Asteroid = {
     id: `AST-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    name: generateAsteroidName(),
+    name: realAsteroidKey ? formatRealAsteroidName(realAsteroidKey) : generateAsteroidName(),
     size,
     diameterM,
     massKg,
     velocityKmps,
+    
+    // Educational data
+    realAsteroidKey,
+    material,
+    density,
+    educationalBlurb,
     
     detectionDate: new Date(currentTime.getTime() - (isDetected ? Math.random() * 24 * 60 * 60 * 1000 : 0)),
     detectionChance,
@@ -77,6 +138,16 @@ export function generateAsteroidName(): string {
   const numbers = [Math.floor(Math.random() * 999) + 1];
   
   return `${prefixes[Math.floor(Math.random() * prefixes.length)]} ${suffixes[Math.floor(Math.random() * suffixes.length)]}${numbers[0]}`;
+}
+
+// Convert real asteroid keys to readable names
+export function formatRealAsteroidName(key: string): string {
+  return key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, l => l.toUpperCase())
+    .replace(/^(\d+)\s/, '$1 ')
+    .replace(/\bp\b/gi, 'P/')
+    .replace('Schwassman Wachmann', 'Schwassmann-Wachmann');
 }
 
 export function updateAsteroid(asteroid: Asteroid, deltaTimeHours: number, isTracked: boolean): Asteroid {
