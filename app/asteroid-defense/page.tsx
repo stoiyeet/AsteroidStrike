@@ -1,259 +1,30 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-
-// ============================================================================
-// ASTEROID MODEL & GAME TYPES
-// ============================================================================
-
-export type AsteroidSize = 'tiny' | 'small' | 'medium' | 'large';
-
-export interface Asteroid {
-  id: string;
-  name: string;
-  size: AsteroidSize;
-  diameterM: number;
-  massKg: number;
-  velocityKmps: number;
-  
-  // Detection properties
-  detectionDate: Date;
-  detectionChance: number;
-  isDetected: boolean;
-  
-  // Time properties
-  timeToImpactHours: number;
-  initialTimeToImpact: number;
-  
-  // Trajectory properties
-  impactProbability: number;
-  initialImpactProbability: number;
-  uncertaintyKm: number; // Position uncertainty
-  
-  // Impact properties
-  impactLatitude?: number;
-  impactLongitude?: number;
-  impactZoneRadiusKm?: number;
-  
-  // Status
-  isTracked: boolean;
-  publicAlerted: boolean;
-  evacuationOrdered: boolean;
-  deflectionMissions: DeflectionMission[];
-}
-
-export interface DeflectionMission {
-  id: string;
-  type: 'kinetic' | 'nuclear' | 'gravity_tractor';
-  name: string;
-  launchDate: Date;
-  arrivalDate: Date;
-  cost: number;
-  effectivenessPercent: number;
-  status: 'planned' | 'launched' | 'en_route' | 'deployed' | 'failed';
-}
-
-export interface GameState {
-  currentTime: Date;
-  gameSpeed: number; // Speed multiplier (1 = real time, 3600 = 1 hour per second)
-  isPlaying: boolean;
-  
-  // Resources
-  budget: number; // In billions USD
-  trustPoints: number; // Public trust (0-100)
-  
-  // Tracking capabilities
-  trackingCapacity: number; // Max asteroids we can actively track
-  
-  // Score
-  livesAtRisk: number;
-  livesSaved: number;
-  falseAlarms: number;
-}
-
-export interface EventLogEntry {
-  id: string;
-  timestamp: Date;
-  type: 'detection' | 'tracking' | 'alert' | 'mission' | 'impact' | 'miss' | 'system';
-  message: string;
-  asteroidId?: string;
-  severity: 'info' | 'warning' | 'critical' | 'success';
-}
-
-// ============================================================================
-// ASTEROID GENERATION & PHYSICS
-// ============================================================================
-
-const ASTEROID_SIZE_CONFIGS = {
-  tiny: {
-    diameterRange: [1, 5],
-    densityKgM3: 2500,
-    detectionChance: 0.4, // Improved detection for better gameplay
-    timeToImpactRange: [1, 72], // 1-72 hours
-    initialImpactProb: 0.01, // Usually burn up in atmosphere - very low impact chance
-    impactZoneKm: 0, // Burns up in atmosphere
-    dangerLevel: 0,
-  },
-  small: {
-    diameterRange: [5, 20], 
-    densityKgM3: 2700,
-    detectionChance: 0.6, // Improved detection for better gameplay
-    timeToImpactRange: [24, 168], // 1-7 days
-    initialImpactProb: 0.05, // Mostly harmless airbursts - low impact chance
-    impactZoneKm: 10, // Small airburst damage
-    dangerLevel: 1,
-  },
-  medium: {
-    diameterRange: [20, 140],
-    densityKgM3: 3000,
-    detectionChance: 0.8, // Improved detection for better gameplay
-    timeToImpactRange: [168, 8760], // 1 week - 1 year
-    initialImpactProb: 0.15, // Regional danger - moderate impact chance
-    impactZoneKm: 100, // Regional destruction
-    dangerLevel: 5,
-  },
-  large: {
-    diameterRange: [140, 1000],
-    densityKgM3: 3200,
-    detectionChance: 0.95, // Almost always detected early
-    timeToImpactRange: [8760, 87600], // 1-10 years
-    initialImpactProb: 0.3, // Global threat - higher impact chance
-    impactZoneKm: 1000, // Global effects
-    dangerLevel: 10,
-  }
-};
-
-function randomBetween(min: number, max: number): number {
-  return min + Math.random() * (max - min);
-}
-
-function massFromDiameter(diameterM: number, densityKgM3: number): number {
-  const radius = diameterM / 2;
-  const volume = (4 / 3) * Math.PI * Math.pow(radius, 3);
-  return volume * densityKgM3;
-}
-
-function generateAsteroid(currentTime: Date): Asteroid {
-  // Randomly select size category (weighted towards smaller objects)
-  const sizeRoll = Math.random();
-  let size: AsteroidSize;
-  if (sizeRoll < 0.6) size = 'tiny';
-  else if (sizeRoll < 0.85) size = 'small';
-  else if (sizeRoll < 0.98) size = 'medium';
-  else size = 'large';
-  
-  const config = ASTEROID_SIZE_CONFIGS[size];
-  
-  const diameterM = randomBetween(config.diameterRange[0], config.diameterRange[1]);
-  const massKg = massFromDiameter(diameterM, config.densityKgM3);
-  const velocityKmps = randomBetween(11, 70); // Typical Earth encounter velocities
-  
-  const timeToImpactHours = randomBetween(config.timeToImpactRange[0], config.timeToImpactRange[1]);
-  
-  // Detection chance decreases with smaller size and less time
-  const detectionChance = config.detectionChance * (timeToImpactHours / config.timeToImpactRange[1]);
-  const isDetected = Math.random() < detectionChance;
-  
-  // Generate random impact location
-  const impactLatitude = randomBetween(-60, 60); // Most impacts in populated zones
-  const impactLongitude = randomBetween(-180, 180);
-  
-  // Initial uncertainty is high, decreases with observation time
-  const uncertaintyKm = Math.max(50, config.impactZoneKm * 10 / Math.sqrt(timeToImpactHours / 24));
-  
-  const asteroid: Asteroid = {
-    id: `AST-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    name: generateAsteroidName(),
-    size,
-    diameterM,
-    massKg,
-    velocityKmps,
-    
-    detectionDate: new Date(currentTime.getTime() - (isDetected ? Math.random() * 24 * 60 * 60 * 1000 : 0)),
-    detectionChance,
-    isDetected,
-    
-    timeToImpactHours,
-    initialTimeToImpact: timeToImpactHours,
-    
-    impactProbability: config.initialImpactProb,
-    initialImpactProbability: config.initialImpactProb,
-    uncertaintyKm,
-    
-    impactLatitude,
-    impactLongitude,
-    impactZoneRadiusKm: config.impactZoneKm,
-    
-    isTracked: false,
-    publicAlerted: false,
-    evacuationOrdered: false,
-    deflectionMissions: [],
-  };
-  
-  return asteroid;
-}
-
-function generateAsteroidName(): string {
-  const prefixes = ['2024', '2025', '2026'];
-  const suffixes = ['AA', 'AB', 'AC', 'BA', 'BB', 'BC', 'CA', 'CB', 'CC', 'DA', 'DB', 'DC'];
-  const numbers = [Math.floor(Math.random() * 999) + 1];
-  
-  return `${prefixes[Math.floor(Math.random() * prefixes.length)]} ${suffixes[Math.floor(Math.random() * suffixes.length)]}${numbers[0]}`;
-}
-
-// ============================================================================
-// GAME MECHANICS
-// ============================================================================
-
-function updateAsteroid(asteroid: Asteroid, deltaTimeHours: number, isTracked: boolean): Asteroid {
-  const updated = { ...asteroid };
-  
-  // Update time to impact
-  updated.timeToImpactHours = Math.max(0, asteroid.timeToImpactHours - deltaTimeHours);
-  
-  // Improve accuracy over time if being tracked
-  if (isTracked && updated.timeToImpactHours > 0) {
-    const observationTime = asteroid.initialTimeToImpact - updated.timeToImpactHours;
-    const improvementFactor = Math.sqrt(observationTime / 24); // Improve with sqrt of observation days
-    updated.uncertaintyKm = Math.max(1, asteroid.uncertaintyKm / (1 + improvementFactor * 0.1));
-    
-    // Refine impact probability (move towards true value)
-    const trueImpactProb = Math.random() < 0.1 ? 0.9 : 0.05; // 10% are actually dangerous
-    const refinementRate = 0.02 * improvementFactor;
-    updated.impactProbability = updated.impactProbability + 
-      (trueImpactProb - updated.impactProbability) * refinementRate;
-    updated.impactProbability = Math.max(0, Math.min(1, updated.impactProbability));
-  }
-  
-  return updated;
-}
-
-const ACTION_COSTS = {
-  trackAsteroid: 0.1, // $100M to track one asteroid
-  alertPublic: 0.05, // $50M for alert systems
-  launchKineticMission: 2.0, // $2B for kinetic interceptor
-  launchNuclearMission: 5.0, // $5B for nuclear option
-  launchGravityTractor: 3.0, // $3B for gravity tractor
-  evacuateArea: 1.0, // $1B for evacuation
-};
-
-const TRUST_IMPACTS = {
-  correctAlert: 10,
-  falseAlarm: -20,
-  missedThreat: -50,
-  successfulDeflection: 30,
-  failedMission: -15,
-};
+import { Asteroid, GameState, EventLogEntry, DeflectionMission } from './types';
+import { ACTION_COSTS, TRUST_IMPACTS, SCORE_REWARDS } from './constants';
+import { generateAsteroid, updateAsteroid, calculateCasualties } from './gameUtils';
+import EarthVisualization from './components/EarthVisualization';
+import AsteroidActionPanel from './components/AsteroidActionPanel';
 
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
+// Helper function to format time to impact
+function formatTimeToImpact(timeToImpactHours: number): string {
+  const days = timeToImpactHours / 24;
+  if (days <= 0) {
+    return "Passed";
+  }
+  return `${days.toFixed(1)} days`;
+}
+
 export default function AsteroidDefensePage() {
   // Game state
   const [gameState, setGameState] = useState<GameState>({
     currentTime: new Date('2025-01-01T00:00:00Z'),
-    gameSpeed: 86400, // 1 day per second (faster default)
+    gameSpeed: 3600, // 1 hour per second (better pacing)
     isPlaying: true,
     budget: 50, // $50B starting budget
     trustPoints: 75, // Start with decent public trust
@@ -261,6 +32,10 @@ export default function AsteroidDefensePage() {
     livesAtRisk: 0,
     livesSaved: 0,
     falseAlarms: 0,
+    correctAlerts: 0,
+    asteroidsTracked: 0,
+    successfulDeflections: 0,
+    totalScore: 0,
   });
   
   // Asteroids state - Initialize empty to avoid hydration issues, populate client-side
@@ -310,22 +85,36 @@ export default function AsteroidDefensePage() {
     if (!gameState.isPlaying || !isClientInitialized) return;
     
     const interval = setInterval(() => {
-      // Generate asteroid roughly every 3-8 seconds of game time
-      // Increased probability from 0.1 to 0.4 for more frequent spawning
-      if (Math.random() < 0.4) {
-        const newAsteroid = generateAsteroid(gameState.currentTime);
-        setAsteroids(prev => [...prev, newAsteroid]);
+      // Generate asteroid roughly every 5-10 seconds of real time
+      // Higher probability since asteroids now last much longer
+      // Boost generation if we have very few asteroids
+      
+      setAsteroids(prev => {
+        const currentAsteroidCount = prev.length;
+        let spawnChance = 0.6;
+        if (currentAsteroidCount < 2) spawnChance = 0.9; // High chance if very few
+        else if (currentAsteroidCount < 5) spawnChance = 0.7; // Higher chance if few
         
-        if (newAsteroid.isDetected) {
-          addEvent('detection', `New asteroid ${newAsteroid.name} detected! Diameter: ${newAsteroid.diameterM.toFixed(0)}m, Time to impact: ${(newAsteroid.timeToImpactHours / 24).toFixed(1)} days`, 
-            newAsteroid.size === 'large' ? 'critical' : newAsteroid.size === 'medium' ? 'warning' : 'info', 
-            newAsteroid.id);
+        if (Math.random() < spawnChance) {
+          // Create asteroid with approximate current time (will be close enough)
+          const approximateCurrentTime = new Date(Date.now() + (gameState.gameSpeed * 1000));
+          const newAsteroid = generateAsteroid(approximateCurrentTime);
+          
+          if (newAsteroid.isDetected) {
+            addEvent('detection', `New asteroid ${newAsteroid.name} detected! Diameter: ${newAsteroid.diameterM.toFixed(0)}m, Time to impact: ${formatTimeToImpact(newAsteroid.timeToImpactHours)}`, 
+              newAsteroid.size === 'large' ? 'critical' : newAsteroid.size === 'medium' ? 'warning' : 'info', 
+              newAsteroid.id);
+          }
+          
+          return [...prev, newAsteroid];
         }
-      }
-    }, 2000);
+        
+        return prev; // No change if no spawn
+      });
+    }, 5000); // Check every 5 seconds instead of 2
     
     return () => clearInterval(interval);
-  }, [gameState.isPlaying, gameState.currentTime, addEvent, isClientInitialized]);
+  }, [gameState.isPlaying, gameState.gameSpeed, addEvent, isClientInitialized]);
 
   // Budget replenishment (simulate annual budget allocation)
   useEffect(() => {
@@ -353,8 +142,22 @@ export default function AsteroidDefensePage() {
       }));
       
       // Update all asteroids
-      setAsteroids(prev => prev.map(asteroid => {
+      setAsteroids(prev => {
+        const updatedAsteroids = prev.map(asteroid => {
         const updated = updateAsteroid(asteroid, gameState.gameSpeed / 3600, asteroid.isTracked);
+        
+        // Award continuous tracking bonus (once per day)
+        if (updated.isTracked && updated.timeToImpactHours > 0) {
+          const daysPassed = Math.floor((asteroid.initialTimeToImpact - updated.timeToImpactHours) / 24);
+          const previousDaysPassed = Math.floor((asteroid.initialTimeToImpact - asteroid.timeToImpactHours) / 24);
+          
+          if (daysPassed > previousDaysPassed) {
+            setGameState(prev => ({ 
+              ...prev, 
+              totalScore: prev.totalScore + SCORE_REWARDS.asteroidTracked
+            }));
+          }
+        }
         
         // Check for impacts
         if (updated.timeToImpactHours <= 0 && asteroid.timeToImpactHours > 0) {
@@ -371,7 +174,12 @@ export default function AsteroidDefensePage() {
             }));
             
             if (asteroid.publicAlerted) {
-              addEvent('system', `Public alert was correct. Trust increased.`, 'success');
+              setGameState(prev => ({ 
+                ...prev, 
+                correctAlerts: prev.correctAlerts + 1,
+                totalScore: prev.totalScore + SCORE_REWARDS.correctAlert
+              }));
+              addEvent('system', `Public alert was correct. Trust increased. (+${SCORE_REWARDS.correctAlert} points)`, 'success');
             } else {
               addEvent('system', `No warning was issued. Public trust severely damaged.`, 'critical');
             }
@@ -380,36 +188,59 @@ export default function AsteroidDefensePage() {
             
             // Handle trust impacts for false alarms or correct non-action
             if (asteroid.publicAlerted) {
-              addEvent('system', `False alarm issued. Public trust damaged.`, 'warning');
+              addEvent('system', `False alarm issued. Public trust damaged. (${SCORE_REWARDS.falseAlarm} points)`, 'warning');
               setGameState(prev => ({ 
                 ...prev, 
                 trustPoints: Math.max(0, prev.trustPoints + TRUST_IMPACTS.falseAlarm),
-                falseAlarms: prev.falseAlarms + 1
+                falseAlarms: prev.falseAlarms + 1,
+                totalScore: prev.totalScore + SCORE_REWARDS.falseAlarm
               }));
+            } else {
+              // Reward for not issuing false alarm on a miss
+              setGameState(prev => ({ 
+                ...prev, 
+                totalScore: prev.totalScore + SCORE_REWARDS.goodDecision
+              }));
+              addEvent('system', `Good decision: No false alarm issued. (+${SCORE_REWARDS.goodDecision} points)`, 'success');
             }
             
             // Handle successful deflection missions
             if (asteroid.deflectionMissions.length > 0) {
               const successfulMissions = asteroid.deflectionMissions.filter(m => m.status === 'deployed');
               if (successfulMissions.length > 0) {
-                addEvent('mission', `Deflection missions successful! ${asteroid.name} trajectory altered.`, 'success', asteroid.id);
+                const preventedCasualties = calculateCasualties(asteroid);
+                const deflectionBonus = SCORE_REWARDS.successfulDeflection + (asteroid.impactProbability > 0.3 ? SCORE_REWARDS.preventedImpact : 0);
+                addEvent('mission', `Deflection missions successful! ${asteroid.name} trajectory altered. (+${deflectionBonus} points)`, 'success', asteroid.id);
                 setGameState(prev => ({ 
                   ...prev, 
                   trustPoints: Math.min(100, prev.trustPoints + TRUST_IMPACTS.successfulDeflection),
-                  livesSaved: prev.livesSaved + calculateCasualties(asteroid)
+                  livesSaved: prev.livesSaved + preventedCasualties,
+                  successfulDeflections: prev.successfulDeflections + 1,
+                  totalScore: prev.totalScore + deflectionBonus
                 }));
               }
             }
           }
         }
         
-        return updated;
-      }).filter(asteroid => asteroid.timeToImpactHours > -24)); // Remove old asteroids after 24 hours
+          return updated;
+        });
+        
+        // Filter out old asteroids and clear selection if selected asteroid was removed
+        const filteredAsteroids = updatedAsteroids.filter(asteroid => asteroid.timeToImpactHours > -24);
+        const removedAsteroidIds = updatedAsteroids.filter(asteroid => asteroid.timeToImpactHours <= -24).map(a => a.id);
+        
+        if (selectedAsteroid && removedAsteroidIds.includes(selectedAsteroid)) {
+          setSelectedAsteroid(null);
+        }
+        
+        return filteredAsteroids;
+      });
       
     }, 1000);
     
     return () => clearInterval(interval);
-  }, [gameState.isPlaying, gameState.gameSpeed, addEvent]);
+  }, [gameState.isPlaying, gameState.gameSpeed, addEvent, selectedAsteroid]);
 
   // Reset quick mission menu when selection changes
   useEffect(() => {
@@ -438,10 +269,12 @@ export default function AsteroidDefensePage() {
     
     setGameState(prev => ({
       ...prev,
-      budget: prev.budget - ACTION_COSTS.trackAsteroid
+      budget: prev.budget - ACTION_COSTS.trackAsteroid,
+      asteroidsTracked: prev.asteroidsTracked + 1,
+      totalScore: prev.totalScore + SCORE_REWARDS.trackAsteroid
     }));
     
-    addEvent('tracking', `Started precision tracking of ${asteroid.name}`, 'info', asteroidId);
+    addEvent('tracking', `Started precision tracking of ${asteroid.name} (+${SCORE_REWARDS.trackAsteroid} points)`, 'info', asteroidId);
   }, [asteroids, gameState.trackingCapacity, gameState.budget, addEvent]);
   
   const alertPublic = useCallback((asteroidId: string) => {
@@ -537,21 +370,6 @@ export default function AsteroidDefensePage() {
     addEvent('mission', `${mission.name} launched! Effectiveness: ${effectiveness.toFixed(1)}%`, 'info', asteroidId);
   }, [asteroids, gameState.budget, gameState.currentTime, addEvent]);
   
-  const calculateCasualties = (asteroid: Asteroid): number => {
-    const sizeMultiplier = {
-      tiny: 0,
-      small: Math.random() < 0.1 ? 100 : 0, // 10% chance of airburst casualties
-      medium: Math.floor(Math.random() * 100000) + 10000, // 10K-100K+
-      large: Math.floor(Math.random() * 10000000) + 1000000, // 1M-10M+
-    };
-    
-    const baseCasualties = sizeMultiplier[asteroid.size];
-    const evacuationReduction = asteroid.evacuationOrdered ? 0.1 : 1.0;
-    const alertReduction = asteroid.publicAlerted ? 0.5 : 1.0;
-    
-    return Math.floor(baseCasualties * evacuationReduction * alertReduction);
-  };
-  
   // Computed values
   const detectedAsteroids = useMemo(() => 
     asteroids.filter(a => a.isDetected).sort((a, b) => a.timeToImpactHours - b.timeToImpactHours)
@@ -562,7 +380,7 @@ export default function AsteroidDefensePage() {
   , [asteroids]);
   
   const immediateThreat = useMemo(() =>
-    detectedAsteroids.find(a => a.timeToImpactHours < 72 && a.impactProbability > 0.1)
+    detectedAsteroids.find(a => a.timeToImpactHours > 0 && a.timeToImpactHours < 72 && a.impactProbability > 0.1)
   , [detectedAsteroids]);
 
   // Game over conditions
@@ -570,15 +388,13 @@ export default function AsteroidDefensePage() {
     return gameState.trustPoints <= 0 || gameState.budget <= 0;
   }, [gameState.trustPoints, gameState.budget]);
 
-  // Calculate score
+  // Calculate final score (use accumulated totalScore plus bonuses)
   const gameScore = useMemo(() => {
-    const baseScore = gameState.livesSaved * 10;
     const trustBonus = gameState.trustPoints * 5;
-    const budgetEfficiency = (50 - gameState.budget) * 2; // Lower remaining budget = more efficient
-    const falseAlarmPenalty = gameState.falseAlarms * 100;
+    const budgetEfficiencyBonus = (50 - gameState.budget) * 2; // Efficiency bonus
     
-    return Math.max(0, baseScore + trustBonus + budgetEfficiency - falseAlarmPenalty);
-  }, [gameState.livesSaved, gameState.trustPoints, gameState.budget, gameState.falseAlarms]);
+    return Math.max(0, gameState.totalScore + trustBonus + budgetEfficiencyBonus);
+  }, [gameState.totalScore, gameState.trustPoints, gameState.budget]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -586,9 +402,12 @@ export default function AsteroidDefensePage() {
       <header className="bg-gray-800 border-b border-gray-700 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold">🛡️ Asteroid Defense Command</h1>
+            <h1 className="text-2xl font-bold">🛡️ NASA Planetary Defense Coordination Office</h1>
             <div className="text-sm text-gray-300">
               {gameState.currentTime.toISOString().replace('T', ' ').slice(0, 19)} UTC
+            </div>
+            <div className="text-xs text-blue-300 bg-blue-900/30 px-2 py-1 rounded border border-blue-600/30">
+              Educational Simulation
             </div>
           </div>
           
@@ -611,10 +430,16 @@ export default function AsteroidDefensePage() {
               <span className="text-yellow-400">Tracking: {currentlyTracked}/{gameState.trackingCapacity}</span>
             </div>
             <div className="text-sm">
-              <span className="text-purple-400">Score: {gameScore.toLocaleString()}</span>
+              <span className="text-purple-400 font-semibold">Score: {gameScore.toLocaleString()}</span>
             </div>
             <div className="text-sm">
               <span className="text-green-400">Lives Saved: {gameState.livesSaved.toLocaleString()}</span>
+            </div>
+            <div className="text-sm">
+              <span className="text-blue-400">Tracked: {gameState.asteroidsTracked}</span>
+            </div>
+            <div className="text-sm">
+              <span className="text-cyan-400">Correct Alerts: {gameState.correctAlerts}</span>
             </div>
             <div className="text-sm flex items-center gap-2">
               <span className="text-gray-300">Speed:</span>
@@ -654,15 +479,32 @@ export default function AsteroidDefensePage() {
         {immediateThreat && (
           <div className="mt-2 p-2 bg-red-800/50 border border-red-600 rounded">
             <div className="text-red-300 text-sm font-semibold">
-              🚨 IMMEDIATE THREAT: {immediateThreat.name} - {(immediateThreat.timeToImpactHours / 24).toFixed(1)} days to impact!
+              🚨 IMMEDIATE THREAT: {immediateThreat.name} - {formatTimeToImpact(immediateThreat.timeToImpactHours)} to impact!
+            </div>
+            <div className="text-red-200 text-xs mt-1">
+              Initiate PLANETARY DEFENSE PROTOCOLS • Alert international partners • Begin trajectory analysis
+            </div>
+          </div>
+        )}
+        
+        {/* NASA-style Mission Brief */}
+        {gameState.currentTime.getTime() - new Date('2025-01-01T00:00:00Z').getTime() < 300000 && ( // Show for first 5 minutes
+          <div className="mt-2 p-3 bg-blue-900/30 border border-blue-600/30 rounded">
+            <div className="text-blue-300 text-sm font-semibold mb-1">
+              📋 MISSION BRIEFING - Operation: Planetary Shield
+            </div>
+            <div className="text-blue-200 text-xs leading-relaxed">
+              You are leading NASA's Planetary Defense Coordination Office. Your mission: detect, track, and deflect potentially hazardous asteroids. 
+              Use real scientific methods and technologies currently deployed by NASA. Every decision impacts public safety and trust.
+              <span className="text-yellow-300 block mt-1">Remember: Early detection is key to successful deflection!</span>
             </div>
           </div>
         )}
       </header>
 
-      <div className="flex min-h-screen">
+      <div className="flex h-[calc(100vh-64px)] min-h-0">
         {/* Sidebar - Asteroid List */}
-        <div className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col max-h-screen">
+        <div className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col min-h-0">
           <div className="p-4 border-b border-gray-700 flex-shrink-0">
             <h2 className="font-semibold mb-2">Detected Asteroids</h2>
             <div className="text-xs text-gray-400">
@@ -694,7 +536,7 @@ export default function AsteroidDefensePage() {
                 </div>
                 
                 <div className="text-xs space-y-1">
-                  <div>⏱️ {(asteroid.timeToImpactHours / 24).toFixed(1)} days</div>
+                  <div>⏱️ {formatTimeToImpact(asteroid.timeToImpactHours)}</div>
                   <div>📏 {asteroid.diameterM.toFixed(0)}m diameter</div>
                   <div>🎯 {(asteroid.impactProbability * 100).toFixed(1)}% impact chance</div>
                   {asteroid.isTracked && <div className="text-green-400">📡 Tracking</div>}
@@ -714,7 +556,7 @@ export default function AsteroidDefensePage() {
         </div>
 
         {/* Main Panel */}
-        <div className="flex-1 flex flex-col max-h-screen">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Quick Action Bar */}
           {selectedAsteroid && (() => {
             const asteroid = asteroids.find(a => a.id === selectedAsteroid);
@@ -835,8 +677,8 @@ export default function AsteroidDefensePage() {
               );
             }
             return (
-              <div className="bg-gray-800 border-t border-gray-700 p-4 overflow-y-auto max-h-64">
-                <div className="flex items-center justify-between mb-3">
+              <div className="bg-gray-800 border-t border-gray-700 flex flex-col max-h-80">
+                <div className="flex items-center justify-between p-3 border-b border-gray-700 flex-shrink-0">
                   <h3 className="font-semibold text-white">Action Panel - {asteroid.name}</h3>
                   <button
                     onClick={() => setSelectedAsteroid(null)}
@@ -846,48 +688,85 @@ export default function AsteroidDefensePage() {
                     ✕
                   </button>
                 </div>
-                <AsteroidActionPanel
-                  asteroid={asteroid}
-                  gameState={gameState}
-                  onTrack={() => trackAsteroid(selectedAsteroid)}
-                  onAlert={() => alertPublic(selectedAsteroid)}
-                  onLaunchMission={(missionType) => launchDeflectionMission(selectedAsteroid, missionType)}
-                  onEvacuate={() => evacuateArea(selectedAsteroid)}
-                />
+                <div className="flex-1 overflow-y-auto p-4">
+                  <AsteroidActionPanel
+                    asteroid={asteroid}
+                    gameState={gameState}
+                    onTrack={() => trackAsteroid(selectedAsteroid)}
+                    onAlert={() => alertPublic(selectedAsteroid)}
+                    onLaunchMission={(missionType) => launchDeflectionMission(selectedAsteroid, missionType)}
+                    onEvacuate={() => evacuateArea(selectedAsteroid)}
+                  />
+                </div>
               </div>
             );
           })()}
         </div>
 
-        {/* Event Log */}
-        <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col max-h-screen">
+        {/* Educational Resources & Event Log */}
+        <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col min-h-0">
           <div className="p-4 border-b border-gray-700 flex-shrink-0">
-            <h2 className="font-semibold">Event Log</h2>
+            <h2 className="font-semibold">Mission Control</h2>
           </div>
           
-          <div className="space-y-1 p-2 overflow-y-auto flex-1">
-            {eventLog.map(event => (
-              <div
-                key={event.id}
-                className={`p-2 rounded text-sm border-l-2 ${
-                  event.severity === 'critical' ? 'bg-red-900/30 border-red-500' :
-                  event.severity === 'warning' ? 'bg-yellow-900/30 border-yellow-500' :
-                  event.severity === 'success' ? 'bg-green-900/30 border-green-500' :
-                  'bg-gray-700/30 border-gray-500'
-                }`}
-              >
-                <div className="text-xs text-gray-400 mb-1">
-                  {event.timestamp.toISOString().slice(11, 19)} UTC
+          {/* Educational Resources Section */}
+          <div className="p-3 border-b border-gray-700 bg-gradient-to-b from-blue-900/20 to-gray-800">
+            <h3 className="font-semibold text-blue-300 mb-2">🌌 NASA Resources</h3>
+            <div className="space-y-2 text-xs">
+              <div>
+                <div className="text-yellow-300 font-medium">Planetary Defense</div>
+                <div className="text-gray-300">NASA's Planetary Defense Coordination Office monitors potentially hazardous asteroids and develops deflection technologies.</div>
+              </div>
+              <div>
+                <div className="text-yellow-300 font-medium">DART Mission</div>
+                <div className="text-gray-300">In 2022, NASA successfully changed the orbit of asteroid Dimorphos using a kinetic impactor, proving deflection technology works!</div>
+              </div>
+              <div>
+                <div className="text-yellow-300 font-medium">Near-Earth Objects</div>
+                <div className="text-gray-300">Over 34,000 near-Earth objects have been discovered, with about 2,300 classified as potentially hazardous.</div>
+              </div>
+              <div className="pt-2 border-t border-gray-600">
+                <div className="text-blue-300 font-medium">Torino Scale Guide:</div>
+                <div className="text-xs grid grid-cols-2 gap-1 mt-1">
+                  <div className="text-green-300">0-1: No hazard</div>
+                  <div className="text-yellow-300">2-4: Merits attention</div>
+                  <div className="text-orange-300">5-7: Threatening</div>
+                  <div className="text-red-300">8-10: Collision certain</div>
                 </div>
-                <div>{event.message}</div>
               </div>
-            ))}
+            </div>
+          </div>
+          
+          {/* Event Log */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="p-3 border-b border-gray-700">
+              <h3 className="font-semibold text-sm">Event Log</h3>
+            </div>
             
-            {eventLog.length === 0 && (
-              <div className="text-center py-8 text-gray-400">
-                <div>No events yet</div>
-              </div>
-            )}
+            <div className="space-y-1 p-2 overflow-y-auto flex-1">
+              {eventLog.map(event => (
+                <div
+                  key={event.id}
+                  className={`p-2 rounded text-sm border-l-2 ${
+                    event.severity === 'critical' ? 'bg-red-900/30 border-red-500' :
+                    event.severity === 'warning' ? 'bg-yellow-900/30 border-yellow-500' :
+                    event.severity === 'success' ? 'bg-green-900/30 border-green-500' :
+                    'bg-gray-700/30 border-gray-500'
+                  }`}
+                >
+                  <div className="text-xs text-gray-400 mb-1">
+                    {event.timestamp.toISOString().slice(11, 19)} UTC
+                  </div>
+                  <div>{event.message}</div>
+                </div>
+              ))}
+              
+              {eventLog.length === 0 && (
+                <div className="text-center py-8 text-gray-400">
+                  <div>No events yet</div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -931,8 +810,20 @@ export default function AsteroidDefensePage() {
                     <span className="text-red-400">{gameState.livesAtRisk.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
+                    <span>Asteroids Tracked:</span>
+                    <span className="text-blue-400">{gameState.asteroidsTracked}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Correct Alerts:</span>
+                    <span className="text-cyan-400">{gameState.correctAlerts}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span>False Alarms:</span>
                     <span className="text-yellow-400">{gameState.falseAlarms}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Successful Deflections:</span>
+                    <span className="text-green-400">{gameState.successfulDeflections}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Final Trust:</span>
@@ -957,7 +848,7 @@ export default function AsteroidDefensePage() {
                 // Reset game state
                 setGameState({
                   currentTime: new Date('2025-01-01T00:00:00Z'),
-                  gameSpeed: 3600,
+                  gameSpeed: 3600, // 1 hour per second (better pacing)
                   isPlaying: true,
                   budget: 50,
                   trustPoints: 75,
@@ -965,6 +856,10 @@ export default function AsteroidDefensePage() {
                   livesAtRisk: 0,
                   livesSaved: 0,
                   falseAlarms: 0,
+                  correctAlerts: 0,
+                  asteroidsTracked: 0,
+                  successfulDeflections: 0,
+                  totalScore: 0,
                 });
                 // Reset client state and let useEffect regenerate asteroids
                 setAsteroids([]);
@@ -984,490 +879,3 @@ export default function AsteroidDefensePage() {
   );
 }
 
-// ============================================================================
-// SUPPORTING COMPONENTS
-// ============================================================================
-
-// Deterministic star positions to prevent hydration errors
-const STARS = Array.from({ length: 100 }, (_, i) => {
-  // Use deterministic values based on index for consistent server/client rendering
-  const seed = i * 9.7; // Use a multiplier to spread values
-  return {
-    left: ((seed * 7.3) % 100),
-    top: ((seed * 11.7) % 100),
-    animationDelay: ((seed * 0.031) % 3),
-    animationDuration: (2 + ((seed * 0.041) % 4)),
-  };
-});
-
-function EarthVisualization({ asteroids, selectedAsteroid, gameTime, onSelectAsteroid }: {
-  asteroids: Asteroid[];
-  selectedAsteroid: string | null;
-  gameTime: Date;
-  onSelectAsteroid: (id: string) => void;
-}) {
-  const [showOrbits, setShowOrbits] = useState(true);
-  const [showImpactZones, setShowImpactZones] = useState(true);
-  
-  return (
-    <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-b from-indigo-900 via-blue-900 to-black">
-      {/* Stars background */}
-      <div className="absolute inset-0 opacity-30">
-        {STARS.map((star, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
-            style={{
-              left: `${star.left}%`,
-              top: `${star.top}%`,
-              animationDelay: `${star.animationDelay}s`,
-              animationDuration: `${star.animationDuration}s`,
-            }}
-          />
-        ))}
-      </div>
-      
-      {/* Earth system */}
-      <div className="relative">
-        {/* Earth's gravitational influence sphere */}
-        <div className="absolute inset-0 rounded-full border border-blue-300/20" style={{
-          width: '400px',
-          height: '400px',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-        }} />
-        
-        {/* Earth */}
-        <div className="relative">
-          <div className="w-64 h-64 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-green-500 border-4 border-blue-300 shadow-2xl relative overflow-hidden">
-            {/* Earth atmosphere glow */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-300/30 via-transparent to-blue-300/30" />
-            
-            {/* Earth surface details */}
-            <div className="absolute inset-3 rounded-full bg-gradient-to-br from-green-400 to-blue-600 opacity-80">
-              {/* Continents (simplified) */}
-              <div className="absolute top-6 left-10 w-20 h-16 bg-green-700 rounded-lg opacity-90 transform rotate-12" />
-              <div className="absolute top-16 right-6 w-16 h-12 bg-green-700 rounded-full opacity-90" />
-              <div className="absolute bottom-8 left-12 w-24 h-8 bg-green-700 rounded-lg opacity-90 transform -rotate-6" />
-              <div className="absolute top-32 left-20 w-12 h-20 bg-green-700 rounded-lg opacity-90 transform rotate-45" />
-              
-              {/* Clouds */}
-              <div className="absolute top-12 left-16 w-12 h-6 bg-white/40 rounded-full" />
-              <div className="absolute top-28 right-12 w-16 h-4 bg-white/40 rounded-full" />
-              <div className="absolute bottom-16 left-6 w-10 h-4 bg-white/40 rounded-full" />
-            </div>
-            
-            {/* Day/night terminator */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/20 to-black/40 rounded-full opacity-60" />
-          </div>
-        </div>
-        
-        {/* Asteroid trajectories and positions */}
-        {asteroids.map(asteroid => {
-          const isSelected = asteroid.id === selectedAsteroid;
-          const angle = (asteroid.id.charCodeAt(0) * 17) % 360; // Pseudo-random angle based on ID
-          const baseDistance = 180;
-          const distanceMultiplier = Math.max(0.2, asteroid.timeToImpactHours / (24 * 7)); // Closer as impact approaches
-          const distance = baseDistance + (distanceMultiplier * 120);
-          
-          const x = Math.cos(angle * Math.PI / 180) * distance;
-          const y = Math.sin(angle * Math.PI / 180) * distance;
-          
-          // Size based on asteroid size category
-          const dotSize = {
-            tiny: 4,
-            small: 6,
-            medium: 8,
-            large: 12
-          }[asteroid.size];
-          
-          return (
-            <div key={asteroid.id} className="absolute cursor-pointer" style={{ 
-              left: '50%', 
-              top: '50%', 
-              transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))` 
-            }} onClick={() => onSelectAsteroid(asteroid.id)} title={`Select ${asteroid.name}`}>
-              {/* Orbital path */}
-              {showOrbits && (
-                <svg className="absolute pointer-events-none" style={{
-                  left: -x - 200, 
-                  top: -y - 200,
-                  width: '400px',
-                  height: '400px'
-                }}>
-                  <ellipse
-                    cx={200 + x}
-                    cy={200 + y}
-                    rx={distance * 0.8}
-                    ry={distance * 0.4}
-                    fill="none"
-                    stroke={isSelected ? '#fbbf24' : '#6b7280'}
-                    strokeWidth={1}
-                    strokeDasharray="2 4"
-                    opacity={0.3}
-                    transform={`rotate(${angle} ${200 + x} ${200 + y})`}
-                  />
-                </svg>
-              )}
-              
-              {/* Asteroid */}
-              <div 
-                className={`rounded-full border-2 ${
-                  isSelected ? 'bg-yellow-400 border-yellow-300 ring-4 ring-yellow-300/50' :
-                  asteroid.size === 'large' ? 'bg-red-500 border-red-300' :
-                  asteroid.size === 'medium' ? 'bg-orange-500 border-orange-300' :
-                  asteroid.size === 'small' ? 'bg-yellow-500 border-yellow-300' :
-                  'bg-gray-400 border-gray-300'
-                } shadow-lg`}
-                style={{
-                  width: `${dotSize}px`,
-                  height: `${dotSize}px`,
-                }}
-              />
-              
-              {/* Velocity vector */}
-              <svg className="absolute pointer-events-none" style={{
-                left: -10, 
-                top: -10,
-                width: '20px',
-                height: '20px'
-              }}>
-                <line
-                  x1={10}
-                  y1={10}
-                  x2={10 + Math.cos((angle + 90) * Math.PI / 180) * 8}
-                  y2={10 + Math.sin((angle + 90) * Math.PI / 180) * 8}
-                  stroke={isSelected ? '#fbbf24' : '#6b7280'}
-                  strokeWidth={2}
-                  opacity={0.7}
-                />
-                <polygon
-                  points={`${10 + Math.cos((angle + 90) * Math.PI / 180) * 8},${10 + Math.sin((angle + 90) * Math.PI / 180) * 8} ${10 + Math.cos((angle + 75) * Math.PI / 180) * 6},${10 + Math.sin((angle + 75) * Math.PI / 180) * 6} ${10 + Math.cos((angle + 105) * Math.PI / 180) * 6},${10 + Math.sin((angle + 105) * Math.PI / 180) * 6}`}
-                  fill={isSelected ? '#fbbf24' : '#6b7280'}
-                  opacity={0.7}
-                />
-              </svg>
-              
-              {/* Asteroid label */}
-              <div className={`absolute top-6 left-1/2 transform -translate-x-1/2 text-xs whitespace-nowrap px-2 py-1 rounded bg-black/70 border ${
-                isSelected ? 'text-yellow-300 font-semibold border-yellow-500/50' : 'text-gray-300 border-gray-500/50'
-              }`}>
-                <div>{asteroid.name}</div>
-                <div className="text-xs opacity-75">
-                  {(asteroid.timeToImpactHours / 24).toFixed(1)}d • {(asteroid.impactProbability * 100).toFixed(0)}%
-                </div>
-              </div>
-              
-              {/* Impact zone preview on Earth's surface */}
-              {showImpactZones && asteroid.impactProbability > 0.1 && asteroid.impactZoneRadiusKm && asteroid.impactZoneRadiusKm > 0 && (
-                <div
-                  className="absolute rounded-full border-2 border-red-500 bg-red-500/10 animate-pulse"
-                  style={{
-                    width: `${Math.min(asteroid.impactZoneRadiusKm / 5, 80)}px`,
-                    height: `${Math.min(asteroid.impactZoneRadiusKm / 5, 80)}px`,
-                    left: '50%',
-                    top: '50%',
-                    transform: `translate(calc(-50% + ${-x}px), calc(-50% + ${-y}px))`,
-                  }}
-                />
-              )}
-              
-              {/* Mission indicators */}
-              {asteroid.deflectionMissions.length > 0 && (
-                <div className="absolute -top-2 -right-2">
-                  {asteroid.deflectionMissions.map(mission => (
-                    <div key={mission.id} className={`w-2 h-2 rounded-full ml-1 ${
-                      mission.status === 'deployed' ? 'bg-green-400' :
-                      mission.status === 'en_route' ? 'bg-blue-400' :
-                      mission.status === 'launched' ? 'bg-yellow-400' :
-                      'bg-gray-400'
-                    } animate-pulse`} />
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      
-      {/* Controls */}
-      <div className="absolute top-4 right-4 space-y-2">
-        <button
-          onClick={() => setShowOrbits(!showOrbits)}
-          className={`px-3 py-1 rounded text-xs ${showOrbits ? 'bg-blue-600' : 'bg-gray-600'} hover:bg-opacity-80`}
-        >
-          Orbits {showOrbits ? '✓' : '✗'}
-        </button>
-        <button
-          onClick={() => setShowImpactZones(!showImpactZones)}
-          className={`px-3 py-1 rounded text-xs ${showImpactZones ? 'bg-red-600' : 'bg-gray-600'} hover:bg-opacity-80`}
-        >
-          Impact Zones {showImpactZones ? '✓' : '✗'}
-        </button>
-      </div>
-      
-      {/* Enhanced Legend */}
-      <div className="absolute bottom-4 left-4 bg-black/80 rounded p-4 text-xs border border-gray-600">
-        <div className="font-semibold mb-3">Command Center Legend</div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-500" />
-            <span>Large (140m+) - Global threat</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-orange-500" />
-            <span>Medium (20-140m) - Regional danger</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-yellow-500" />
-            <span>Small (5-20m) - Airburst risk</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-gray-400" />
-            <span>Tiny (&lt;5m) - Burns up</span>
-          </div>
-          
-          <div className="border-t border-gray-600 pt-2 mt-2">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              <span>Mission active</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-              <span>Mission en route</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Time display */}
-      <div className="absolute top-4 left-4 bg-black/80 rounded p-3 text-sm border border-gray-600">
-        <div className="font-semibold text-green-400">Mission Time</div>
-        <div className="font-mono">{gameTime.toISOString().replace('T', ' ').slice(0, 19)} UTC</div>
-        <div className="text-xs text-gray-400 mt-1">
-          {asteroids.length} objects tracked
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AsteroidActionPanel({ asteroid, gameState, onTrack, onAlert, onLaunchMission, onEvacuate }: {
-  asteroid: Asteroid;
-  gameState: GameState;
-  onTrack: () => void;
-  onAlert: () => void;
-  onLaunchMission: (missionType: DeflectionMission['type']) => void;
-  onEvacuate: () => void;
-}) {
-  const timeToImpactDays = asteroid.timeToImpactHours / 24;
-  const canTrack = !asteroid.isTracked && gameState.budget >= ACTION_COSTS.trackAsteroid;
-  const canAlert = !asteroid.publicAlerted && gameState.budget >= ACTION_COSTS.alertPublic;
-  const canLaunchMission = timeToImpactDays > 30 && asteroid.impactProbability > 0.1;
-  const canEvacuate = !asteroid.evacuationOrdered && asteroid.size !== 'tiny' && asteroid.size !== 'small' && gameState.budget >= ACTION_COSTS.evacuateArea;
-  
-  const [showMissionOptions, setShowMissionOptions] = useState(false);
-  const [showTooltip, setShowTooltip] = useState<string | null>(null);
-  
-  // Calculate Torino Scale level
-  const getTorinoScale = (asteroid: Asteroid): number => {
-    const energy = 0.5 * asteroid.massKg * Math.pow(asteroid.velocityKmps * 1000, 2) / (4.184e15); // Convert to MT TNT
-    const impactProb = asteroid.impactProbability;
-    
-    if (impactProb < 0.00001) return 0;
-    if (energy < 0.01) return Math.min(1, Math.floor(impactProb * 10));
-    if (energy < 1) return Math.min(4, 2 + Math.floor(impactProb * 3));
-    if (energy < 1000) return Math.min(7, 5 + Math.floor(impactProb * 3));
-    return Math.min(10, 8 + Math.floor(impactProb * 3));
-  };
-  
-  const torinoScale = getTorinoScale(asteroid);
-  const torinoColors = ['bg-gray-600', 'bg-green-600', 'bg-green-600', 'bg-yellow-600', 'bg-yellow-600', 'bg-orange-600', 'bg-orange-600', 'bg-red-600', 'bg-red-700', 'bg-red-800', 'bg-red-900'];
-  
-  return (
-    <div className="h-full relative">
-      <h3 className="font-semibold mb-3">{asteroid.name} - Action Options</h3>
-      
-      <div className="grid grid-cols-3 gap-4 mb-4">
-        <div className="space-y-2">
-          <div className="text-sm">
-            <div className="text-gray-400">Size Category</div>
-            <div className={`font-semibold ${
-              asteroid.size === 'large' ? 'text-red-400' :
-              asteroid.size === 'medium' ? 'text-orange-400' :
-              asteroid.size === 'small' ? 'text-yellow-400' :
-              'text-gray-400'
-            }`}>
-              {asteroid.size.toUpperCase()} ({asteroid.diameterM.toFixed(0)}m)
-            </div>
-          </div>
-          
-          <div className="text-sm">
-            <div className="text-gray-400">Time to Impact</div>
-            <div className="font-semibold">{timeToImpactDays.toFixed(1)} days</div>
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="text-sm">
-            <div className="text-gray-400">Impact Probability</div>
-            <div className="font-semibold">{(asteroid.impactProbability * 100).toFixed(1)}%</div>
-          </div>
-          
-          <div className="text-sm">
-            <div className="text-gray-400">Position Uncertainty</div>
-            <div className="font-semibold">±{asteroid.uncertaintyKm.toFixed(0)}km</div>
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="text-sm">
-            <div className="text-gray-400">Torino Scale</div>
-            <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-bold text-white ${torinoColors[torinoScale]}`}>
-              {torinoScale}
-            </div>
-          </div>
-          
-          <div className="text-sm">
-            <div className="text-gray-400">Active Missions</div>
-            <div className="font-semibold">{asteroid.deflectionMissions.length}</div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-4 gap-2 mb-3">
-        <button
-          onClick={onTrack}
-          disabled={!canTrack}
-          className={`px-3 py-2 rounded text-sm font-medium relative ${
-            canTrack 
-              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-          }`}
-          onMouseEnter={() => setShowTooltip('track')}
-          onMouseLeave={() => setShowTooltip(null)}
-        >
-          📡 Track
-        </button>
-        
-        <button
-          onClick={onAlert}
-          disabled={!canAlert}
-          className={`px-3 py-2 rounded text-sm font-medium ${
-            canAlert 
-              ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-          }`}
-          onMouseEnter={() => setShowTooltip('alert')}
-          onMouseLeave={() => setShowTooltip(null)}
-        >
-          🚨 Alert
-        </button>
-        
-        <button
-          onClick={() => setShowMissionOptions(!showMissionOptions)}
-          disabled={!canLaunchMission}
-          className={`px-3 py-2 rounded text-sm font-medium ${
-            canLaunchMission 
-              ? 'bg-red-600 hover:bg-red-700 text-white' 
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-          }`}
-          onMouseEnter={() => setShowTooltip('mission')}
-          onMouseLeave={() => setShowTooltip(null)}
-        >
-          🚀 Mission
-        </button>
-        
-        <button
-          onClick={onEvacuate}
-          disabled={!canEvacuate}
-          className={`px-3 py-2 rounded text-sm font-medium ${
-            canEvacuate
-              ? 'bg-purple-600 hover:bg-purple-700 text-white'
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-          }`}
-          onMouseEnter={() => setShowTooltip('evacuate')}
-          onMouseLeave={() => setShowTooltip(null)}
-        >
-          🏃 Evacuate
-        </button>
-      </div>
-      
-      {/* Mission Options */}
-      {showMissionOptions && canLaunchMission && (
-        <div className="mb-3 p-3 bg-gray-700 rounded border">
-          <h4 className="font-semibold mb-2 text-sm">Mission Options</h4>
-          <div className="grid grid-cols-3 gap-1">
-            <button
-              onClick={() => {
-                onLaunchMission('kinetic');
-                setShowMissionOptions(false);
-              }}
-              className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
-              title={`Kinetic Impactor - Direct collision ($${ACTION_COSTS.launchKineticMission}B)`}
-            >
-              Kinetic
-            </button>
-            <button
-              onClick={() => {
-                onLaunchMission('nuclear');
-                setShowMissionOptions(false);
-              }}
-              className="px-2 py-1 bg-red-700 hover:bg-red-800 rounded text-xs"
-              title={`Nuclear Detonation - Standoff explosion ($${ACTION_COSTS.launchNuclearMission}B)`}
-            >
-              Nuclear
-            </button>
-            <button
-              onClick={() => {
-                onLaunchMission('gravity_tractor');
-                setShowMissionOptions(false);
-              }}
-              className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs"
-              title={`Gravity Tractor - Slow gravitational tug ($${ACTION_COSTS.launchGravityTractor}B)`}
-            >
-              Gravity
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {/* Educational Tooltips */}
-      {showTooltip && (
-        <div className="absolute top-full left-0 mt-2 p-3 bg-black border border-gray-600 rounded max-w-sm text-sm z-50">
-          {showTooltip === 'track' && (
-            <div>
-              <div className="font-semibold mb-1">Precision Tracking</div>
-              <div>Deploy additional telescopes and radar systems to improve orbital determination. Reduces position uncertainty over time through repeated observations.</div>
-              <div className="text-gray-400 mt-1">Cost: ${ACTION_COSTS.trackAsteroid}B</div>
-            </div>
-          )}
-          {showTooltip === 'alert' && (
-            <div>
-              <div className="font-semibold mb-1">Public Warning System</div>
-              <div>Activate emergency broadcasting and mobile alert systems. Reduces casualties but affects public trust if false alarm.</div>
-              <div className="text-gray-400 mt-1">Cost: ${ACTION_COSTS.alertPublic}B</div>
-            </div>
-          )}
-          {showTooltip === 'mission' && (
-            <div>
-              <div className="font-semibold mb-1">Deflection Missions</div>
-              <div><strong>Kinetic:</strong> Direct collision to change asteroid's momentum<br/>
-              <strong>Nuclear:</strong> Standoff detonation using X-ray vaporization<br/>
-              <strong>Gravity Tractor:</strong> Long-term gravitational nudging</div>
-              <div className="text-gray-400 mt-1">Requires 30+ days lead time for effectiveness</div>
-            </div>
-          )}
-          {showTooltip === 'evacuate' && (
-            <div>
-              <div className="font-semibold mb-1">Emergency Evacuation</div>
-              <div>Coordinate mass evacuation of predicted impact zone. Most effective for reducing casualties from medium+ asteroids.</div>
-              <div className="text-gray-400 mt-1">Cost: ${ACTION_COSTS.evacuateArea}B</div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
