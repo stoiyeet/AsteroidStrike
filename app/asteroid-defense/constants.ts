@@ -4,9 +4,9 @@ export const ASTEROID_SIZE_CONFIGS = {
   tiny: {
     diameterRange: [1, 5],
     densityKgM3: 2500,
-    detectionChance: 0.4, // Improved detection for better gameplay
-    timeToImpactRange: [1, 72], // 1-72 hours
-    initialImpactProb: 0.01, // Usually burn up in atmosphere - very low impact chance
+    detectionChance: 0.3, // Lower detection chance for balance
+    timeToImpactRange: [24, 168], // 1-7 days (increased from 1-72 hours for better gameplay)
+    initialImpactProb: 0.08, // Increased from 0.01 to 0.08 for better gameplay
     impactZoneKm: 0, // Burns up in atmosphere
     dangerLevel: 0,
   },
@@ -14,8 +14,8 @@ export const ASTEROID_SIZE_CONFIGS = {
     diameterRange: [5, 20], 
     densityKgM3: 2700,
     detectionChance: 0.6, // Improved detection for better gameplay
-    timeToImpactRange: [24, 168], // 1-7 days
-    initialImpactProb: 0.05, // Mostly harmless airbursts - low impact chance
+    timeToImpactRange: [168, 720], // 1-4 weeks (better gameplay timing)
+    initialImpactProb: 0.3, // Increased from 0.15 to 0.3 for meaningful choices
     impactZoneKm: 10, // Small airburst damage
     dangerLevel: 1,
   },
@@ -23,8 +23,8 @@ export const ASTEROID_SIZE_CONFIGS = {
     diameterRange: [20, 140],
     densityKgM3: 3000,
     detectionChance: 0.8, // Improved detection for better gameplay
-    timeToImpactRange: [168, 8760], // 1 week - 1 year
-    initialImpactProb: 0.15, // Regional danger - moderate impact chance
+    timeToImpactRange: [720, 4380], // 1-6 months (more time for planning)
+    initialImpactProb: 0.45, // Increased from 0.25 to 0.45 for higher stakes
     impactZoneKm: 100, // Regional destruction
     dangerLevel: 5,
   },
@@ -32,8 +32,8 @@ export const ASTEROID_SIZE_CONFIGS = {
     diameterRange: [140, 1000],
     densityKgM3: 3200,
     detectionChance: 0.95, // Almost always detected early
-    timeToImpactRange: [8760, 87600], // 1-10 years
-    initialImpactProb: 0.3, // Global threat - higher impact chance
+    timeToImpactRange: [4380, 17520], // 6 months - 2 years (strategic planning)
+    initialImpactProb: 0.65, // Increased from 0.4 to 0.65 for serious threats
     impactZoneKm: 1000, // Global effects
     dangerLevel: 10,
   }
@@ -54,6 +54,16 @@ export const TRUST_IMPACTS = {
   missedThreat: -50,
   successfulDeflection: 30,
   failedMission: -15,
+} as const;
+
+export const SCORE_REWARDS = {
+  trackAsteroid: 50, // Points for tracking
+  correctAlert: 200, // Bonus for correct alerts
+  falseAlarm: -300, // Penalty for false alarms
+  successfulDeflection: 1000, // Big bonus for deflection success
+  asteroidTracked: 25, // Points per day of tracking
+  preventedImpact: 5000, // Huge bonus for preventing real threats
+  goodDecision: 100, // General good decision making
 } as const;
 
 // Deterministic star positions to prevent hydration errors

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Asteroid, GameState, EventLogEntry, DeflectionMission } from './types';
-import { ACTION_COSTS, TRUST_IMPACTS } from './constants';
+import { ACTION_COSTS, TRUST_IMPACTS, SCORE_REWARDS } from './constants';
 import { generateAsteroid, updateAsteroid, calculateCasualties } from './gameUtils';
 import EarthVisualization from './components/EarthVisualization';
 import AsteroidActionPanel from './components/AsteroidActionPanel';
@@ -24,7 +24,7 @@ export default function AsteroidDefensePage() {
   // Game state
   const [gameState, setGameState] = useState<GameState>({
     currentTime: new Date('2025-01-01T00:00:00Z'),
-    gameSpeed: 86400, // 1 day per second (faster default)
+    gameSpeed: 3600, // 1 hour per second (better pacing)
     isPlaying: true,
     budget: 50, // $50B starting budget
     trustPoints: 75, // Start with decent public trust
@@ -32,6 +32,10 @@ export default function AsteroidDefensePage() {
     livesAtRisk: 0,
     livesSaved: 0,
     falseAlarms: 0,
+    correctAlerts: 0,
+    asteroidsTracked: 0,
+    successfulDeflections: 0,
+    totalScore: 0,
   });
   
   // Asteroids state - Initialize empty to avoid hydration issues, populate client-side
@@ -81,22 +85,36 @@ export default function AsteroidDefensePage() {
     if (!gameState.isPlaying || !isClientInitialized) return;
     
     const interval = setInterval(() => {
-      // Generate asteroid roughly every 3-8 seconds of game time
-      // Increased probability from 0.1 to 0.4 for more frequent spawning
-      if (Math.random() < 0.4) {
-        const newAsteroid = generateAsteroid(gameState.currentTime);
-        setAsteroids(prev => [...prev, newAsteroid]);
+      // Generate asteroid roughly every 5-10 seconds of real time
+      // Higher probability since asteroids now last much longer
+      // Boost generation if we have very few asteroids
+      
+      setAsteroids(prev => {
+        const currentAsteroidCount = prev.length;
+        let spawnChance = 0.6;
+        if (currentAsteroidCount < 2) spawnChance = 0.9; // High chance if very few
+        else if (currentAsteroidCount < 5) spawnChance = 0.7; // Higher chance if few
         
-        if (newAsteroid.isDetected) {
-          addEvent('detection', `New asteroid ${newAsteroid.name} detected! Diameter: ${newAsteroid.diameterM.toFixed(0)}m, Time to impact: ${(newAsteroid.timeToImpactHours / 24).toFixed(1)} days`, 
-            newAsteroid.size === 'large' ? 'critical' : newAsteroid.size === 'medium' ? 'warning' : 'info', 
-            newAsteroid.id);
+        if (Math.random() < spawnChance) {
+          // Create asteroid with approximate current time (will be close enough)
+          const approximateCurrentTime = new Date(Date.now() + (gameState.gameSpeed * 1000));
+          const newAsteroid = generateAsteroid(approximateCurrentTime);
+          
+          if (newAsteroid.isDetected) {
+            addEvent('detection', `New asteroid ${newAsteroid.name} detected! Diameter: ${newAsteroid.diameterM.toFixed(0)}m, Time to impact: ${formatTimeToImpact(newAsteroid.timeToImpactHours)}`, 
+              newAsteroid.size === 'large' ? 'critical' : newAsteroid.size === 'medium' ? 'warning' : 'info', 
+              newAsteroid.id);
+          }
+          
+          return [...prev, newAsteroid];
         }
-      }
-    }, 2000);
+        
+        return prev; // No change if no spawn
+      });
+    }, 5000); // Check every 5 seconds instead of 2
     
     return () => clearInterval(interval);
-  }, [gameState.isPlaying, gameState.currentTime, addEvent, isClientInitialized]);
+  }, [gameState.isPlaying, gameState.gameSpeed, addEvent, isClientInitialized]);
 
   // Budget replenishment (simulate annual budget allocation)
   useEffect(() => {
@@ -124,8 +142,22 @@ export default function AsteroidDefensePage() {
       }));
       
       // Update all asteroids
-      setAsteroids(prev => prev.map(asteroid => {
+      setAsteroids(prev => {
+        const updatedAsteroids = prev.map(asteroid => {
         const updated = updateAsteroid(asteroid, gameState.gameSpeed / 3600, asteroid.isTracked);
+        
+        // Award continuous tracking bonus (once per day)
+        if (updated.isTracked && updated.timeToImpactHours > 0) {
+          const daysPassed = Math.floor((asteroid.initialTimeToImpact - updated.timeToImpactHours) / 24);
+          const previousDaysPassed = Math.floor((asteroid.initialTimeToImpact - asteroid.timeToImpactHours) / 24);
+          
+          if (daysPassed > previousDaysPassed) {
+            setGameState(prev => ({ 
+              ...prev, 
+              totalScore: prev.totalScore + SCORE_REWARDS.asteroidTracked
+            }));
+          }
+        }
         
         // Check for impacts
         if (updated.timeToImpactHours <= 0 && asteroid.timeToImpactHours > 0) {
@@ -142,7 +174,12 @@ export default function AsteroidDefensePage() {
             }));
             
             if (asteroid.publicAlerted) {
-              addEvent('system', `Public alert was correct. Trust increased.`, 'success');
+              setGameState(prev => ({ 
+                ...prev, 
+                correctAlerts: prev.correctAlerts + 1,
+                totalScore: prev.totalScore + SCORE_REWARDS.correctAlert
+              }));
+              addEvent('system', `Public alert was correct. Trust increased. (+${SCORE_REWARDS.correctAlert} points)`, 'success');
             } else {
               addEvent('system', `No warning was issued. Public trust severely damaged.`, 'critical');
             }
@@ -151,36 +188,59 @@ export default function AsteroidDefensePage() {
             
             // Handle trust impacts for false alarms or correct non-action
             if (asteroid.publicAlerted) {
-              addEvent('system', `False alarm issued. Public trust damaged.`, 'warning');
+              addEvent('system', `False alarm issued. Public trust damaged. (${SCORE_REWARDS.falseAlarm} points)`, 'warning');
               setGameState(prev => ({ 
                 ...prev, 
                 trustPoints: Math.max(0, prev.trustPoints + TRUST_IMPACTS.falseAlarm),
-                falseAlarms: prev.falseAlarms + 1
+                falseAlarms: prev.falseAlarms + 1,
+                totalScore: prev.totalScore + SCORE_REWARDS.falseAlarm
               }));
+            } else {
+              // Reward for not issuing false alarm on a miss
+              setGameState(prev => ({ 
+                ...prev, 
+                totalScore: prev.totalScore + SCORE_REWARDS.goodDecision
+              }));
+              addEvent('system', `Good decision: No false alarm issued. (+${SCORE_REWARDS.goodDecision} points)`, 'success');
             }
             
             // Handle successful deflection missions
             if (asteroid.deflectionMissions.length > 0) {
               const successfulMissions = asteroid.deflectionMissions.filter(m => m.status === 'deployed');
               if (successfulMissions.length > 0) {
-                addEvent('mission', `Deflection missions successful! ${asteroid.name} trajectory altered.`, 'success', asteroid.id);
+                const preventedCasualties = calculateCasualties(asteroid);
+                const deflectionBonus = SCORE_REWARDS.successfulDeflection + (asteroid.impactProbability > 0.3 ? SCORE_REWARDS.preventedImpact : 0);
+                addEvent('mission', `Deflection missions successful! ${asteroid.name} trajectory altered. (+${deflectionBonus} points)`, 'success', asteroid.id);
                 setGameState(prev => ({ 
                   ...prev, 
                   trustPoints: Math.min(100, prev.trustPoints + TRUST_IMPACTS.successfulDeflection),
-                  livesSaved: prev.livesSaved + calculateCasualties(asteroid)
+                  livesSaved: prev.livesSaved + preventedCasualties,
+                  successfulDeflections: prev.successfulDeflections + 1,
+                  totalScore: prev.totalScore + deflectionBonus
                 }));
               }
             }
           }
         }
         
-        return updated;
-      }).filter(asteroid => asteroid.timeToImpactHours > -24)); // Remove old asteroids after 24 hours
+          return updated;
+        });
+        
+        // Filter out old asteroids and clear selection if selected asteroid was removed
+        const filteredAsteroids = updatedAsteroids.filter(asteroid => asteroid.timeToImpactHours > -24);
+        const removedAsteroidIds = updatedAsteroids.filter(asteroid => asteroid.timeToImpactHours <= -24).map(a => a.id);
+        
+        if (selectedAsteroid && removedAsteroidIds.includes(selectedAsteroid)) {
+          setSelectedAsteroid(null);
+        }
+        
+        return filteredAsteroids;
+      });
       
     }, 1000);
     
     return () => clearInterval(interval);
-  }, [gameState.isPlaying, gameState.gameSpeed, addEvent]);
+  }, [gameState.isPlaying, gameState.gameSpeed, addEvent, selectedAsteroid]);
 
   // Reset quick mission menu when selection changes
   useEffect(() => {
@@ -209,10 +269,12 @@ export default function AsteroidDefensePage() {
     
     setGameState(prev => ({
       ...prev,
-      budget: prev.budget - ACTION_COSTS.trackAsteroid
+      budget: prev.budget - ACTION_COSTS.trackAsteroid,
+      asteroidsTracked: prev.asteroidsTracked + 1,
+      totalScore: prev.totalScore + SCORE_REWARDS.trackAsteroid
     }));
     
-    addEvent('tracking', `Started precision tracking of ${asteroid.name}`, 'info', asteroidId);
+    addEvent('tracking', `Started precision tracking of ${asteroid.name} (+${SCORE_REWARDS.trackAsteroid} points)`, 'info', asteroidId);
   }, [asteroids, gameState.trackingCapacity, gameState.budget, addEvent]);
   
   const alertPublic = useCallback((asteroidId: string) => {
@@ -326,15 +388,13 @@ export default function AsteroidDefensePage() {
     return gameState.trustPoints <= 0 || gameState.budget <= 0;
   }, [gameState.trustPoints, gameState.budget]);
 
-  // Calculate score
+  // Calculate final score (use accumulated totalScore plus bonuses)
   const gameScore = useMemo(() => {
-    const baseScore = gameState.livesSaved * 10;
     const trustBonus = gameState.trustPoints * 5;
-    const budgetEfficiency = (50 - gameState.budget) * 2; // Lower remaining budget = more efficient
-    const falseAlarmPenalty = gameState.falseAlarms * 100;
+    const budgetEfficiencyBonus = (50 - gameState.budget) * 2; // Efficiency bonus
     
-    return Math.max(0, baseScore + trustBonus + budgetEfficiency - falseAlarmPenalty);
-  }, [gameState.livesSaved, gameState.trustPoints, gameState.budget, gameState.falseAlarms]);
+    return Math.max(0, gameState.totalScore + trustBonus + budgetEfficiencyBonus);
+  }, [gameState.totalScore, gameState.trustPoints, gameState.budget]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -367,10 +427,16 @@ export default function AsteroidDefensePage() {
               <span className="text-yellow-400">Tracking: {currentlyTracked}/{gameState.trackingCapacity}</span>
             </div>
             <div className="text-sm">
-              <span className="text-purple-400">Score: {gameScore.toLocaleString()}</span>
+              <span className="text-purple-400 font-semibold">Score: {gameScore.toLocaleString()}</span>
             </div>
             <div className="text-sm">
               <span className="text-green-400">Lives Saved: {gameState.livesSaved.toLocaleString()}</span>
+            </div>
+            <div className="text-sm">
+              <span className="text-blue-400">Tracked: {gameState.asteroidsTracked}</span>
+            </div>
+            <div className="text-sm">
+              <span className="text-cyan-400">Correct Alerts: {gameState.correctAlerts}</span>
             </div>
             <div className="text-sm flex items-center gap-2">
               <span className="text-gray-300">Speed:</span>
@@ -687,8 +753,20 @@ export default function AsteroidDefensePage() {
                     <span className="text-red-400">{gameState.livesAtRisk.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
+                    <span>Asteroids Tracked:</span>
+                    <span className="text-blue-400">{gameState.asteroidsTracked}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Correct Alerts:</span>
+                    <span className="text-cyan-400">{gameState.correctAlerts}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span>False Alarms:</span>
                     <span className="text-yellow-400">{gameState.falseAlarms}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Successful Deflections:</span>
+                    <span className="text-green-400">{gameState.successfulDeflections}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Final Trust:</span>
@@ -713,7 +791,7 @@ export default function AsteroidDefensePage() {
                 // Reset game state
                 setGameState({
                   currentTime: new Date('2025-01-01T00:00:00Z'),
-                  gameSpeed: 3600,
+                  gameSpeed: 3600, // 1 hour per second (better pacing)
                   isPlaying: true,
                   budget: 50,
                   trustPoints: 75,
@@ -721,6 +799,10 @@ export default function AsteroidDefensePage() {
                   livesAtRisk: 0,
                   livesSaved: 0,
                   falseAlarms: 0,
+                  correctAlerts: 0,
+                  asteroidsTracked: 0,
+                  successfulDeflections: 0,
+                  totalScore: 0,
                 });
                 // Reset client state and let useEffect regenerate asteroids
                 setAsteroids([]);

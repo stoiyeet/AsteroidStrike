@@ -12,13 +12,13 @@ function massFromDiameter(diameterM: number, densityKgM3: number): number {
 }
 
 export function generateAsteroid(currentTime: Date): Asteroid {
-  // Randomly select size category (weighted towards smaller objects)
+  // Randomly select size category (better distribution for gameplay)
   const sizeRoll = Math.random();
   let size: AsteroidSize;
-  if (sizeRoll < 0.6) size = 'tiny';
-  else if (sizeRoll < 0.85) size = 'small';
-  else if (sizeRoll < 0.98) size = 'medium';
-  else size = 'large';
+  if (sizeRoll < 0.35) size = 'tiny';        // 35% tiny (reduced from 60%)
+  else if (sizeRoll < 0.70) size = 'small';  // 35% small (increased from 25%)
+  else if (sizeRoll < 0.92) size = 'medium'; // 22% medium (increased from 13%)
+  else size = 'large';                       // 8% large (increased from 2%)
   
   const config = ASTEROID_SIZE_CONFIGS[size];
   

@@ -57,10 +57,14 @@ export interface GameState {
   // Tracking capabilities
   trackingCapacity: number; // Max asteroids we can actively track
   
-  // Score
+  // Score tracking
   livesAtRisk: number;
   livesSaved: number;
   falseAlarms: number;
+  correctAlerts: number; // New: track correct alerts
+  asteroidsTracked: number; // New: total asteroids tracked
+  successfulDeflections: number; // New: successful missions
+  totalScore: number; // New: accumulated score
 }
 
 export interface EventLogEntry {
