@@ -524,8 +524,8 @@ export async function estimateAsteroidDeaths(
   const earthQuakeArea = Math.PI * (BadEarthquake ** 2);
   const earthQuakeInjuries = Math.max(scaledPop(earthQuakeArea) - deathCount, 0);
 
-  const total = Math.min(deathCount + burnDeaths, GLOBAL_POP);
-  const injuries = Math.min(burnInjuries + earthQuakeInjuries, (2*total));
+  const total = 0.5*Math.min(deathCount + burnDeaths, GLOBAL_POP);
+  const injuries = Math.max(Math.min(burnInjuries + earthQuakeInjuries, (2*total)), 0.25*total);
 
   return {
     injuryCount: Math.round(injuries),
