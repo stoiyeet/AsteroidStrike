@@ -37,6 +37,7 @@ export interface Asteroid {
   isTracked: boolean;
   publicAlerted: boolean;
   evacuationOrdered: boolean;
+  outcomeProcessed: boolean; // Prevents duplicate impact/miss events
   deflectionMissions: DeflectionMission[];
 }
 

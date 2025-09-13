@@ -159,9 +159,12 @@ export default function AsteroidDefensePage() {
           }
         }
         
-        // Check for impacts
-        if (updated.timeToImpactHours <= 0 && asteroid.timeToImpactHours > 0) {
+        // Check for impacts (only process once per asteroid)
+        if (updated.timeToImpactHours <= 0 && asteroid.timeToImpactHours > 0 && !asteroid.outcomeProcessed) {
           const actuallyHits = Math.random() < updated.impactProbability;
+          
+          // Mark outcome as processed to prevent duplicate events
+          updated.outcomeProcessed = true;
           
           if (actuallyHits) {
             addEvent('impact', `${asteroid.name} has impacted Earth! Impact zone: ${asteroid.impactZoneRadiusKm}km radius`, 'critical', asteroid.id);
