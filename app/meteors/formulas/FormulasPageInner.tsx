@@ -19,24 +19,28 @@ export default function FormulasPageInner() {
                 {
                     title: "Meteoroid  Parameters",
                     equation: "\\text{Min Asteroid Speed} \\approx 11.2\\text{ km/s} \\\\ \\text{Max Asteroid Speed} \\approx 72\\text{ km/s} \\\\ \\text{Typical Asteroid Speed} \\approx 20\\text{ km/s} \\\\ \\text{Average Asteroid Angle} \\approx 45^\\circ",
+                    image: "",
                     description: "Meteroid speeds are almost always between 11.2 km/s (Earth's escape velocity) and 72 km/s (sum of Earth's orbital velocity and solar escape velocity). A slower object would accelerate as it entered earth gravitational field. A faster speed is virtually impossible as it could only come from interstellar space directly pointing at Earth. Meteroid angles can range from 0-90°, but 45° is the most probable angle of impact.",
                     priority: "PRIMARY"
                 },
                 {
                     title: "Kinetic Energy",
                     equation: "E = \\frac{1}{2}mv^2 = \\frac{\\pi}{12} \\, \\rho_i \\, L^3 \\, v^2 ",
+                    image: "",
                     description: "Total impact energy in Joules. Mass (m) in kilograms, velocity (v) in meters per second. Alternative measurements using density (rho_i) in (kg / m^3) and diameter (L) in meters, can appoximate mass as a sphere to avoid direct mass input.",
                     priority: "PRIMARY"
                 },
                 {
                     title: "Recurrence Period",
                     equation: "T_{re} = 109 \\cdot E_{Mt}^{0.78}",
+                    image: "",
                     description: "Statistical frequency of impacts of magnitude E_Mt (Megatons of TNT). Measured in years between occurrences.",
                     priority: "SECONDARY"
                 },
                 {
                     title: "Impact Velocity",
                     equation: "v_{impact} = \\sqrt{v_{\\infty}^2 + v_{escape}^2}",
+                    image: "",
                     description: "Final velocity at impact accounting for gravitational acceleration. Earth's escape velocity: 11.2 km/s.",
                     priority: "PRIMARY"
                 }
@@ -50,18 +54,21 @@ export default function FormulasPageInner() {
                 {
                     title: "Fireball Radius",
                     equation: "R_f = 6.1 \\times 10^{-3} \\cdot E_{Mt}^{0.4}",
+                    image: "",
                     description: "Maximum extent of the thermal fireball. Radius in kilometers, energy in megatons TNT equivalent.",
                     priority: "PRIMARY"
                 },
                 {
                     title: "Thermal Flux",
                     equation: "\\Phi = \\frac{f \\cdot E}{4\\pi r^2 \\cdot t}",
+                    image: "",
                     description: "Thermal energy per unit area. f = radiative efficiency, E = total energy, r = distance, t = pulse duration.",
                     priority: "SECONDARY"
                 },
                 {
                     title: "Burn Radius",
                     equation: "r_{burn} = \\sqrt{\\frac{f \\cdot E}{4\\pi \\cdot \\Phi_{threshold}}}",
+                    image: "",
                     description: "Distance at which thermal radiation causes burns. Third-degree burns: 125 kJ/m², Second-degree: 63 kJ/m².",
                     priority: "PRIMARY"
                 }
@@ -75,18 +82,21 @@ export default function FormulasPageInner() {
                 {
                     title: "Peak Overpressure",
                     equation: "\\Delta P = \\frac{P_0}{(1 + \\frac{r}{r_0})^3}",
+                    image: "",
                     description: "Maximum pressure above atmospheric. P₀ = reference pressure, r = distance, r₀ = characteristic radius.",
                     priority: "PRIMARY"
                 },
                 {
                     title: "Mach Reflection",
                     equation: "P_{reflected} = 2P_{incident} \\cdot \\frac{\\gamma + 1}{\\gamma - 1}",
+                    image: "",
                     description: "Pressure amplification when shock waves reflect off surfaces. γ = heat capacity ratio (≈1.4 for air).",
                     priority: "SECONDARY"
                 },
                 {
                     title: "Dynamic Pressure",
                     equation: "q = \\frac{1}{2}\\rho v^2",
+                    image: "",
                     description: "Wind pressure behind shock front. ρ = air density, v = particle velocity. Causes structural failure.",
                     priority: "SECONDARY"
                 }
@@ -100,18 +110,21 @@ export default function FormulasPageInner() {
                 {
                     title: "Transient Crater Diameter",
                     equation: "D_{tc} = 1.161\\left(\\frac{\\rho_i}{\\rho_t}\\right)^{1/3}L^{0.78}v_i^{0.44}g^{-0.22}\\sin^{1/3}\\theta",
+                    image: "",
                     description: "Initial excavation diameter. ρᵢ = impactor density, ρₜ = target density, L = impactor diameter, vᵢ = impact velocity, θ = impact angle.",
                     priority: "PRIMARY"
                 },
                 {
                     title: "Final Crater Diameter",
                     equation: "D_{fr} = \\begin{cases} 1.25D_{tc} & D_{tc} < 3.2\\text{ km} \\\\ 1.17D_{tc}^{1.13}/3200^{0.13} & D_{tc} \\geq 3.2\\text{ km} \\end{cases}",
+                    image: "",
                     description: "Post-collapse crater size accounting for rim slumping and gravitational modification.",
                     priority: "PRIMARY"
                 },
                 {
                     title: "Excavated Volume",
                     equation: "V = \\frac{\\pi}{24}D_{tc}^3",
+                    image: "",
                     description: "Total material displaced during crater formation. Assumes parabolic crater profile.",
                     priority: "SECONDARY"
                 }
@@ -125,18 +138,21 @@ export default function FormulasPageInner() {
                 {
                     title: "Richter Magnitude",
                     equation: "M = 0.67 \\log_{10}(E) - 5.87",
+                    image: "",
                     description: "Seismic magnitude scale. E = impact energy in Joules. Each unit increase = 32× more energy.",
                     priority: "PRIMARY"
                 },
                 {
                     title: "Ground Motion Attenuation",
                     equation: "a(r) = a_0 \\cdot \\left(\\frac{r_0}{r}\\right)^n \\cdot e^{-\\alpha(r-r_0)}",
+                    image: "",
                     description: "Peak ground acceleration decay. a₀ = source acceleration, n = geometric spreading, α = anelastic attenuation.",
                     priority: "SECONDARY"
                 },
                 {
                     title: "Surface Wave Magnitude",
                     equation: "M_s = \\log_{10}\\left(\\frac{A}{T}\\right) + 1.66\\log_{10}(\\Delta) + 3.3",
+                    image: "",
                     description: "Long-period surface wave magnitude. A = amplitude, T = period, Δ = epicentral distance in degrees.",
                     priority: "SECONDARY"
                 }
@@ -148,16 +164,25 @@ export default function FormulasPageInner() {
             debrief: "This section presents the heuristics and reasoning being estimating loss of life and injury from sever asteroid impact",
             equations: [
                 {
-                    "title": "Population within Bounding Square",
-                    "equation": "density = \\frac{population_{square}}{s^2}, \\quad population_{outside} = 50 \\text{ people/km}^2",
-                    "description": "The bounding square is defined with center at the impact latitude and longitude, and side length s. The square's corners are latitude ± s/2 and longitude ± s/2. Population inside the square is retrieved via API, and density is computed as total population divided by s². For effects outside the bounding square, we approximate a global average density of 50 people/km² to account for water and sparsely populated regions.",
-                    "priority": "PRIMARY"
+                    title: "Population Via tif extraction",
+                    equation: "",
+                    image: "/images/populationDensity.png",
+                    description: "Population density is derived directly from a georeferenced tif file taken from the NASA Socioeconomic Data and Applications Center (SEDAC). The impact latitude and longitude define the center point, and eight additional points are sampled at equal offsets around the chosen population radius. Values from these nine points are averaged to obtain a more robust local density estimate. This approach captures variations in the surrounding area and reduces sensitivity to anomalies at a single coordinate.",
+                    priority: "PRIMARY"
                 },
                 {
-                    "title": "Mortality and Injury Heuristic",
-                    "equation": "mortality = \\max(R_{clothes}, R_{crater}) \\cdot density + 0.8 \\cdot R_{2nd\\ degree} - 0.8 \\cdot R_{certain}, \\quad injury = \\mathbf{1}_{M \\ge 7.5} \\cdot density",
-                    "description": "Mortality is estimated using the maximum radius of the clothes ignition area and transient crater area, plus 0.8 times the area affected by second-degree burns, minus 0.8 times the certain death area to avoid double counting. Injury is approximated as density multiplied by an indicator for earthquakes with magnitude ≥ 7.5.",
-                    "priority": "PRIMARY"
+                    title: "Population within Bounding Square",
+                    equation: "density = \\frac{population_{square}}{s^2}, \\quad population_{outside} = 50 \\text{ people/km}^2",
+                    image: "",
+                    description: "The bounding square is defined with center at the impact latitude and longitude, and side length s. The square's corners are latitude ± s/2 and longitude ± s/2. Population inside the square is retrieved via API, and density is computed as total population divided by s². For effects outside the bounding square, we approximate a global average density of 50 people/km² to account for water and sparsely populated regions.",
+                    priority: "PRIMARY"
+                },
+                {
+                    title: "Mortality and Injury Heuristic",
+                    equation: "mortality = \\max(R_{clothes}, R_{crater}) \\cdot density + 0.8 \\cdot R_{2nd\\ degree} - 0.8 \\cdot R_{certain}, \\quad injury = \\mathbf{1}_{M \\ge 7.5} \\cdot density",
+                    image: "",
+                    description: "Mortality is estimated using the maximum radius of the clothes ignition area and transient crater area, plus 0.8 times the area affected by second-degree burns, minus 0.8 times the certain death area to avoid double counting. Injury is approximated as density multiplied by an indicator for earthquakes with magnitude ≥ 7.5.",
+                    priority: "PRIMARY"
                 }
             ]
         }
@@ -197,17 +222,36 @@ export default function FormulasPageInner() {
                         <div key={index} className={styles.equation}>
                             <div className={styles.equationHeader}>
                                 <h2 className={styles.equationTitle}>{eq.title}</h2>
-                                <span className={`${styles.priority} ${styles[eq.priority.toLowerCase()]}`}>
+                                <span
+                                    className={`${styles.priority} ${styles[eq.priority.toLowerCase()]}`}
+                                >
                                     {eq.priority}
                                 </span>
                             </div>
-                            <div className={styles.math}>
-                                <BlockMath math={eq.equation} />
-                            </div>
+
+                            {/* Only render equation if provided */}
+                            {eq.equation && eq.equation.trim() !== "" && (
+                                <div className={styles.math}>
+                                    <BlockMath math={eq.equation} />
+                                </div>
+                            )}
+
+                            {/* Only render image if provided */}
+                            {eq.image && eq.image.trim() !== "" && (
+                                <div className={styles.imageWrapper}>
+                                    <img
+                                        src={eq.image}
+                                        alt={eq.title}
+                                        className={styles.equationImage}
+                                    />
+                                </div>
+                            )}
+
                             <p className={styles.description}>{eq.description}</p>
                         </div>
                     ))}
                 </div>
+
             </div>
         </div>
     );

@@ -382,3 +382,21 @@
   color: #aaa;
 }
 
+.imageWrapper {
+  display: flex;
+  justify-content: center;
+  /* center image horizontally */
+  margin: 1rem 0;
+  /* space above and below */
+}
+
+.equationImage {
+  max-width: 80%;
+  /* don’t overflow container */
+  height: auto;
+  /* keep aspect ratio */
+  border-radius: 8px;
+  /* optional, for a softer look */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  /* subtle shadow */
+}
