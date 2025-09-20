@@ -104,6 +104,9 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
         damageData.r_2nd_burn_m, 
         damageData.earth_effect, 
         damageData.radius_M_ge_7_5_m || 0,
+        meteor.diameter,
+        damage.airburst,
+        damage.zb_breakup,
         controller.signal
       );
       

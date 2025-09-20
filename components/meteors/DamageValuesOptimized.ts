@@ -38,7 +38,7 @@ export type Damage_Results = {
   Vtc_km3: number | null;
   Vtc_over_Ve: number | null;
   earth_effect: 'destroyed' | 'strongly_disturbed' | 'negligible_disturbed';
-  M: number | null;
+  Magnitude: number | null;
   radius_M_ge_7_5_m: number | null;
   airblast_radius_building_collapse_m: number | null; // p=42600 Pa
   airblast_radius_glass_shatter_m: number | null; // p=6900 Pa
@@ -385,7 +385,7 @@ async function initGPW() {
   }
 }
 
-// Optimized population density function with caching and max sampling over neighborhood
+// Improved population density function with caching and max sampling over neighborhood
 async function populationDensityAt(
   lat: number,
   lon: number,
@@ -458,14 +458,48 @@ async function populationDensityAt(
   return maxDensity;
 }
 
+// Calculate asteroid diameter from mass (assuming stony asteroid, density ~2.5 g/cm³)
+function getDiameterFromMass(mass_kg: number): number {
+  const density = 2500; // kg/m³ for typical stony asteroid
+  const volume = mass_kg / density;
+  return Math.pow((6 * volume) / Math.PI, 1 / 3); // diameter in meters
+}
 
-function effectiveDensity(area_km2: number, localDensity: number) {
-  localDensity *= 5
-  const threshold = 150000; // km²
-  if (area_km2 <= threshold) return localDensity;
+// Get size-based scaling factor
+function getSizeScalingFactor(diameter_m: number): number {
+  return diameter_m**2/1e7
+}
+
+
+// Calculate population density with more realistic scaling
+function calculateEffectiveDensity(
+  area_km2: number,
+  localDensity: number,
+  diameter_m: number,
+  isAirburst: boolean
+): number {
+  // Base density adjustment - smaller asteroids affect smaller areas more precisely
+  const precisionFactor = diameter_m < 500 ? 2.0 : diameter_m < 1000 ? 1.5 : 1.0;
+  let adjustedDensity = localDensity * precisionFactor;
+
+  // For very small asteroids in low-density areas, cap the effect
+  if (diameter_m < 500 && localDensity < 10) {
+    adjustedDensity = Math.min(adjustedDensity, 50); // Very conservative for small asteroids in sparse areas
+  }
+
+  // Global averaging for larger areas (same logic as before but adjusted)
+  const threshold = diameter_m < 1000 ? 50000 : 150000; // Smaller threshold for smaller asteroids
+
+  if (area_km2 <= threshold) {
+    return adjustedDensity;
+  }
+
   const weightLocal = threshold / area_km2;
-  const weightedDensity = weightLocal * localDensity + (1 - weightLocal) * GLOBAL_AVERAGE_DENSITY;
-  return Math.pow(weightedDensity, 0.5)*6
+  const weightedDensity = weightLocal * adjustedDensity + (1 - weightLocal) * GLOBAL_AVERAGE_DENSITY;
+
+  // Less aggressive power scaling for more realistic results
+  const powerFactor = isAirburst ? 0.3 : 0.5;
+  return Math.pow(weightedDensity, powerFactor) * (diameter_m < 1000 ? 2 : 6);
 }
 
 // Add AbortController support for cancelling requests
@@ -477,7 +511,10 @@ export async function estimateAsteroidDeaths(
   r_2nd_burn_m: number,
   earth_effect: string,
   BadEarthquake: number,
-  signal?: AbortSignal // Add abort signal support
+  diameter_m: number, // New parameter: asteroid mass
+  isAirburst: boolean, // New parameter: whether it's an airburst
+  airburstHeight_m: number, // New parameter: height of airburst (<=0 if no airburst)
+  signal?: AbortSignal
 ): Promise<{ deathCount: number; injuryCount: number }> {
 
   // Early return for global catastrophes - no API call needed
@@ -490,10 +527,22 @@ export async function estimateAsteroidDeaths(
     throw new Error('Request cancelled');
   }
 
+
+  // Get size-based scaling
+  let sizeScaling = getSizeScalingFactor(diameter_m);
+
+  if (airburstHeight_m > 0) {
+    sizeScaling/=(2**(airburstHeight_m/2000))
+    
+  }
+
+
   let localDensity: number;
   try {
-    localDensity = await populationDensityAt(lat, lon, 300);
-    
+    // Adjust sampling radius based on asteroid size
+    const samplingRadius = Math.min(300, Math.max(30, diameter_m / 10));
+    localDensity = await populationDensityAt(lat, lon, samplingRadius);
+
     // Check again if request was cancelled after API call
     if (signal?.aborted) {
       throw new Error('Request cancelled');
@@ -505,31 +554,67 @@ export async function estimateAsteroidDeaths(
     localDensity = 0;
   }
 
-  const scaledPop = (area_km2: number) =>
-    area_km2 * effectiveDensity(area_km2, localDensity)
+  // Early return for very small asteroids in unpopulated areas
+  if (diameter_m < 50 && localDensity < 1) {
+    return { deathCount: 0, injuryCount: Math.round(Math.random() * 3) }; // 0-2 injuries max
+  }
 
+  const scaledPop = (area_km2: number) =>
+    area_km2 * calculateEffectiveDensity(area_km2, localDensity, diameter_m, isAirburst) * sizeScaling;
+
+  // Calculate death zones
   const certainRadius_km = Math.max(r_clothing_m, Dtc_m) / 1000;
   const certainArea_km2 = Math.PI * certainRadius_km ** 2;
-  const deathCount = scaledPop(certainArea_km2);
+  let deathCount = scaledPop(certainArea_km2);
 
+  // Apply conservative caps based on asteroid size
+  if (diameter_m < 500) {
+    const maxDeaths = localDensity > 1000 ? 1000000 : localDensity > 100 ? 100000 : localDensity > 10 ? 10000 : 100;
+    deathCount = Math.min(deathCount, maxDeaths);
+  } else if (diameter_m < 1000) {
+    deathCount = Math.min(deathCount, 10000000); // 10M max for 0.5-1km asteroids
+  }
+
+  // Calculate burn effects
   const burnRadius_km = r_2nd_burn_m / 1000;
   let burnDeaths = 0;
   let burnInjuries = 0;
+
   if (burnRadius_km > certainRadius_km) {
     const burnArea_km2 = Math.PI * (burnRadius_km ** 2 - certainRadius_km ** 2);
-    burnDeaths = 0.8 * scaledPop(burnArea_km2);
-    burnInjuries = scaledPop(burnArea_km2) - burnDeaths;
+    const burnPopulation = scaledPop(burnArea_km2);
+
+    // Burn survival rates depend on distance and asteroid size
+    const burnMortality = isAirburst ? 0.3 : (diameter_m > 1000 ? 0.8 : 0.6);
+    burnDeaths = burnMortality * burnPopulation;
+    burnInjuries = burnPopulation - burnDeaths;
   }
 
-  const earthQuakeArea = Math.PI * (BadEarthquake ** 2);
-  const earthQuakeInjuries = Math.max(scaledPop(earthQuakeArea) - deathCount, 0);
+  // Calculate earthquake effects (more conservative for smaller asteroids)
+  const earthquakeArea = Math.PI * (BadEarthquake ** 2);
+  const earthquakePopulation = scaledPop(earthquakeArea);
+  const earthquakeInjuryRate = diameter_m < 1000 ? 0.01 : 0.05; // Much lower injury rates
+  const earthquakeInjuries = Math.max(earthquakePopulation * earthquakeInjuryRate - deathCount, 0);
 
-  const total = 0.5*Math.min(deathCount + burnDeaths, GLOBAL_POP);
-  const injuries = Math.max(Math.min(burnInjuries + earthQuakeInjuries, (2*total)), 0.25*total);
+  // Final calculations with more conservative scaling
+  const totalDeaths = Math.min(deathCount + burnDeaths, GLOBAL_POP);
+  const totalInjuries = Math.max(
+    Math.min(burnInjuries + earthquakeInjuries, totalDeaths * 3), // Max 3:1 injury:death ratio
+    totalDeaths * 0.1 // Minimum 10% of deaths as injuries
+  );
+
+  // Apply final reality check for small asteroids
+  if (diameter_m < 100 && totalDeaths > 10000) {
+    const reductionFactor = 10000 / totalDeaths;
+    return {
+      deathCount: Math.round(totalDeaths * reductionFactor),
+      injuryCount: Math.round(totalInjuries * reductionFactor)
+    };
+  }
 
   return {
-    injuryCount: Math.round(injuries),
-    deathCount: Math.round(total),
+    deathCount: Math.round(totalDeaths),
+    injuryCount: Math.round(totalInjuries)
   };
 }
 
@@ -574,10 +659,10 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
   }
 
   // seismic
-  let M: number | null = null, radius_km: number | null = null, radius_m: number | null = null;
+  let Magnitude: number | null = null, radius_km: number | null = null, radius_m: number | null = null;
   if (!airburst) {
     const seismic = seismicMagnitudeAndRadius(E_J);
-    M = seismic.M; radius_km = seismic.radius_km; radius_m = seismic.radius_m;
+    Magnitude = seismic.M; radius_km = seismic.radius_km; radius_m = seismic.radius_m;
   }
 
   // airblast radii for thresholds
@@ -605,7 +690,7 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
     Vtc_km3,
     Vtc_over_Ve: ratio,
     earth_effect: effect,
-    M,
+    Magnitude,
     radius_M_ge_7_5_m: radius_m,
     airblast_radius_building_collapse_m: r_building,
     airblast_radius_glass_shatter_m: r_glass,
