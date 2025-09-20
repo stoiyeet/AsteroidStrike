@@ -102,8 +102,8 @@ export default function EarthImpact({
     const sphere = new THREE.Sphere();
     box.getBoundingSphere(sphere);
     let current = sphere.radius;
-    if (current < 1){
-      current = 2;
+    if (current < 100){
+      current = 20000;
     }
     return desiredAsteroidRadiusUnits / current;
   }, [gltf?.scene, desiredAsteroidRadiusUnits, meteor.isCustom]);
