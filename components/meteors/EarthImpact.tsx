@@ -269,7 +269,7 @@ export default function EarthImpact({
         />
       )}
 
-      {damage.earth_effect === "destroyed" && t > impactTime && <DebrisField />}
+      {["destroyed", "strongly_disturbed"].includes(damage.earth_effect) && t > impactTime && <DebrisField />}
 
 
       {/* Asteroid flight */}
@@ -333,7 +333,7 @@ export default function EarthImpact({
       )}
 
       {/* Destruction flash */}
-      {damage.earth_effect == "destroyed" && t >= impactTime && t < impactTime + 0.8 && (
+      {["destroyed", "strongly_disturbed"].includes(damage.earth_effect) && t >= impactTime && t < impactTime + 0.8 && (
         <ExplosionFlash onFlashComplete={() => setIsFlashing(false)} />
       )}
 
