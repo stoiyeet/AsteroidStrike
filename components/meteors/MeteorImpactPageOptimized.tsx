@@ -280,11 +280,6 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
           shadow-camera-top={5}
           shadow-camera-bottom={-5}
         />
-        {/* faint atmospheric shell */}
-        <mesh>
-          <sphereGeometry args={[1.02, 64, 64]} />
-          <meshBasicMaterial color="#4abaff" transparent opacity={0.05} side={THREE.BackSide} />
-        </mesh>
 
         <pointLight position={[-8, -3, -8]} intensity={0.3} color="#4488ff" />
         <Stars radius={120} depth={60} count={8000} factor={3} fade speed={0.2} />

@@ -1,7 +1,7 @@
 'use client';
 
 import * as THREE from 'three';
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
 import { Html, useGLTF } from '@react-three/drei';
 import { GLTF } from 'three-stdlib';
@@ -9,6 +9,7 @@ import { GLTF } from 'three-stdlib';
 import { getGlbFile } from './asteroidGLB';
 import AsteroidExplosion from './AsteroidExplosion';
 import Earth from "@/components/Earth";
+import ExplosionFlash from '@/components/ExplosionFlash';
 import { Damage_Results } from './DamageValuesOptimized';
 import { computeWaveRadii } from './utils/waveRadii';
 
@@ -53,6 +54,80 @@ function surfacemToChordUnits(m: number): number {
   const theta = maxm / EARTH_R_M;
   return EARTH_R * theta * 0.8;
 }
+
+// Debris field for destroyed Earth - separate component to avoid re-renders
+const DebrisField = () => {
+  const debrisRef = useRef<THREE.Group>(null!);
+
+  // Static debris data - generated once and never changes
+  const debris = useMemo(() => {
+    const pieces = [];
+    for (let i = 0; i < 200; i++) {
+      const angle = (i / 200) * Math.PI * 2;
+      const radius = 0.8 + Math.random() * 2;
+      const height = (Math.random() - 0.5) * 0.8;
+
+      pieces.push({
+        position: [
+          Math.cos(angle) * radius,
+          height,
+          Math.sin(angle) * radius
+        ] as [number, number, number],
+        size: 0.02 + Math.random() * 0.04,
+        // Random dimensions for irregular rock shapes
+        width: 0.8 + Math.random() * 0.4,  // 0.8 to 1.2 multiplier
+        height: 0.6 + Math.random() * 0.8, // 0.6 to 1.4 multiplier
+        depth: 0.7 + Math.random() * 0.6,  // 0.7 to 1.3 multiplier
+        rotationSpeed: (Math.random() - 0.5) * 0.02,
+        // More varied rock colors with some darker/lighter variants
+        color: (() => {
+          const rand = Math.random();
+          if (rand < 0.2) return '#4a3829'; // Dark brown
+          if (rand < 0.4) return '#654321'; // Medium brown
+          if (rand < 0.6) return '#8B7355'; // Light brown
+          if (rand < 0.8) return '#5d4e37'; // Earth brown
+          return '#3c2f23'; // Very dark brown
+        })()
+      });
+    }
+    return pieces;
+  }, []);
+
+  // Rotation state that persists across renders
+  const rotationState = useRef({ field: 0, pieces: debris.map(() => ({ x: 0, z: 0 })) });
+
+  useFrame((state, dt) => {
+    if (!debrisRef.current) return;
+
+    // Update persistent rotation state
+    rotationState.current.field += dt * 0.1;
+
+    // Apply rotation to the group
+    debrisRef.current.rotation.y = rotationState.current.field;
+
+    // Apply individual rotations
+    debrisRef.current.children.forEach((child, i) => {
+      if (child instanceof THREE.Mesh && debris[i]) {
+        rotationState.current.pieces[i].x += debris[i].rotationSpeed * dt;
+        rotationState.current.pieces[i].z += debris[i].rotationSpeed * 0.7 * dt;
+
+        child.rotation.x = rotationState.current.pieces[i].x;
+        child.rotation.z = rotationState.current.pieces[i].z;
+      }
+    });
+  });
+
+  return (
+    <group ref={debrisRef}>
+      {debris.map((piece, i) => (
+        <mesh key={i} position={piece.position}>
+          <boxGeometry args={[piece.size, piece.size * 0.8, piece.size * 1.2]} />
+          <meshLambertMaterial color={piece.color} />
+        </mesh>
+      ))}
+    </group>
+  );
+};
 
 export default function EarthImpact({
   meteor,
@@ -179,16 +254,23 @@ export default function EarthImpact({
   ];
 
   const blastRadius = surfacemToChordUnits(fireball_radius || 0);
+  const [isFlashing, setIsFlashing] = useState(false);
+
 
   return (
     <group>
-      {/* Earth */}
-      <Earth
-        onDoubleClick={handleDoubleClick}
-        impactPosition={impactPos}
-        blastRadius={blastRadius}
-        explosionStrength={explosionStrength}
-      />
+      {/* Earth - only render if not destroyed or before impact */}
+      {!(damage.earth_effect === "destroyed" && t > impactTime) && (
+        <Earth
+          onDoubleClick={handleDoubleClick}
+          impactPosition={impactPos}
+          blastRadius={blastRadius}
+          explosionStrength={explosionStrength}
+        />
+      )}
+
+      {damage.earth_effect === "destroyed" && t > impactTime && <DebrisField />}
+
 
       {/* Asteroid flight */}
       {t < impactTime && (
@@ -206,7 +288,7 @@ export default function EarthImpact({
           ) : (
             gltf && <primitive object={gltf.scene} scale={asteroidScale * 2} />
           )}
-          
+
           {/* Atmospheric heating effects */}
           <mesh>
             <sphereGeometry args={[desiredAsteroidRadiusUnits * 1.8, 32, 32]} />
@@ -250,6 +332,15 @@ export default function EarthImpact({
         />
       )}
 
+      {/* Destruction flash */}
+      {damage.earth_effect == "destroyed" && t >= impactTime && t < impactTime + 0.8 && (
+        <ExplosionFlash onFlashComplete={() => setIsFlashing(false)} />
+      )}
+
+
+      {damage.earth_effect !== "destroyed" && (
+
+      <>
       {/* Ejecta / crater */}
       {effects.ejecta && t >= impactTime && (
         <mesh position={impactPos.clone().multiplyScalar(1.008)} rotation={ringRotation(impactPos)}>
@@ -407,6 +498,8 @@ export default function EarthImpact({
             index={i}
           />
         ) : null
+      )}
+        </>
       )}
 
       {/* Impact label (DOM via Html overlay; uses CSS vars) */}
