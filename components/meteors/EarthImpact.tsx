@@ -32,7 +32,6 @@ type EffectsState = {
   thermal: boolean;
   overpressure: boolean;
   ejecta: boolean;
-  labels: boolean;
 };
 
 interface Props {
@@ -249,8 +248,8 @@ export default function EarthImpact({
   ];
 
   const pressureZones = [
-    { radius: buildingCollapseShockwave, color: '#0066cc', label: 'Total Destruction',       opacity: 0.28, borderColor: '#00aaff', delay: 0.10, priority: 3 },
-    { radius: glassShatter,              color: '#0099dd', label: 'Heavy Structural Damage', opacity: 0.20, borderColor: '#44ccff', delay: 0.25, priority: 2 },
+    { radius: buildingCollapseShockwave, color: '#0066cc', label: 'Total Destruction',       opacity: 0.38, borderColor: '#00aaff', delay: 0.10, priority: 3 },
+    { radius: glassShatter,              color: '#0099dd', label: 'Heavy Structural Damage', opacity: 0.30, borderColor: '#44ccff', delay: 0.25, priority: 2 },
   ];
 
   const blastRadius = surfacemToChordUnits(fireball_radius || 0);
@@ -350,7 +349,7 @@ export default function EarthImpact({
           <meshBasicMaterial
             color="#aa3322"
             transparent
-            opacity={0.7 * Math.max(0.3, 1.0 - post / 3.0)}
+            opacity={0.9 * Math.max(0.3, 1.0 - post / 3.0)}
             side={THREE.DoubleSide}
           />
         </mesh>
@@ -471,7 +470,6 @@ export default function EarthImpact({
             color={zone.color}
             borderColor={zone.borderColor}
             kmRadius={zone.radius}
-            label={effects.labels ? zone.label : undefined}
             opacity={zone.opacity}
             expansionFactor={damageExpansionCurve(zone.delay)}
             priority={zone.priority}
@@ -490,7 +488,6 @@ export default function EarthImpact({
             color={zone.color}
             borderColor={zone.borderColor}
             kmRadius={zone.radius}
-            label={effects.labels ? zone.label : undefined}
             opacity={zone.opacity}
             expansionFactor={damageExpansionCurve(zone.delay)}
             priority={zone.priority}
@@ -500,17 +497,6 @@ export default function EarthImpact({
         ) : null
       )}
         </>
-      )}
-
-      {/* Impact label (DOM via Html overlay; uses CSS vars) */}
-      {effects.labels && (
-        <Html position={impactPos.clone().multiplyScalar(1.05)} center>
-          <div className="impact-label" style={{ ['--label-color' as string]: '#ffff00' }}>
-            <div className="impact-icon">⚡</div>
-            <div className="impact-title">IMPACT POINT</div>
-            <div className="impact-energy">{damage.E_Mt.toFixed(2)} MT TNT Equivalent</div>
-          </div>
-        </Html>
       )}
     </group>
   );

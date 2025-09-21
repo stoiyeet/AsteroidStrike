@@ -29,7 +29,6 @@ type EffectsState = {
   thermal: boolean;
   overpressure: boolean;
   ejecta: boolean;
-  labels: boolean;
 };
 
 const IMPACT_TIME = 0.40;
@@ -55,7 +54,6 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
     thermal: true,
     overpressure: true,
     ejecta: true,
-    labels: false,
   });
 
   const inputs: Damage_Inputs = useMemo(() => ({
@@ -150,7 +148,6 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
     ['thermal', 'Thermal Damage Zone'],
     ['overpressure', 'Overpressure Zone'],
     ['ejecta', 'Ejecta & Crater'],
-    ['labels', 'Effect Labels'],
   ];
 
   const getTimelineStatus = () => {
