@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import React, { useState, useEffect } from "react";
 import LoadingScreen from "../components/LoadingScreen";
+import Joyride, { CallBackProps, STATUS } from "react-joyride";
+
 
 const EarthScene = dynamic(() => import("@/components/EarthHome"), { ssr: false });
 
@@ -10,6 +12,27 @@ export default function Home(): React.ReactElement {
   const [currentPhase, setCurrentPhase] = useState<"loading" | "project">("loading");
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [sceneLoaded, setSceneLoaded] = useState(false);
+  const [runTour, setRunTour] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+
+  const steps = [
+    {
+      target: "#nav-impact",
+      content: "Explore theoretical impacts of real and custom meteor strikes"
+    },
+    {
+      target: "#nav-mitigation",
+      content: "Simulate and learn cutting edge techniques to elimiate asteroid impact threats"
+    },
+    {
+      target: "#nav-scenario",
+      content: "Apply your mitigation strategies in a full-fledged simulation with consequences"
+    }
+  ];
+  
+
 
   useEffect(() => {
     const loadingInterval = setInterval(() => {
@@ -29,6 +52,23 @@ export default function Home(): React.ReactElement {
 
   return (
     <main className="relative w-full h-screen bg-black text-white overflow-hidden">
+      {mounted && (
+        <Joyride
+          steps={steps}
+          run={runTour}
+          continuous
+          showSkipButton
+          disableScrolling
+          styles={{
+            options: { zIndex: 10000, arrowColor: "#111", backgroundColor: "#111", overlayColor: "rgba(0,0,0,0.6)", primaryColor: "#06b6d4", textColor: "#fff" },
+            buttonNext: { backgroundColor: "#06b6d4", color: "#000", fontWeight: "bold" },
+            buttonBack: { color: "#aaa" }
+          }}
+        />
+      )}
+
+
+
       {/* 3D Background */}
       <motion.div
         className="absolute inset-0 w-full h-full"
@@ -123,6 +163,10 @@ export default function Home(): React.ReactElement {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.2, duration: 0.6 }}
                 className="px-8 py-3 bg-gradient-to-r from-cyan-400 to-cyan-600 hover:shadow-xl hover:scale-105 transition-transform text-black font-semibold rounded-lg shadow-lg pointer-events-auto"
+                onClick={() => {
+                  setRunTour(false);
+                  setTimeout(() => setRunTour(true), 0); // next tick
+                }}
               >
                 Explore the Data
               </motion.button>
