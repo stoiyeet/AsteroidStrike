@@ -104,7 +104,7 @@ const MitigationEducation: React.FC = () => {
         dataPoints: [
           { label: "Mission", value: "Space IR surveyor (JPL/NASA)" },
           { label: "Launch", value: "NET Sep 2027" },
-          { label: "Police goal", value: "Detect 90% of ≥140 m NEOs" },
+          { label: "Policy goal", value: "Detect 90% of ≥140 m NEOs" },
           { label: "Cataloged so far", value: "~44% (May 2025 hearing)", hint: "Estimate; improving" },
         ],
         sources: [
@@ -125,7 +125,7 @@ const MitigationEducation: React.FC = () => {
           "A spacecraft hits the asteroid at high speed to change its trajectory via momentum transfer. Validated by NASA’s DART mission (2022).",
         advantages: [
           "Demonstrated at full scale (DART)",
-          "No nuclear material; simpler police path",
+          "No nuclear material; simpler policy path",
           "Fast impulse; can stack with follow-ups",
         ],
         disadvantages: [
@@ -311,7 +311,7 @@ const MitigationEducation: React.FC = () => {
         </h2>
         <p className="text-gray-300 text-sm">
           Learn how we detect and deflect hazardous near-Earth objects (NEOs). Real data from NASA/ESA missions,
-          Nature-published results, and current police constraints are summarized below.
+          Nature-published results, and current policy constraints are summarized below.
         </p>
       </div>
 
@@ -555,7 +555,7 @@ const MitigationEducation: React.FC = () => {
         <ul className="space-y-1 text-sm text-gray-300">
           <li>• <strong>Early detection multiplies options:</strong> with decades of warning, slow-push methods become practical.</li>
           <li>• <strong>Validated tech:</strong> DART proved kinetic impact works at full scale and can exceed 1:1 momentum transfer via ejecta (β&gt;1).</li>
-          <li>• <strong>Police matters:</strong> nuclear options face treaty and political hurdles and are treated as last-resort.</li>
+          <li>• <strong>Policy matters:</strong> nuclear options face treaty and political hurdles and are treated as last-resort.</li>
           <li>• <strong>Know your target:</strong> composition, structure, and spin state critically affect deflection outcomes.</li>
         </ul>
       </div>
