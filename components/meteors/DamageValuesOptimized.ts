@@ -598,10 +598,11 @@ export async function estimateAsteroidDeaths(
 
   // Final calculations with more conservative scaling
   const totalDeaths = Math.min(deathCount + burnDeaths, GLOBAL_POP);
-  const totalInjuries = Math.max(
-    Math.min(burnInjuries + earthquakeInjuries, totalDeaths * 3), // Max 3:1 injury:death ratio
-    totalDeaths * 0.1 // Minimum 10% of deaths as injuries
-  );
+  let totalInjuries = Math.min(burnInjuries + earthquakeInjuries, GLOBAL_POP - totalDeaths, totalDeaths*3); // Max 3:1 injury:death ratio
+  if (totalDeaths<0.9*GLOBAL_POP && 0.1*totalDeaths > totalInjuries){
+    totalInjuries = 0.1*totalDeaths
+  }
+
 
   // Apply final reality check for small asteroids
   if (diameter_m < 100 && totalDeaths > 10000) {
