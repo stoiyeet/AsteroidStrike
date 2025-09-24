@@ -124,8 +124,8 @@ import { useRouter } from 'next/navigation'
 import styles from "./AsteroidViewer.module.css";
 
 const asteroids = [
- "67p_churyumov_gerasimenko","5535_annefrank",
-  "99942_apophis", "101955_bennu", "16_psyche", "19p_borrelly","9969_braille",
+  "16_psyche", "67p_churyumov_gerasimenko","5535_annefrank",
+  "99942_apophis", "101955_bennu", "19p_borrelly","9969_braille",
   "65803_didymos","dimorphos","152830_dinkinesh","52246_donaldjohanson",
   "433_eros","3548_eurybates","951_gaspra","103p_hartley","243_ida",
   "25143_itokawa","11351_leucus","21_lutetia","menoetius","21900_orus",
@@ -237,6 +237,7 @@ export default function AsteroidViewer() {
       dirLight.shadow.camera.far = 500;
       scene.add(dirLight);
     }
+
 
     loader = new GLTFLoader();
     let gltfController: { abort: () => void } | null = null;

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import MitigationEducation from "@/components/MitigationEducation";
-import { Send, Bot, User, ChevronDown, BookOpen, MessageSquare } from "lucide-react";
+import { Send, Bot, User, ChevronDown, BookOpen, MessageSquare, Zap, ZapOff } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -17,9 +17,9 @@ type EffectKey =
 
 interface ChatMessage {
   id: string;
-  content: string;          // full display content (already normalized to `-- effect -- rest`)
+  content: string;
   role: "user" | "assistant";
-  effects?: EffectKey[];    // for chips (assistant-only)
+  effects?: EffectKey[];
 }
 
 /* ------------------------- Effect config ------------------------ */
@@ -33,8 +33,6 @@ const EFFECTS_CONFIG = {
 } as const;
 
 /* ------------------------- Helpers ------------------------- */
-
-// Map a user/assistant "effect name" to our internal key
 function normalizeEffectNameToKey(raw: string): EffectKey | "complete" | null {
   const s = raw.trim().toLowerCase();
   if (["complete", "stop", "end", "clear", "finish"].includes(s)) return "complete";
@@ -47,7 +45,6 @@ function normalizeEffectNameToKey(raw: string): EffectKey | "complete" | null {
   return null;
 }
 
-// Fallback keyword sniffing when assistant didn't follow the format
 function sniffEffectFromFreeText(t: string): EffectKey | null {
   const L = t.toLowerCase();
   if (/(kinetic|dart|ram|crash probe)/.test(L)) return "kineticImpactor";
@@ -59,9 +56,9 @@ function sniffEffectFromFreeText(t: string): EffectKey | null {
   return null;
 }
 
-// Try to extract `-- effect -- rest`
 function parsePrefixBlock(text: string): { key: EffectKey | "complete" | null; body: string; rawEffect: string | null } {
-  const m = text.match(/^\s*--\s*([^-\n]+?)\s*--\s*(.*)$/);
+  const EFFECT_PREFIX_RE = /^\s*--\s*(.+?)\s*--\s*([\s\S]*)$/;
+  const m = text.match(EFFECT_PREFIX_RE);
   if (!m) return { key: null, body: text.trim(), rawEffect: null };
   const rawEffect = m[1];
   const body = m[2].trim();
@@ -69,7 +66,12 @@ function parsePrefixBlock(text: string): { key: EffectKey | "complete" | null; b
   return { key: keyOrComplete, body, rawEffect };
 }
 
-// Recompose a canonical display string like `-- Label -- body`
+function extractBody(text: string): string {
+  const EFFECT_PREFIX_RE = /^\s*--\s*(.+?)\s*--\s*([\s\S]*)$/;
+  const m = text.match(EFFECT_PREFIX_RE);
+  return m ? m[2].trim() : text.trim();
+}
+
 function formatDisplay(effectKey: EffectKey | "complete" | null, body: string): string {
   if (effectKey === "complete") return `-- complete -- ${body}`;
   if (!effectKey) return body;
@@ -79,13 +81,9 @@ function formatDisplay(effectKey: EffectKey | "complete" | null, body: string): 
 
 /* ------------------------------- Props -------------------------------- */
 type ChatBotProps = {
-  /** Current global effects so we can show chips */
   effects: Record<EffectKey, boolean>;
-  /** Set exactly one effect active (or none) */
   onSetSingleEffect: (key: EffectKey | null) => void;
-  /** Whether the side panel is visible */
   expanded: boolean;
-  /** Toggle the side panel */
   onToggleExpanded: () => void;
 };
 
@@ -108,6 +106,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "education">("chat");
+  const [aiCanActivateEffects, setAiCanActivateEffects] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll
@@ -115,46 +114,36 @@ const ChatBot: React.FC<ChatBotProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-// Robust prefix regex: -- anything here -- body...
-const EFFECT_PREFIX_RE = /^\s*--\s*(.+?)\s*--\s*([\s\S]*)$/;
+  const handleOutgoingUserMessage = (raw: string) => {
+    // Show the user's message in chat
+    const display = extractBody(raw);
+    setMessages((prev) => [...prev, { id: Date.now().toString(), content: display, role: "user" }]);
 
-function extractBody(text: string): string {
-  const m = text.match(EFFECT_PREFIX_RE);
-  return m ? m[2].trim() : text.trim();
-}
+    // Only process effects if toggle is enabled
+    if (!aiCanActivateEffects) {
+      return; // Exit early if effects are disabled
+    }
 
-// Update parsePrefixBlock to use the same regex (so effect detection still works)
-function parsePrefixBlock(text: string): { key: EffectKey | "complete" | null; body: string; rawEffect: string | null } {
-  const m = text.match(EFFECT_PREFIX_RE);
-  if (!m) return { key: null, body: text.trim(), rawEffect: null };
-  const rawEffect = m[1];
-  const body = m[2].trim();
-  const keyOrComplete = normalizeEffectNameToKey(rawEffect);
-  return { key: keyOrComplete, body, rawEffect };
-}
+    // Parse for effects
+    const pref = parsePrefixBlock(raw);
+    let key = pref.key;
 
+    // If no explicit prefix, try to detect effect from free text
+    if (key === null) {
+      if (/^\s*(complete|stop|end|clear|finish)\s*$/i.test(raw)) {
+        key = "complete";
+      } else {
+        key = sniffEffectFromFreeText(raw);
+      }
+    }
 
-const handleOutgoingUserMessage = (raw: string) => {
-  const pref = parsePrefixBlock(raw);
-  let key = pref.key;
-  const body = pref.body;
-
-  // If no explicit prefix, allow free-text activation (e.g., "nuke")
-  if (key === null) {
-    if (/^\s*(complete|stop|end|clear|finish)\s*$/i.test(raw)) key = "complete";
-    else key = sniffEffectFromFreeText(raw);
-  }
-
-  // Show ONLY the body in the user's bubble
-  const display = extractBody(raw);
-  setMessages((prev) => [...prev, { id: Date.now().toString(), content: display, role: "user" }]);
-
-  // Single-effect rule
-  if (key === "complete") onSetSingleEffect(null);
-  else if (key) onSetSingleEffect(key);
-};
-
-
+    // Activate the effect
+    if (key === "complete") {
+      onSetSingleEffect(null);
+    } else if (key) {
+      onSetSingleEffect(key);
+    }
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -165,18 +154,16 @@ const handleOutgoingUserMessage = (raw: string) => {
     setLoading(true);
 
     try {
-      // Ask the model to reply in the `-- effect -- rest` pattern.
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: [
-            // We keep prior conversation for context, but the server prompt should prefer our format.
             ...messages.map((m) => ({ role: m.role, content: m.content })),
-            { role: "user", 
-              content: 
-              `Please reply with the format \`-- effect -- message\`. 
-              Valid effects: kinetic, nuclear, gravity, laser, ion, analyze, complete. Then your explanation.\n\n${userRaw}` },
+            { 
+              role: "user", 
+              content: `Please reply with the format \`-- effect -- message\`. Valid effects: kinetic, nuclear, gravity, laser, ion, analyze, complete. Then your explanation.\n\n${userRaw}` 
+            },
           ],
         }),
       });
@@ -184,28 +171,28 @@ const handleOutgoingUserMessage = (raw: string) => {
       const data = await res.json();
       const assistantContent: string = data?.answer ?? "I couldn't process that strategy.";
 
-      // 1) Try to parse `-- effect -- rest`
-      let { key, body} = parsePrefixBlock(assistantContent);
+      // Parse assistant response
+      let { key, body } = parsePrefixBlock(assistantContent);
 
-      // 2) Fallback: sniff effect from free text if needed
+      // Fallback: sniff effect from free text if needed
       if (key === null) {
         const sniffed = sniffEffectFromFreeText(assistantContent);
         key = sniffed;
         body = assistantContent.trim();
       }
 
-      // 3) Enforce single-effect rule from assistant as well
-      if (key === "complete") {
-        onSetSingleEffect(null);
-      } else if (key) {
-        onSetSingleEffect(key);
+      // Only activate effects if toggle is enabled
+      if (aiCanActivateEffects && key) {
+        if (key === "complete") {
+          onSetSingleEffect(null);
+        } else {
+          onSetSingleEffect(key);
+        }
       }
 
-      // 4) Normalize assistant display content
-const display = extractBody(assistantContent);
-
-      // For chips
-      const chips: EffectKey[] = key && key !== "complete" ? [key] : [];
+      // Display the assistant's message
+      const display = extractBody(assistantContent);
+      const chips: EffectKey[] = aiCanActivateEffects && key && key !== "complete" ? [key] : [];
 
       setMessages((prev) => [
         ...prev,
@@ -251,52 +238,52 @@ const display = extractBody(assistantContent);
     </div>
   );
 
-const MessageBubble: React.FC<{ msg: ChatMessage }> = ({ msg }) => {
-  const isUser = msg.role === "user";
-  return (
-    <div className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
-      <div className={`flex gap-2 max-w-[80%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-        <div
-          className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-            isUser ? "bg-blue-500" : "bg-purple-600"
-          }`}
-        >
-          {isUser ? <User size={16} className="text-white" /> : <Bot size={16} className="text-white" />}
-        </div>
-        <div
-          className={`p-3 rounded-2xl ${
-            isUser ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-100"
-          }`}
-        >
-          <div className="prose prose-invert max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {msg.content}
-            </ReactMarkdown>
+  const MessageBubble: React.FC<{ msg: ChatMessage }> = ({ msg }) => {
+    const isUser = msg.role === "user";
+    return (
+      <div className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
+        <div className={`flex gap-2 max-w-[80%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+          <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+              isUser ? "bg-blue-500" : "bg-purple-600"
+            }`}
+          >
+            {isUser ? <User size={16} className="text-white" /> : <Bot size={16} className="text-white" />}
           </div>
-
-          {msg.effects && msg.effects.length > 0 && (
-            <div className="mt-2 pt-2 border-top border-gray-500/50">
-              <div className="text-xs opacity-80 mb-1">Activated:</div>
-              <div className="flex flex-wrap gap-1">
-                {msg.effects.map((effect) => {
-                  const cfg = EFFECTS_CONFIG[effect];
-                  return (
-                    <span
-                      key={effect}
-                      className="inline-flex items-center gap-1 bg-green-500/30 px-2 py-1 rounded-full text-xs"
-                    >
-                      {cfg.icon} {cfg.label}
-                    </span>
-                  );
-                })}
-              </div>
+          <div
+            className={`p-3 rounded-2xl ${
+              isUser ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-100"
+            }`}
+          >
+            <div className="prose prose-invert max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {msg.content}
+              </ReactMarkdown>
             </div>
-          )}
+
+            {msg.effects && msg.effects.length > 0 && (
+              <div className="mt-2 pt-2 border-top border-gray-500/50">
+                <div className="text-xs opacity-80 mb-1">Activated:</div>
+                <div className="flex flex-wrap gap-1">
+                  {msg.effects.map((effect) => {
+                    const cfg = EFFECTS_CONFIG[effect];
+                    return (
+                      <span
+                        key={effect}
+                        className="inline-flex items-center gap-1 bg-green-500/30 px-2 py-1 rounded-full text-xs"
+                      >
+                        {cfg.icon} {cfg.label}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   return (
     <div className="w-full h-full flex flex-col border-l border-gray-700 bg-gray-900/80 backdrop-blur-sm">
@@ -311,15 +298,42 @@ const MessageBubble: React.FC<{ msg: ChatMessage }> = ({ msg }) => {
             {activeTab === "chat" && <ActiveChips />}
           </div>
 
-        <button
-          onClick={onToggleExpanded}
-          className="bg-gray-700 hover:bg-gray-600 p-2 rounded-lg transition-colors flex items-center gap-2"
-          aria-label={expanded ? "Minimize chat" : "Expand chat"}
-        >
-          <ChevronDown size={16} />
-          <span className="text-sm">{expanded ? "Minimize" : "Expand"}</span>
-        </button>
+          <button
+            onClick={onToggleExpanded}
+            className="bg-gray-700 hover:bg-gray-600 p-2 rounded-lg transition-colors flex items-center gap-2"
+            aria-label={expanded ? "Minimize chat" : "Expand chat"}
+          >
+            <ChevronDown size={16} />
+            <span className="text-sm">{expanded ? "Minimize" : "Expand"}</span>
+          </button>
         </div>
+
+        {/* AI Effect Control Toggle */}
+        {activeTab === "chat" && (
+          <div className="flex items-center justify-between mb-3 p-2 bg-gray-700/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              {aiCanActivateEffects ? <Zap size={16} className="text-green-400" /> : <ZapOff size={16} className="text-red-400" />}
+              <span className="text-sm font-medium">AI Effect Control</span>
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                aiCanActivateEffects ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+              }`}>
+                {aiCanActivateEffects ? "ENABLED" : "DISABLED"}
+              </span>
+            </div>
+            <button
+              onClick={() => setAiCanActivateEffects(!aiCanActivateEffects)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                aiCanActivateEffects ? "bg-green-600" : "bg-gray-600"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  aiCanActivateEffects ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-2">
@@ -378,7 +392,7 @@ const MessageBubble: React.FC<{ msg: ChatMessage }> = ({ msg }) => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Talk to Impact AI..."
+                  placeholder={aiCanActivateEffects ? "Talk to Impact AI..." : "Talk to Impact AI (effects disabled)..."}
                   className="flex-1 bg-gray-800 border border-gray-600 rounded-xl px-4 py-2 text-white placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   rows={2}
                   disabled={loading}
@@ -394,6 +408,9 @@ const MessageBubble: React.FC<{ msg: ChatMessage }> = ({ msg }) => {
               </div>
               <p className="text-xs text-gray-400 mt-2">
                 Plan a mitigation strategy for Impactor-2025
+                {!aiCanActivateEffects && (
+                  <span className="text-red-400"> • Effect activation disabled</span>
+                )}
               </p>
             </div>
           </div>

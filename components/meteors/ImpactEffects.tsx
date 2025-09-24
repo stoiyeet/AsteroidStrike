@@ -52,7 +52,7 @@ interface ImpactEffectsProps {
     Vtc_km3: number | null;
     Vtc_over_Ve: number | null;
     earth_effect: 'destroyed' | 'strongly_disturbed' | 'negligible_disturbed';
-    M: number | null;
+    Magnitude: number | null;
     radius_M_ge_7_5_m: number | null;
     airblast_radius_building_collapse_m: number | null;
     airblast_radius_glass_shatter_m: number | null;
@@ -309,10 +309,10 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
             <div className={styles.sectionInfo}>
               The impact generates seismic waves which create an earthquake.
             </div>
-            {effects.M && (
+            {effects.Magnitude && (
               <div className={styles.dataRow}>
                 <span className={styles.label}>Immediate Richter Magnitude</span>
-                <span className={styles.value}>{effects.M.toFixed(1)}</span>
+                <span className={styles.value}>{effects.Magnitude.toFixed(1)}</span>
               </div>
             )}
             {effects.radius_M_ge_7_5_m && (

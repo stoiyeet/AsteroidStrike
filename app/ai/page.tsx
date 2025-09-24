@@ -41,12 +41,20 @@ const Page: React.FC = () => {
   const effectsActiveCount = Object.values(effects).filter(Boolean).length;
 
   const setSingleEffect = (key: EffectKey | null) => {
+    console.log('Setting single effect:', key);
     const next = makeEmptyEffects();
-    if (key) next[key] = true;
+    if (key) {
+      next[key] = true;
+      console.log('Activating effect:', key);
+    }
     setEffects(next);
   };
 
-  const clearAllEffects = () => setSingleEffect(null);
+  const clearAllEffects = () => {
+    console.log('Clearing all effects');
+    setSingleEffect(null);
+  };
+  
   const toggleChatExpansion = () => setChatExpanded((v) => !v);
 
   return (
@@ -72,6 +80,14 @@ const Page: React.FC = () => {
             <div className="text-sm opacity-90">
               {effectsActiveCount > 0 ? `${effectsActiveCount} strategy active` : "Chat to deploy defense"}
             </div>
+            {effectsActiveCount > 0 && (
+              <div className="text-xs opacity-70 mt-1">
+                {Object.entries(effects)
+                  .filter(([_, active]) => active)
+                  .map(([key, _]) => EFFECTS_CONFIG[key as EffectKey]?.label)
+                  .join(", ")}
+              </div>
+            )}
           </div>
 
           {/* Manual Mitigation Controls (single-effect) */}
@@ -84,16 +100,19 @@ const Page: React.FC = () => {
               <div className="max-h-64 overflow-y-auto p-2 space-y-3 text-sm">
                 {[
                   { key: "analyze", label: "Analyze Target", icon: "🔍", description: "Scan and gather detailed information about the Impactor-2025 asteroid" },
+                  { key: "kineticImpactor", label: "Kinetic Impactor", icon: "🚀", description: "Launch a high-speed probe to crash into and alter the asteroid's trajectory" },
                   { key: "nuclearDetonation", label: "Nuclear Option", icon: "☢️", description: "Detonate near the asteroid to deflect with explosive force" },
                   { key: "laserAblation", label: "Laser Defense", icon: "🔦", description: "Heat the surface with lasers to vaporize material and push it" },
                   { key: "gravityTractor", label: "Gravity Tractor", icon: "🛸", description: "Use a spacecraft's gravity to slowly tug the asteroid's path" },
                   { key: "ionBeamShepherd", label: "Ion Beam Shepherd", icon: "⚡", description: "Fire a steady ion stream to nudge the asteroid over time" },
-                  { key: "kineticImpactor", label: "Kinetic Impactor", icon: "🚀", description: "Crash a high-speed probe to alter the asteroid's trajectory" },
                 ].map(({ key, label, icon, description }) => (
                   <div key={key} className="bg-gray-800/70 rounded-lg p-2 flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{icon}</span>
                       <span className="font-medium">{label}</span>
+                      {effects[key as EffectKey] && (
+                        <span className="ml-auto text-green-400 text-xs">ACTIVE</span>
+                      )}
                     </div>
                     <div className="relative w-full h-20">
                       <Image
@@ -105,30 +124,36 @@ const Page: React.FC = () => {
                         priority={false}
                       />
                     </div>
-                    <p className="text-xs text-gray-300">{description}.</p>
+                    <p className="text-xs text-gray-300">{description}</p>
                     <button
                       onClick={() => setSingleEffect(key as EffectKey)}
-                      className="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1 rounded-md self-start"
+                      className={`text-xs px-3 py-1 rounded-md self-start transition-colors ${
+                        effects[key as EffectKey] 
+                          ? "bg-green-600 hover:bg-green-700" 
+                          : "bg-blue-600 hover:bg-blue-700"
+                      }`}
+                      disabled={effects[key as EffectKey]}
                     >
-                      {key === "analyze" ? "Scan" : "Launch"}
+                      {effects[key as EffectKey] ? "Running..." : (key === "analyze" ? "Scan" : "Launch")}
                     </button>
                   </div>
                 ))}
                 {/* Complete/clear button */}
                 <button
-                  onClick={() => setSingleEffect(null)}
-                  className="w-full mt-2 bg-gray-700 hover:bg-gray-600 text-xs px-3 py-2 rounded-md"
+                  onClick={clearAllEffects}
+                  className="w-full mt-2 bg-gray-700 hover:bg-gray-600 text-xs px-3 py-2 rounded-md transition-colors"
                 >
-                  Complete
+                  Complete Mission
                 </button>
               </div>
             </details>
           </div>
 
+          {/* Clear Strategies Button */}
           {effectsActiveCount > 0 && (
             <button
               onClick={clearAllEffects}
-              className="absolute top-20 left-4 z-10 bg-red-600/80 backdrop-blur-md px-3 py-1 rounded-lg border border-red-400/50 text-white text-sm hover:bg-red-700 transition"
+              className="absolute top-20 left-4 z-10 bg-red-600/80 backdrop-blur-md px-3 py-1 rounded-lg border border-red-400/50 text-white text-sm hover:bg-red-700 transition-colors"
             >
               🛑 Clear Strategies
             </button>
