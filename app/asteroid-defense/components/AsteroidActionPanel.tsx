@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Asteroid, GameState, DeflectionMission } from '../types';
 import { ACTION_COSTS } from '../constants';
 import { getTorinoScale } from '../gameUtils';
+import { impactModeling } from '../services/impactModeling';
 
 interface AsteroidActionPanelProps {
   asteroid: Asteroid;
@@ -30,18 +31,42 @@ export default function AsteroidActionPanel({
   
   const [showMissionOptions, setShowMissionOptions] = useState(false);
   const [showTooltip, setShowTooltip] = useState<string | null>(null);
+  const [showImpactDetails, setShowImpactDetails] = useState(false);
   
   const torinoScale = getTorinoScale(asteroid);
   const torinoColors = ['bg-gray-600', 'bg-green-600', 'bg-green-600', 'bg-yellow-600', 'bg-yellow-600', 'bg-orange-600', 'bg-orange-600', 'bg-red-600', 'bg-red-700', 'bg-red-800', 'bg-red-900'];
+  
+  // Calculate impact assessment
+  const impactAssessment = useMemo(() => {
+    if (asteroid.impactProbability > 0.05) {
+      return impactModeling.assessImpact(asteroid);
+    }
+    return null;
+  }, [asteroid]);
+  
+  const impactScenario = useMemo(() => {
+    if (impactAssessment) {
+      return impactModeling.generateImpactScenario(asteroid, impactAssessment);
+    }
+    return null;
+  }, [asteroid, impactAssessment]);
   
   return (
     <div className="relative">
       <h3 className="font-semibold mb-3">{asteroid.name} - Action Options</h3>
       
-      {/* Educational Information Section */}
+      {/* Enhanced NASA Data Section */}
       {asteroid.realAsteroidKey && (
         <div className="mb-4 p-3 bg-blue-900/30 border border-blue-600/30 rounded">
-          <h4 className="font-semibold text-blue-300 mb-2">🔬 Scientific Data</h4>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="font-semibold text-blue-300">🛰️ NASA/JPL Database</h4>
+            {asteroid.isPotentiallyHazardous && (
+              <div className="px-2 py-1 bg-red-600/80 rounded text-xs font-bold text-white">
+                PHA - Potentially Hazardous
+              </div>
+            )}
+          </div>
+          
           <div className="grid grid-cols-2 gap-2 mb-3">
             {asteroid.material && (
               <div className="text-sm">
@@ -63,11 +88,154 @@ export default function AsteroidActionPanel({
               <div className="text-gray-400">Velocity</div>
               <div className="font-semibold text-blue-200">{asteroid.velocityKmps.toFixed(1)} km/s</div>
             </div>
+            {asteroid.absoluteMagnitude && (
+              <div className="text-sm">
+                <div className="text-gray-400">Abs. Magnitude (H)</div>
+                <div className="font-semibold text-blue-200">{asteroid.absoluteMagnitude.toFixed(1)}</div>
+              </div>
+            )}
           </div>
+          
+          {/* Orbital Elements */}
+          {asteroid.orbitalData && (
+            <div className="border-t border-blue-600/30 pt-2 mb-3">
+              <div className="text-xs text-blue-300 font-semibold mb-1">Orbital Elements</div>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                {asteroid.orbitalData.eccentricity && (
+                  <div>
+                    <div className="text-gray-400">Eccentricity</div>
+                    <div className="text-blue-200">{parseFloat(asteroid.orbitalData.eccentricity).toFixed(3)}</div>
+                  </div>
+                )}
+                {asteroid.orbitalData.semi_major_axis && (
+                  <div>
+                    <div className="text-gray-400">Semi-major Axis</div>
+                    <div className="text-blue-200">{parseFloat(asteroid.orbitalData.semi_major_axis).toFixed(2)} AU</div>
+                  </div>
+                )}
+                {asteroid.orbitalData.inclination && (
+                  <div>
+                    <div className="text-gray-400">Inclination</div>
+                    <div className="text-blue-200">{parseFloat(asteroid.orbitalData.inclination).toFixed(1)}°</div>
+                  </div>
+                )}
+                {asteroid.orbitalData.orbital_period && (
+                  <div>
+                    <div className="text-gray-400">Period</div>
+                    <div className="text-blue-200">{parseFloat(asteroid.orbitalData.orbital_period).toFixed(1)} days</div>
+                  </div>
+                )}
+                {asteroid.orbitalData.perihelion_distance && (
+                  <div>
+                    <div className="text-gray-400">Perihelion</div>
+                    <div className="text-blue-200">{parseFloat(asteroid.orbitalData.perihelion_distance).toFixed(2)} AU</div>
+                  </div>
+                )}
+                {asteroid.orbitalData.aphelion_distance && (
+                  <div>
+                    <div className="text-gray-400">Aphelion</div>
+                    <div className="text-blue-200">{parseFloat(asteroid.orbitalData.aphelion_distance).toFixed(2)} AU</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
           {asteroid.educationalBlurb && (
             <div className="text-sm text-blue-100 leading-relaxed border-t border-blue-600/30 pt-2">
               <div className="text-gray-300 mb-1">📖 Educational Info:</div>
               <div>{asteroid.educationalBlurb}</div>
+            </div>
+          )}
+          
+          {asteroid.nasaJplUrl && (
+            <div className="text-xs text-blue-300 mt-2">
+              <a 
+                href={asteroid.nasaJplUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:text-blue-200 underline"
+              >
+                🔗 View in NASA JPL Database
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Impact Assessment Section */}
+      {impactAssessment && (
+        <div className="mb-4 p-3 bg-red-900/20 border border-red-600/30 rounded">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="font-semibold text-red-300">🌋 Impact Assessment (USGS Model)</h4>
+            <button
+              onClick={() => setShowImpactDetails(!showImpactDetails)}
+              className="px-2 py-1 text-xs bg-red-600/50 hover:bg-red-600/70 rounded"
+            >
+              {showImpactDetails ? 'Hide' : 'Show'} Details
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+            <div>
+              <div className="text-gray-400">Equivalent Earthquake</div>
+              <div className="font-semibold text-red-200">Magnitude {impactAssessment.equivalentMagnitude}</div>
+            </div>
+            <div>
+              <div className="text-gray-400">Impact Energy</div>
+              <div className="font-semibold text-red-200">{impactAssessment.energyMegatonsTNT.toExponential(1)} MT TNT</div>
+            </div>
+            {impactAssessment.craterDiameter && (
+              <div>
+                <div className="text-gray-400">Crater Diameter</div>
+                <div className="font-semibold text-red-200">{impactAssessment.craterDiameter.toFixed(1)} km</div>
+              </div>
+            )}
+            <div>
+              <div className="text-gray-400">Seismic Radius</div>
+              <div className="font-semibold text-red-200">{impactAssessment.seismicRadius} km</div>
+            </div>
+          </div>
+
+          {showImpactDetails && (
+            <div className="border-t border-red-600/30 pt-3 space-y-3">
+              {/* Casualty estimates */}
+              <div className="bg-red-900/30 p-2 rounded">
+                <div className="text-xs text-red-300 font-semibold mb-1">Casualty Estimates (Populated Area)</div>
+                <div className="text-sm text-red-200">
+                  Without evacuation: {impactAssessment.casualtyEstimate.min.toLocaleString()} - {impactAssessment.casualtyEstimate.max.toLocaleString()}
+                </div>
+                <div className="text-sm text-green-200">
+                  With evacuation: ~{Math.floor(impactAssessment.casualtyEstimate.max * (1 - impactAssessment.casualtyEstimate.evacuationReduction)).toLocaleString()} (90% reduction)
+                </div>
+              </div>
+
+              {/* Economic impact */}
+              <div className="bg-orange-900/30 p-2 rounded">
+                <div className="text-xs text-orange-300 font-semibold mb-1">Economic Impact Estimates</div>
+                <div className="text-sm">
+                  <div className="text-orange-200">Local damage: ${impactAssessment.economicImpact.localDamage.toFixed(0)}B</div>
+                  <div className="text-orange-200">Global impact: ${impactAssessment.economicImpact.globalImpact.toFixed(0)}B</div>
+                </div>
+              </div>
+
+              {/* Additional effects */}
+              <div className="space-y-1 text-sm">
+                {impactAssessment.tsunamiRisk && (
+                  <div className="text-blue-300">🌊 TSUNAMI RISK: Oceanic impact location</div>
+                )}
+                <div className="text-gray-300">
+                  Atmospheric effects: {impactAssessment.atmosphericEffects.charAt(0).toUpperCase() + impactAssessment.atmosphericEffects.slice(1)}
+                </div>
+              </div>
+
+              {/* Scenario description */}
+              {impactScenario && (
+                <div className="bg-gray-800/50 p-2 rounded">
+                  <div className="text-xs text-gray-300 font-semibold mb-1">Impact Scenario</div>
+                  <div className="text-xs text-gray-200 leading-relaxed">{impactScenario}</div>
+                </div>
+              )}
             </div>
           )}
         </div>

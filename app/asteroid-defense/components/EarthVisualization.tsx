@@ -160,14 +160,27 @@ export default function EarthVisualization({
                 />
               </svg>
               
-              {/* Asteroid label */}
-              <div className={`absolute top-6 left-1/2 transform -translate-x-1/2 text-xs whitespace-nowrap px-2 py-1 rounded bg-black/70 border ${
+             
+              <div className={`absolute top-6 left-1/2 transform -translate-x-1/2 text-xs whitespace-nowrap px-2 py-1 rounded bg-black/80 border ${
                 isSelected ? 'text-yellow-300 font-semibold border-yellow-500/50' : 'text-gray-300 border-gray-500/50'
               }`}>
-                <div>{asteroid.name}</div>
-                <div className="text-xs opacity-75">
-                  {asteroid.timeToImpactHours <= 0 ? 'Passed' : `${(asteroid.timeToImpactHours / 24).toFixed(1)}d`} • {(asteroid.impactProbability * 100).toFixed(0)}%
+                <div className="flex items-center gap-1">
+                  <div>{asteroid.name}</div>
+                  {asteroid.isPotentiallyHazardous && (
+                    <div className="text-red-400 text-xs">⚠️</div>
+                  )}
+                  {asteroid.realAsteroidKey && (
+                    <div className="text-blue-400 text-xs">🛰️</div>
+                  )}
                 </div>
+                <div className="text-xs opacity-75">
+                  {asteroid.timeToImpactHours <= 0 ? 'Passed' : `${(asteroid.timeToImpactHours / 24).toFixed(1)}d`} • {(asteroid.impactProbability * 100).toFixed(0)}% • {asteroid.diameterM.toFixed(0)}m
+                </div>
+                {asteroid.realAsteroidKey && (
+                  <div className="text-xs text-blue-300 opacity-75">
+                    NASA/JPL Data
+                  </div>
+                )}
               </div>
               
               {/* Impact zone preview on Earth's surface */}

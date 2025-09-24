@@ -70,18 +70,28 @@ export default function AsteroidDefensePage() {
   useEffect(() => {
     if (!isClientInitialized) {
       // Generate initial asteroids for immediate gameplay
-      const initialAsteroids: Asteroid[] = [];
-      const startTime = new Date('2025-01-01T00:00:00Z');
-      for (let i = 0; i < 3; i++) {
-        const asteroid = generateAsteroid(startTime);
-        // Ensure at least one is detected for immediate visibility
-        if (i === 0) {
-          asteroid.isDetected = true;
+      const generateInitialAsteroids = async () => {
+        const initialAsteroids: Asteroid[] = [];
+        const startTime = new Date('2025-01-01T00:00:00Z');
+        
+        for (let i = 0; i < 3; i++) {
+          try {
+            const asteroid = await generateAsteroid(startTime);
+            // Ensure at least one is detected for immediate visibility
+            if (i === 0) {
+              asteroid.isDetected = true;
+            }
+            initialAsteroids.push(asteroid);
+          } catch (error) {
+            console.warn('Failed to generate asteroid:', error);
+          }
         }
-        initialAsteroids.push(asteroid);
-      }
-      setAsteroids(initialAsteroids);
-      setIsClientInitialized(true);
+        
+        setAsteroids(initialAsteroids);
+        setIsClientInitialized(true);
+      };
+      
+      generateInitialAsteroids();
     }
   }, [isClientInitialized]);
   
@@ -103,15 +113,20 @@ export default function AsteroidDefensePage() {
         if (Math.random() < spawnChance) {
           // Create asteroid with approximate current time (will be close enough)
           const approximateCurrentTime = new Date(Date.now() + (gameState.gameSpeed * 1000));
-          const newAsteroid = generateAsteroid(approximateCurrentTime);
           
-          if (newAsteroid.isDetected) {
-            addEvent('detection', `New asteroid ${newAsteroid.name} detected! Diameter: ${newAsteroid.diameterM.toFixed(0)}m, Time to impact: ${formatTimeToImpact(newAsteroid.timeToImpactHours)}`, 
-              newAsteroid.size === 'large' ? 'critical' : newAsteroid.size === 'medium' ? 'warning' : 'info', 
-              newAsteroid.id);
-          }
+          generateAsteroid(approximateCurrentTime).then(newAsteroid => {
+            if (newAsteroid.isDetected) {
+              addEvent('detection', `New asteroid ${newAsteroid.name} detected! Diameter: ${newAsteroid.diameterM.toFixed(0)}m, Time to impact: ${formatTimeToImpact(newAsteroid.timeToImpactHours)}`, 
+                newAsteroid.size === 'large' ? 'critical' : newAsteroid.size === 'medium' ? 'warning' : 'info', 
+                newAsteroid.id);
+            }
+            
+            setAsteroids(currentAsteroids => [...currentAsteroids, newAsteroid]);
+          }).catch(error => {
+            console.warn('Failed to generate new asteroid:', error);
+          });
           
-          return [...prev, newAsteroid];
+          return prev; // Don't modify state here since we're doing it async
         }
         
         return prev; // No change if no spawn
@@ -416,12 +431,21 @@ export default function AsteroidDefensePage() {
       <header className="bg-gray-800 border-b border-gray-700 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold">🛡️ NASA Planetary Defense Coordination Office</h1>
-            <div className="text-sm text-gray-300">
-              {gameState.currentTime.toISOString().replace('T', ' ').slice(0, 19)} UTC
+            <div className="flex items-center space-x-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-red-500 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-lg">🛰️</span>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">NASA Planetary Defense Coordination Office</h1>
+                <div className="text-xs text-blue-300">Center for Near Earth Object Studies • JPL/Caltech</div>
+              </div>
+            </div>
+            <div className="text-sm text-gray-300 bg-gray-800/50 px-3 py-1 rounded">
+              <div className="text-green-400 text-xs">LIVE</div>
+              <div>{gameState.currentTime.toISOString().replace('T', ' ').slice(0, 19)} UTC</div>
             </div>
             <div className="text-xs text-blue-300 bg-blue-900/30 px-2 py-1 rounded border border-blue-600/30">
-              Educational Simulation
+              Educational Simulation • Real NASA Data
             </div>
           </div>
           
@@ -723,29 +747,43 @@ export default function AsteroidDefensePage() {
             <h2 className="font-semibold">Mission Control</h2>
           </div>
           
-          {/* Educational Resources Section */}
+          {/* Enhanced Educational Resources Section */}
           <div className="p-3 border-b border-gray-700 bg-gradient-to-b from-blue-900/20 to-gray-800">
-            <h3 className="font-semibold text-blue-300 mb-2">🌌 NASA Resources</h3>
+            <h3 className="font-semibold text-blue-300 mb-2">🌌 NASA Live Resources</h3>
             <div className="space-y-2 text-xs">
               <div>
-                <div className="text-yellow-300 font-medium">Planetary Defense</div>
-                <div className="text-gray-300">NASA's Planetary Defense Coordination Office monitors potentially hazardous asteroids and develops deflection technologies.</div>
+                <div className="text-yellow-300 font-medium">Real NASA Data Integration</div>
+                <div className="text-gray-300">This simulation uses live data from NASA's Near-Earth Object Web Service API, providing real asteroid orbital parameters and close approach data.</div>
               </div>
               <div>
-                <div className="text-yellow-300 font-medium">DART Mission</div>
-                <div className="text-gray-300">In 2022, NASA successfully changed the orbit of asteroid Dimorphos using a kinetic impactor, proving deflection technology works!</div>
+                <div className="text-yellow-300 font-medium">DART Mission Success</div>
+                <div className="text-gray-300">September 2022: NASA successfully changed Dimorphos' orbit by 32 minutes using kinetic impact. First demonstration of asteroid deflection technology!</div>
               </div>
               <div>
-                <div className="text-yellow-300 font-medium">Near-Earth Objects</div>
-                <div className="text-gray-300">Over 34,000 near-Earth objects have been discovered, with about 2,300 classified as potentially hazardous.</div>
+                <div className="text-yellow-300 font-medium">Current NEO Statistics</div>
+                <div className="text-gray-300">34,000+ discovered NEOs • 2,300+ potentially hazardous • 158 known asteroid moons • Daily discoveries ongoing</div>
+              </div>
+              <div>
+                <div className="text-yellow-300 font-medium">NEOWISE Mission</div>
+                <div className="text-gray-300">Space-based infrared telescope discovering asteroids since 2010. Has characterized 1,850+ NEOs and provided size/composition data.</div>
+              </div>
+              <div>
+                <div className="text-yellow-300 font-medium">Ground-Based Surveys</div>
+                <div className="text-gray-300">Catalina Sky Survey • LINEAR • NEOCP • Pan-STARRS detecting ~3,000 new asteroids annually</div>
               </div>
               <div className="pt-2 border-t border-gray-600">
-                <div className="text-blue-300 font-medium">Torino Scale Guide:</div>
+                <div className="text-blue-300 font-medium">Torino Scale (Impact Hazard):</div>
                 <div className="text-xs grid grid-cols-2 gap-1 mt-1">
-                  <div className="text-green-300">0-1: No hazard</div>
+                  <div className="text-green-300">0-1: No hazard (routine)</div>
                   <div className="text-yellow-300">2-4: Merits attention</div>
-                  <div className="text-orange-300">5-7: Threatening</div>
-                  <div className="text-red-300">8-10: Collision certain</div>
+                  <div className="text-orange-300">5-7: Threatening events</div>
+                  <div className="text-red-300">8-10: Certain collisions</div>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-gray-600">
+                <div className="text-green-300 font-medium text-xs">🔗 Data Sources:</div>
+                <div className="text-xs text-gray-400 leading-tight">
+                  NASA NEO API • USGS Earthquake DB • JPL Small-Body DB • Eyes on Asteroids • CNEOS Impact Risk
                 </div>
               </div>
             </div>
