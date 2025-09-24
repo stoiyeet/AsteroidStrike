@@ -10,7 +10,7 @@ export type Damage_Inputs = {
   rho_i: number; // kg/m^3
   v0: number; // m/s
   theta_deg: number; // degrees from horizontal
-  is_water?: boolean; // true for water target
+  is_water: boolean; // true for water target
   K?: number; // luminous efficiency
   Cd?: number; // drag coefficient
   rho0?: number; // atmosphere surface density for breakup (kg/m^3)
@@ -158,7 +158,7 @@ export function burnRadii(E_Mt: number, E_J: number, K = DEFAULTS.K) {
 }
 
 // 8) crater scaling
-export function transientCrater(L0: number, rho_i: number, v_i: number, theta_rad: number, is_water=false) {
+export function transientCrater(L0: number, rho_i: number, v_i: number, theta_rad: number, is_water: boolean) {
   const rho_t = is_water ? 2700 : 2500;
   const coeff = is_water ? 1.365 : 1.161;
   const term = Math.pow(rho_i / rho_t, 1 / 3);

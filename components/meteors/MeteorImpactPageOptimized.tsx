@@ -40,10 +40,13 @@ const formatAsteroidName = (id: string): string =>
 export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }) {
   const [impactLat, setImpactLat] = useState(44.60);
   const [impactLon, setImpactLon] = useState(79.47);
+  const actualLong = - impactLon;  //longitude must be made negative because earth texture is flipped
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [mortality, setMortality] = useState<{deathCount: number; injuryCount: number} | null>(null);
   const [mortalityLoading, setMortalityLoading] = useState(false);
+  const [overWater, setOverWater] = useState<boolean>(false);
+
 
   // Add AbortController ref for cancelling requests
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -65,8 +68,9 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
     v0: meteor.speed,
     theta_deg: meteor.angle,
     latitude: impactLat,
-    longitude: impactLon,
-  }), [meteor.mass, meteor.diameter, meteor.density, meteor.speed, meteor.angle, impactLat, impactLon]);
+    longitude: actualLong, 
+    is_water: overWater
+  }), [meteor.mass, meteor.diameter, meteor.density, meteor.speed, meteor.angle, impactLat, actualLong]);
 
   const typedName = formatAsteroidName(meteor.name);
   const damage = useMemo(() => computeImpactEffects(inputs), [inputs]);
@@ -123,16 +127,26 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
     }
   }, []);
 
+  useEffect(() => {
+
+    fetch(`/api/overWater?lat=${impactLat}&lon=${actualLong}`)
+      .then((res) => res.json())
+      .then((data) => setOverWater(data.overWater))
+      .catch(() => setOverWater(false)); //Just default to false if failed
+  }, [impactLat, actualLong]);
+
+
+
   // Debounced effect for mortality calculation
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      calculateMortality(impactLat, impactLon, damage);
+      calculateMortality(impactLat, actualLong, damage);
     }, 500); // 500ms debounce
 
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [impactLat, impactLon, damage, calculateMortality]);
+  }, [impactLat, actualLong, damage, calculateMortality]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -256,7 +270,7 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
           effects={damage} 
           mortality={mortalityData} 
           impactLat={impactLat} 
-          impactLon={impactLon} 
+          impactLon={actualLong} 
           name={meteor.name} 
         />
       </div>
