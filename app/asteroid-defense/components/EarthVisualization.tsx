@@ -160,7 +160,7 @@ export default function EarthVisualization({
                 />
               </svg>
               
-             
+              {/* Asteroid label */}
               <div className={`absolute top-6 left-1/2 transform -translate-x-1/2 text-xs whitespace-nowrap px-2 py-1 rounded bg-black/80 border ${
                 isSelected ? 'text-yellow-300 font-semibold border-yellow-500/50' : 'text-gray-300 border-gray-500/50'
               }`}>
