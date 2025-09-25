@@ -105,27 +105,41 @@ export default function FormulasPageInner() {
         crater: {
             title: "CRATER FORMATION MECHANICS",
             subtitle: "Impact crater scaling and morphology",
-            debrief: "This section explores the equations governing the formation and characteristics of impact craters. These models help estimate crater size, volume, and the extent of material displacement resulting from an asteroid impact.",
+            debrief: "This section explores the equations governing the formation and characteristics of impact craters. Both land and ocean impacts are considered, including surface-water cavities and seafloor cratering after velocity reduction by water drag.",
             equations: [
                 {
-                    title: "Transient Crater Diameter",
-                    equation: "D_{tc} = 1.161\\left(\\frac{\\rho_i}{\\rho_t}\\right)^{1/3}L^{0.78}v_i^{0.44}g^{-0.22}\\sin^{1/3}\\theta",
+                    title: "Transient Crater Diameter (Land/Seafloor)",
+                    equation: "D_{tc} = 1.161\\left(\\frac{\\rho_i}{\\rho_t}\\right)^{1/3} L^{0.78} v_i^{0.44} g^{-0.22} \\sin^{1/3}\\theta",
                     image: "",
-                    description: "Initial excavation diameter. ρᵢ = impactor density, ρₜ = target density, L = impactor diameter, vᵢ = impact velocity, θ = impact angle.",
+                    description: "Baseline excavation diameter in rock or seafloor targets. ρᵢ = impactor density, ρₜ = target density (≈2700 kg/m³ for ocean bedrock or ≈2500 for land strike), L = impactor diameter, vᵢ = impact velocity (accounting for water drag adjustment), θ = impact angle.",
                     priority: "PRIMARY"
                 },
                 {
+                    title: "Transient Water Cavity Diameter",
+                    equation: "D_{tc,w} = 1.365\\left(\\frac{\\rho_i}{\\rho_w}\\right)^{1/3} L^{0.78} v_i^{0.44} g^{-0.22} \\sin^{1/3}\\theta",
+                    image: "",
+                    description: "Cavity formed at the ocean surface. Uses water density ρ_w = 1000 kg/m³ and coefficient 1.365.",
+                    priority: "PRIMARY"
+                },
+                {
+                    title: "Velocity Attenuation in Water",
+                    equation: "v_{sf} = v_i \\exp\\left(-\\tfrac{3\\,\\rho_w C_D d_w}{2 \\rho_i L \\sin\\theta\\,}\\right)",
+                    image: "",
+                    description: "Impactor velocity upon reaching the seafloor. ρ_w = water density, C_D = drag coefficient, d_w = water depth, L = impactor diameter, ρᵢ = impactor density, θ = impact angle.",
+                    priority: "SECONDARY"
+                },
+                {
                     title: "Final Crater Diameter",
-                    equation: "D_{fr} = \\begin{cases} 1.25D_{tc} & D_{tc} < 3.2\\text{ km} \\\\ 1.17D_{tc}^{1.13}/3200^{0.13} & D_{tc} \\geq 3.2\\text{ km} \\end{cases}",
+                    equation: "D_{fr} = \\begin{cases} 1.25D_{tc} & D_{tc} < 3.2\\,\\text{km} \\\\ 1.17 D_{tc}^{1.13} / 3200^{0.13} & D_{tc} \\geq 3.2\\,\\text{km} \\end{cases}",
                     image: "",
                     description: "Post-collapse crater size accounting for rim slumping and gravitational modification.",
                     priority: "PRIMARY"
                 },
                 {
                     title: "Excavated Volume",
-                    equation: "V = \\frac{\\pi}{24}D_{tc}^3",
+                    equation: "V = \\tfrac{\\pi}{24} D_{tc}^3",
                     image: "",
-                    description: "Total material displaced during crater formation. Assumes parabolic crater profile.",
+                    description: "Total displaced material. Assumes a parabolic crater profile.",
                     priority: "SECONDARY"
                 }
             ]
