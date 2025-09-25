@@ -483,56 +483,68 @@ export default function AsteroidDefensePage() {
           </div>
           
           {/* Bottom row - Key metrics */}
-          <div className="grid grid-cols-6 gap-6">
+          <div className="grid grid-cols-6 gap-4">
             <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700">
-              <div className="text-xs text-slate-400 uppercase tracking-wide">Budget</div>
-              <div className={`text-lg font-bold ${gameState.budget < 10 ? 'text-red-400' : 'text-green-400'}`}>
-                ${gameState.budget.toFixed(1)}B
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-slate-400 uppercase tracking-wide">Budget</div>
+                <div className={`text-lg font-bold ${gameState.budget < 10 ? 'text-red-400' : 'text-green-400'}`}>
+                  ${gameState.budget.toFixed(1)}B
+                </div>
               </div>
             </div>
             
             <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700">
-              <div className="text-xs text-slate-400 uppercase tracking-wide">Public Trust</div>
-              <div className={`text-lg font-bold ${
-                gameState.trustPoints < 25 ? 'text-red-400' : 
-                gameState.trustPoints < 50 ? 'text-yellow-400' : 
-                'text-blue-400'
-              }`}>
-                {gameState.trustPoints}%
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-slate-400 uppercase tracking-wide">Trust</div>
+                <div className={`text-lg font-bold ${
+                  gameState.trustPoints < 25 ? 'text-red-400' : 
+                  gameState.trustPoints < 50 ? 'text-yellow-400' : 
+                  'text-blue-400'
+                }`}>
+                  {gameState.trustPoints}%
+                </div>
               </div>
             </div>
             
             <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700">
-              <div className="text-xs text-slate-400 uppercase tracking-wide">Tracking</div>
-              <div className="text-lg font-bold text-slate-300">
-                {currentlyTracked}/{gameState.trackingCapacity}
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-slate-400 uppercase tracking-wide">Tracking</div>
+                <div className="text-lg font-bold text-slate-300">
+                  {currentlyTracked}/{gameState.trackingCapacity}
+                </div>
               </div>
             </div>
             
             <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700">
-              <div className="text-xs text-slate-400 uppercase tracking-wide">Lives Saved</div>
-              <div className="text-lg font-bold text-green-400">
-                {gameState.livesSaved.toLocaleString()}
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-slate-400 uppercase tracking-wide">Lives Saved</div>
+                <div className="text-lg font-bold text-green-400">
+                  {gameState.livesSaved.toLocaleString()}
+                </div>
               </div>
             </div>
             
             <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700">
-              <div className="text-xs text-slate-400 uppercase tracking-wide">Score</div>
-              <div className="text-lg font-bold text-blue-400">
-                {gameScore.toLocaleString()}
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-slate-400 uppercase tracking-wide">Score</div>
+                <div className="text-lg font-bold text-blue-400">
+                  {gameScore.toLocaleString()}
+                </div>
               </div>
             </div>
             
             <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700">
-              <div className="text-xs text-slate-400 uppercase tracking-wide">Status</div>
-              <div className="text-lg font-bold">
-                {isGameOver ? (
-                  <span className="text-red-400">GAME OVER</span>
-                ) : selectedAsteroid ? (
-                  <span className="text-yellow-400">Active</span>
-                ) : (
-                  <span className="text-slate-400">Monitoring</span>
-                )}
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-slate-400 uppercase tracking-wide">Status</div>
+                <div className="text-lg font-bold">
+                  {isGameOver ? (
+                    <span className="text-red-400">GAME OVER</span>
+                  ) : selectedAsteroid ? (
+                    <span className="text-yellow-400">Active</span>
+                  ) : (
+                    <span className="text-slate-400">Monitoring</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -580,7 +592,7 @@ export default function AsteroidDefensePage() {
         )}
       </header>
 
-      <div className="flex h-[calc(100vh-64px)] min-h-0">
+      <div className="flex h-[calc(100vh-200px)] min-h-0">
         {/* Sidebar - Asteroid List */}
         <div className="w-80 bg-slate-900 border-r border-slate-700 flex flex-col min-h-0">
           <div className="p-6 border-b border-slate-700 flex-shrink-0">
@@ -782,97 +794,71 @@ export default function AsteroidDefensePage() {
             );
           })()}
 
-          {/* 2D Map/Visualization Area */}
-          <div className="flex-1 bg-black relative overflow-hidden min-h-0">
-            <EarthVisualization 
-              asteroids={detectedAsteroids}
-              selectedAsteroid={selectedAsteroid}
-              gameTime={gameState.currentTime}
-              onSelectAsteroid={(id) => setSelectedAsteroid(id)}
-            />
-          </div>
-          
-          {/* Action Panel */}
-          {selectedAsteroid && (() => {
-            const asteroid = asteroids.find(a => a.id === selectedAsteroid);
-            if (!asteroid) {
-              console.log('Selected asteroid not found:', selectedAsteroid);
-              return (
-                <div className="bg-red-900/20 border-t border-red-500 p-6 text-white">
-                  <div className="text-lg font-semibold mb-2">Error: Selected asteroid not found</div>
-                  <div className="text-sm text-red-200 mb-4">
-                    Selected ID: {selectedAsteroid}<br/>
-                    Available asteroids: {asteroids.length}
+          {/* Main Content Area - Side by Side Layout */}
+          <div className="flex-1 flex min-h-0">
+            {/* 2D Map/Visualization Area */}
+            <div className="flex-1 bg-black relative overflow-hidden min-h-0">
+              <EarthVisualization 
+                asteroids={detectedAsteroids}
+                selectedAsteroid={selectedAsteroid}
+                gameTime={gameState.currentTime}
+                onSelectAsteroid={(id) => setSelectedAsteroid(id)}
+              />
+            </div>
+            
+            {/* Action Panel */}
+            {selectedAsteroid && (() => {
+              const asteroid = asteroids.find(a => a.id === selectedAsteroid);
+              if (!asteroid) {
+                console.log('Selected asteroid not found:', selectedAsteroid);
+                return (
+                  <div className="w-80 bg-red-900/20 border-l border-red-500 p-6 text-white">
+                    <div className="text-lg font-semibold mb-2">Error: Selected asteroid not found</div>
+                    <div className="text-sm text-red-200 mb-4">
+                      Selected ID: {selectedAsteroid}<br/>
+                      Available asteroids: {asteroids.length}
+                    </div>
+                    <button 
+                      onClick={() => setSelectedAsteroid(null)} 
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Close
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => setSelectedAsteroid(null)} 
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    Close
-                  </button>
+                );
+              }
+              return (
+                <div className="w-96 bg-slate-800 border-l border-slate-700 flex flex-col min-h-0 animate-slide-in-right">
+                  <div className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
+                    <h3 className="text-lg font-semibold text-white">Analysis Panel</h3>
+                    <button
+                      onClick={() => setSelectedAsteroid(null)}
+                      className="text-slate-400 hover:text-white text-sm px-3 py-2 rounded-lg hover:bg-slate-700 transition-colors"
+                      title="Close analysis panel"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-6">
+                    <AsteroidActionPanel
+                      asteroid={asteroid}
+                      gameState={gameState}
+                      onTrack={() => trackAsteroid(selectedAsteroid)}
+                      onAlert={() => alertPublic(selectedAsteroid)}
+                      onLaunchMission={(missionType) => launchDeflectionMission(selectedAsteroid, missionType)}
+                      onEvacuate={() => evacuateArea(selectedAsteroid)}
+                    />
+                  </div>
                 </div>
               );
-            }
-            return (
-              <div className="bg-slate-800 border-t border-slate-700 flex flex-col max-h-80">
-                <div className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
-                  <h3 className="text-lg font-semibold text-white">Analysis Panel</h3>
-                  <button
-                    onClick={() => setSelectedAsteroid(null)}
-                    className="text-slate-400 hover:text-white text-sm px-3 py-2 rounded-lg hover:bg-slate-700 transition-colors"
-                    title="Close analysis panel"
-                  >
-                    ×
-                  </button>
-                </div>
-                <div className="flex-1 overflow-y-auto p-6">
-                  <AsteroidActionPanel
-                    asteroid={asteroid}
-                    gameState={gameState}
-                    onTrack={() => trackAsteroid(selectedAsteroid)}
-                    onAlert={() => alertPublic(selectedAsteroid)}
-                    onLaunchMission={(missionType) => launchDeflectionMission(selectedAsteroid, missionType)}
-                    onEvacuate={() => evacuateArea(selectedAsteroid)}
-                  />
-                </div>
-              </div>
-            );
-          })()}
+            })()}
+          </div>
         </div>
 
         {/* Mission Control & Event Log */}
         <div className="w-80 bg-slate-900 border-l border-slate-700 flex flex-col min-h-0">
           <div className="p-6 border-b border-slate-700 flex-shrink-0">
             <h2 className="text-lg font-bold text-white">Mission Control</h2>
-          </div>
-          
-          {/* Educational Resources Section */}
-          <div className="p-4 border-b border-slate-700 bg-slate-800/30">
-            <h3 className="font-semibold text-blue-300 mb-3">NASA Resources</h3>
-            <div className="space-y-3 text-sm">
-              <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
-                <div className="text-blue-200 font-medium mb-1">Real NASA Data</div>
-                <div className="text-slate-300 text-xs">Live data from NASA's Near-Earth Object Web Service API with real orbital parameters.</div>
-              </div>
-              <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
-                <div className="text-green-200 font-medium mb-1">DART Mission Success</div>
-                <div className="text-slate-300 text-xs">September 2022: NASA changed Dimorphos' orbit by 32 minutes using kinetic impact.</div>
-              </div>
-              <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
-                <div className="text-yellow-200 font-medium mb-1">Current Statistics</div>
-                <div className="text-slate-300 text-xs">34,000+ NEOs discovered • 2,300+ potentially hazardous • 158 asteroid moons</div>
-              </div>
-              
-              <div className="pt-3 border-t border-slate-600">
-                <div className="text-slate-300 font-medium text-sm mb-2">Torino Scale</div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="text-green-300">0-1: No hazard</div>
-                  <div className="text-yellow-300">2-4: Merits attention</div>
-                  <div className="text-orange-300">5-7: Threatening</div>
-                  <div className="text-red-300">8-10: Certain collision</div>
-                </div>
-              </div>
-            </div>
           </div>
           
           {/* Event Log */}
@@ -907,6 +893,35 @@ export default function AsteroidDefensePage() {
                   <div className="text-sm">No events yet</div>
                 </div>
               )}
+            </div>
+          </div>
+          
+          {/* Educational Resources Section */}
+          <div className="p-4 border-t border-slate-700 bg-slate-800/30">
+            <h3 className="font-semibold text-blue-300 mb-3">NASA Resources</h3>
+            <div className="space-y-3 text-sm">
+              <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
+                <div className="text-blue-200 font-medium mb-1">Real NASA Data</div>
+                <div className="text-slate-300 text-xs">Live data from NASA's Near-Earth Object Web Service API with real orbital parameters.</div>
+              </div>
+              <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
+                <div className="text-green-200 font-medium mb-1">DART Mission Success</div>
+                <div className="text-slate-300 text-xs">September 2022: NASA changed Dimorphos' orbit by 32 minutes using kinetic impact.</div>
+              </div>
+              <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
+                <div className="text-yellow-200 font-medium mb-1">Current Statistics</div>
+                <div className="text-slate-300 text-xs">34,000+ NEOs discovered • 2,300+ potentially hazardous • 158 asteroid moons</div>
+              </div>
+              
+              <div className="pt-3 border-t border-slate-600">
+                <div className="text-slate-300 font-medium text-sm mb-2">Torino Scale</div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="text-green-300">0-1: No hazard</div>
+                  <div className="text-yellow-300">2-4: Merits attention</div>
+                  <div className="text-orange-300">5-7: Threatening</div>
+                  <div className="text-red-300">8-10: Certain collision</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

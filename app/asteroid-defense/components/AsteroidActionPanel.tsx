@@ -53,14 +53,14 @@ export default function AsteroidActionPanel({
   
   return (
     <div className="relative">
-      <div className="mb-6">
+      <div className="mb-4">
         <h3 className="text-xl font-bold text-white mb-2">{asteroid.name}</h3>
         <div className="text-sm text-slate-400">Detailed analysis and action options</div>
       </div>
       
       {/* Enhanced NASA Data Section */}
       {asteroid.realAsteroidKey && (
-        <div className="mb-6 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+        <div className="mb-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-semibold text-blue-300">NASA/JPL Database</h4>
             {asteroid.isPotentiallyHazardous && (
@@ -168,7 +168,7 @@ export default function AsteroidActionPanel({
 
       {/* Impact Assessment Section */}
       {impactAssessment && (
-        <div className="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+        <div className="mb-4 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-semibold text-red-300">Impact Assessment (USGS Model)</h4>
             <button
@@ -244,10 +244,10 @@ export default function AsteroidActionPanel({
         </div>
       )}
       
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-          <div className="text-slate-400 text-sm mb-2">Size Category</div>
-          <div className={`font-bold text-lg ${
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600 min-h-[120px] overflow-hidden text-center">
+          <div className="text-slate-400 text-xs mb-2">Size Category</div>
+          <div className={`font-bold text-base mb-1 ${
             asteroid.size === 'large' ? 'text-red-400' :
             asteroid.size === 'medium' ? 'text-orange-400' :
             asteroid.size === 'small' ? 'text-yellow-400' :
@@ -255,89 +255,92 @@ export default function AsteroidActionPanel({
           }`}>
             {asteroid.size.toUpperCase()}
           </div>
-          <div className="text-slate-300 text-sm">{asteroid.diameterM.toFixed(0)}m diameter</div>
+          <div className="text-slate-300 text-xs leading-tight">{asteroid.diameterM.toFixed(0)}m diameter</div>
         </div>
         
-        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-          <div className="text-slate-400 text-sm mb-2">Time to Impact</div>
-          <div className="font-bold text-lg text-white">{timeToImpactDays.toFixed(1)} days</div>
-          <div className="text-slate-300 text-sm">±{asteroid.uncertaintyKm.toFixed(0)}km uncertainty</div>
+        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600 min-h-[120px] overflow-hidden text-center">
+          <div className="text-slate-400 text-xs mb-2">Time to Impact</div>
+          <div className="font-bold text-base text-white mb-1">{timeToImpactDays.toFixed(1)} days</div>
+          <div className="text-slate-300 text-xs leading-tight">±{asteroid.uncertaintyKm.toFixed(0)}km uncertainty</div>
         </div>
         
-        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
-          <div className="text-slate-400 text-sm mb-2">Impact Probability</div>
-          <div className={`font-bold text-lg ${
+        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600 min-h-[120px] overflow-hidden text-center">
+          <div className="text-slate-400 text-xs mb-2">Impact Probability</div>
+          <div className={`font-bold text-base mb-1 ${
             asteroid.impactProbability > 0.5 ? 'text-red-400' :
             asteroid.impactProbability > 0.2 ? 'text-orange-400' :
             'text-yellow-400'
           }`}>
             {(asteroid.impactProbability * 100).toFixed(1)}%
           </div>
-          <div className="text-slate-300 text-sm">Torino Scale: {torinoScale}</div>
+          <div className="text-slate-300 text-xs leading-tight">Torino Scale: {torinoScale}</div>
         </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <button
-          onClick={onTrack}
-          disabled={!canTrack}
-          className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors relative ${
-            canTrack 
-              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-              : 'bg-slate-600 text-slate-400 cursor-not-allowed'
-          }`}
-          onMouseEnter={() => setShowTooltip('track')}
-          onMouseLeave={() => setShowTooltip(null)}
-        >
-          Track Object
-        </button>
-        
-        <button
-          onClick={onAlert}
-          disabled={!canAlert}
-          className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-            canAlert 
-              ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-              : 'bg-slate-600 text-slate-400 cursor-not-allowed'
-          }`}
-          onMouseEnter={() => setShowTooltip('alert')}
-          onMouseLeave={() => setShowTooltip(null)}
-        >
-          Issue Alert
-        </button>
-        
-        <button
-          onClick={() => setShowMissionOptions(!showMissionOptions)}
-          disabled={!canLaunchMission}
-          className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-            canLaunchMission 
-              ? 'bg-red-600 hover:bg-red-700 text-white' 
-              : 'bg-slate-600 text-slate-400 cursor-not-allowed'
-          }`}
-          onMouseEnter={() => setShowTooltip('mission')}
-          onMouseLeave={() => setShowTooltip(null)}
-        >
-          Launch Mission
-        </button>
-        
-        <button
-          onClick={onEvacuate}
-          disabled={!canEvacuate}
-          className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-            canEvacuate
-              ? 'bg-purple-600 hover:bg-purple-700 text-white'
-              : 'bg-slate-600 text-slate-400 cursor-not-allowed'
-          }`}
-          onMouseEnter={() => setShowTooltip('evacuate')}
-          onMouseLeave={() => setShowTooltip(null)}
-        >
-          Order Evacuation
-        </button>
+      {/* Action Buttons - Sticky at bottom */}
+      <div className="sticky bottom-0 bg-slate-800/95 backdrop-blur-sm border-t border-slate-600 pt-4 -mx-6 px-6">
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <button
+            onClick={onTrack}
+            disabled={!canTrack}
+            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors relative ${
+              canTrack 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                : 'bg-slate-600 text-slate-400 cursor-not-allowed'
+            }`}
+            onMouseEnter={() => setShowTooltip('track')}
+            onMouseLeave={() => setShowTooltip(null)}
+          >
+            Track Object
+          </button>
+          
+          <button
+            onClick={onAlert}
+            disabled={!canAlert}
+            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+              canAlert 
+                ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+                : 'bg-slate-600 text-slate-400 cursor-not-allowed'
+            }`}
+            onMouseEnter={() => setShowTooltip('alert')}
+            onMouseLeave={() => setShowTooltip(null)}
+          >
+            Issue Alert
+          </button>
+          
+          <button
+            onClick={() => setShowMissionOptions(!showMissionOptions)}
+            disabled={!canLaunchMission}
+            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+              canLaunchMission 
+                ? 'bg-red-600 hover:bg-red-700 text-white' 
+                : 'bg-slate-600 text-slate-400 cursor-not-allowed'
+            }`}
+            onMouseEnter={() => setShowTooltip('mission')}
+            onMouseLeave={() => setShowTooltip(null)}
+          >
+            Launch Mission
+          </button>
+          
+          <button
+            onClick={onEvacuate}
+            disabled={!canEvacuate}
+            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+              canEvacuate
+                ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                : 'bg-slate-600 text-slate-400 cursor-not-allowed'
+            }`}
+            onMouseEnter={() => setShowTooltip('evacuate')}
+            onMouseLeave={() => setShowTooltip(null)}
+          >
+            Order Evacuation
+          </button>
+        </div>
       </div>
       
       {/* Mission Options */}
       {showMissionOptions && canLaunchMission && (
-        <div className="mb-6 p-4 bg-slate-800/50 rounded-lg border border-slate-600">
+        <div className="mb-4 p-4 bg-slate-800/50 rounded-lg border border-slate-600">
           <h4 className="font-semibold mb-3 text-white">Mission Options</h4>
           <div className="grid grid-cols-1 gap-3">
             <button
