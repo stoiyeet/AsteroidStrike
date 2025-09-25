@@ -53,44 +53,47 @@ export default function AsteroidActionPanel({
   
   return (
     <div className="relative">
-      <h3 className="font-semibold mb-3">{asteroid.name} - Action Options</h3>
+      <div className="mb-6">
+        <h3 className="text-xl font-bold text-white mb-2">{asteroid.name}</h3>
+        <div className="text-sm text-slate-400">Detailed analysis and action options</div>
+      </div>
       
       {/* Enhanced NASA Data Section */}
       {asteroid.realAsteroidKey && (
-        <div className="mb-4 p-3 bg-blue-900/30 border border-blue-600/30 rounded">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="font-semibold text-blue-300">🛰️ NASA/JPL Database</h4>
+        <div className="mb-6 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold text-blue-300">NASA/JPL Database</h4>
             {asteroid.isPotentiallyHazardous && (
-              <div className="px-2 py-1 bg-red-600/80 rounded text-xs font-bold text-white">
+              <div className="px-3 py-1 bg-red-500/20 text-red-300 border border-red-500/30 rounded text-xs font-medium">
                 PHA - Potentially Hazardous
               </div>
             )}
           </div>
           
-          <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="grid grid-cols-2 gap-4 mb-4">
             {asteroid.material && (
-              <div className="text-sm">
-                <div className="text-gray-400">Composition</div>
+              <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
+                <div className="text-slate-400 text-sm">Composition</div>
                 <div className="font-semibold text-blue-200">{asteroid.material}</div>
               </div>
             )}
             {asteroid.density && (
-              <div className="text-sm">
-                <div className="text-gray-400">Density</div>
+              <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
+                <div className="text-slate-400 text-sm">Density</div>
                 <div className="font-semibold text-blue-200">{asteroid.density} g/cm³</div>
               </div>
             )}
-            <div className="text-sm">
-              <div className="text-gray-400">Mass (Estimated)</div>
+            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
+              <div className="text-slate-400 text-sm">Mass (Estimated)</div>
               <div className="font-semibold text-blue-200">{(asteroid.massKg / 1e12).toExponential(2)} × 10¹² kg</div>
             </div>
-            <div className="text-sm">
-              <div className="text-gray-400">Velocity</div>
+            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
+              <div className="text-slate-400 text-sm">Velocity</div>
               <div className="font-semibold text-blue-200">{asteroid.velocityKmps.toFixed(1)} km/s</div>
             </div>
             {asteroid.absoluteMagnitude && (
-              <div className="text-sm">
-                <div className="text-gray-400">Abs. Magnitude (H)</div>
+              <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
+                <div className="text-slate-400 text-sm">Abs. Magnitude (H)</div>
                 <div className="font-semibold text-blue-200">{asteroid.absoluteMagnitude.toFixed(1)}</div>
               </div>
             )}
@@ -165,34 +168,34 @@ export default function AsteroidActionPanel({
 
       {/* Impact Assessment Section */}
       {impactAssessment && (
-        <div className="mb-4 p-3 bg-red-900/20 border border-red-600/30 rounded">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="font-semibold text-red-300">🌋 Impact Assessment (USGS Model)</h4>
+        <div className="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold text-red-300">Impact Assessment (USGS Model)</h4>
             <button
               onClick={() => setShowImpactDetails(!showImpactDetails)}
-              className="px-2 py-1 text-xs bg-red-600/50 hover:bg-red-600/70 rounded"
+              className="px-3 py-1 text-sm bg-red-600/50 hover:bg-red-600/70 rounded-lg transition-colors"
             >
               {showImpactDetails ? 'Hide' : 'Show'} Details
             </button>
           </div>
           
-          <div className="grid grid-cols-2 gap-2 text-sm mb-2">
-            <div>
-              <div className="text-gray-400">Equivalent Earthquake</div>
+          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
+              <div className="text-slate-400">Equivalent Earthquake</div>
               <div className="font-semibold text-red-200">Magnitude {impactAssessment.equivalentMagnitude}</div>
             </div>
-            <div>
-              <div className="text-gray-400">Impact Energy</div>
+            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
+              <div className="text-slate-400">Impact Energy</div>
               <div className="font-semibold text-red-200">{impactAssessment.energyMegatonsTNT.toExponential(1)} MT TNT</div>
             </div>
             {impactAssessment.craterDiameter && (
-              <div>
-                <div className="text-gray-400">Crater Diameter</div>
+              <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
+                <div className="text-slate-400">Crater Diameter</div>
                 <div className="font-semibold text-red-200">{impactAssessment.craterDiameter.toFixed(1)} km</div>
               </div>
             )}
-            <div>
-              <div className="text-gray-400">Seismic Radius</div>
+            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
+              <div className="text-slate-400">Seismic Radius</div>
               <div className="font-semibold text-red-200">{impactAssessment.seismicRadius} km</div>
             </div>
           </div>
@@ -241,145 +244,131 @@ export default function AsteroidActionPanel({
         </div>
       )}
       
-      <div className="grid grid-cols-3 gap-4 mb-4">
-        <div className="space-y-2">
-          <div className="text-sm">
-            <div className="text-gray-400">Size Category</div>
-            <div className={`font-semibold ${
-              asteroid.size === 'large' ? 'text-red-400' :
-              asteroid.size === 'medium' ? 'text-orange-400' :
-              asteroid.size === 'small' ? 'text-yellow-400' :
-              'text-gray-400'
-            }`}>
-              {asteroid.size.toUpperCase()} ({asteroid.diameterM.toFixed(0)}m)
-            </div>
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
+          <div className="text-slate-400 text-sm mb-2">Size Category</div>
+          <div className={`font-bold text-lg ${
+            asteroid.size === 'large' ? 'text-red-400' :
+            asteroid.size === 'medium' ? 'text-orange-400' :
+            asteroid.size === 'small' ? 'text-yellow-400' :
+            'text-slate-400'
+          }`}>
+            {asteroid.size.toUpperCase()}
           </div>
-          
-          <div className="text-sm">
-            <div className="text-gray-400">Time to Impact</div>
-            <div className="font-semibold">{timeToImpactDays.toFixed(1)} days</div>
-          </div>
+          <div className="text-slate-300 text-sm">{asteroid.diameterM.toFixed(0)}m diameter</div>
         </div>
         
-        <div className="space-y-2">
-          <div className="text-sm">
-            <div className="text-gray-400">Impact Probability</div>
-            <div className="font-semibold">{(asteroid.impactProbability * 100).toFixed(1)}%</div>
-          </div>
-          
-          <div className="text-sm">
-            <div className="text-gray-400">Position Uncertainty</div>
-            <div className="font-semibold">±{asteroid.uncertaintyKm.toFixed(0)}km</div>
-          </div>
+        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
+          <div className="text-slate-400 text-sm mb-2">Time to Impact</div>
+          <div className="font-bold text-lg text-white">{timeToImpactDays.toFixed(1)} days</div>
+          <div className="text-slate-300 text-sm">±{asteroid.uncertaintyKm.toFixed(0)}km uncertainty</div>
         </div>
         
-        <div className="space-y-2">
-          <div className="text-sm">
-            <div className="text-gray-400">Torino Scale</div>
-            <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-bold text-white ${torinoColors[torinoScale]}`}>
-              {torinoScale}
-            </div>
+        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600">
+          <div className="text-slate-400 text-sm mb-2">Impact Probability</div>
+          <div className={`font-bold text-lg ${
+            asteroid.impactProbability > 0.5 ? 'text-red-400' :
+            asteroid.impactProbability > 0.2 ? 'text-orange-400' :
+            'text-yellow-400'
+          }`}>
+            {(asteroid.impactProbability * 100).toFixed(1)}%
           </div>
-          
-          <div className="text-sm">
-            <div className="text-gray-400">Active Missions</div>
-            <div className="font-semibold">{asteroid.deflectionMissions.length}</div>
-          </div>
+          <div className="text-slate-300 text-sm">Torino Scale: {torinoScale}</div>
         </div>
       </div>
       
-      <div className="grid grid-cols-4 gap-2 mb-3">
+      <div className="grid grid-cols-2 gap-4 mb-6">
         <button
           onClick={onTrack}
           disabled={!canTrack}
-          className={`px-3 py-2 rounded text-sm font-medium relative ${
+          className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors relative ${
             canTrack 
               ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              : 'bg-slate-600 text-slate-400 cursor-not-allowed'
           }`}
           onMouseEnter={() => setShowTooltip('track')}
           onMouseLeave={() => setShowTooltip(null)}
         >
-          📡 Track
+          Track Object
         </button>
         
         <button
           onClick={onAlert}
           disabled={!canAlert}
-          className={`px-3 py-2 rounded text-sm font-medium ${
+          className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
             canAlert 
               ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              : 'bg-slate-600 text-slate-400 cursor-not-allowed'
           }`}
           onMouseEnter={() => setShowTooltip('alert')}
           onMouseLeave={() => setShowTooltip(null)}
         >
-          🚨 Alert
+          Issue Alert
         </button>
         
         <button
           onClick={() => setShowMissionOptions(!showMissionOptions)}
           disabled={!canLaunchMission}
-          className={`px-3 py-2 rounded text-sm font-medium ${
+          className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
             canLaunchMission 
               ? 'bg-red-600 hover:bg-red-700 text-white' 
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              : 'bg-slate-600 text-slate-400 cursor-not-allowed'
           }`}
           onMouseEnter={() => setShowTooltip('mission')}
           onMouseLeave={() => setShowTooltip(null)}
         >
-          🚀 Mission
+          Launch Mission
         </button>
         
         <button
           onClick={onEvacuate}
           disabled={!canEvacuate}
-          className={`px-3 py-2 rounded text-sm font-medium ${
+          className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
             canEvacuate
               ? 'bg-purple-600 hover:bg-purple-700 text-white'
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              : 'bg-slate-600 text-slate-400 cursor-not-allowed'
           }`}
           onMouseEnter={() => setShowTooltip('evacuate')}
           onMouseLeave={() => setShowTooltip(null)}
         >
-          🏃 Evacuate
+          Order Evacuation
         </button>
       </div>
       
       {/* Mission Options */}
       {showMissionOptions && canLaunchMission && (
-        <div className="mb-3 p-3 bg-gray-700 rounded border">
-          <h4 className="font-semibold mb-2 text-sm">Mission Options</h4>
-          <div className="grid grid-cols-3 gap-1">
+        <div className="mb-6 p-4 bg-slate-800/50 rounded-lg border border-slate-600">
+          <h4 className="font-semibold mb-3 text-white">Mission Options</h4>
+          <div className="grid grid-cols-1 gap-3">
             <button
               onClick={() => {
                 onLaunchMission('kinetic');
                 setShowMissionOptions(false);
               }}
-              className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
+              className="px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium transition-colors"
               title={`Kinetic Impactor - Direct collision ($${ACTION_COSTS.launchKineticMission}B)`}
             >
-              Kinetic
+              Kinetic Impactor (${ACTION_COSTS.launchKineticMission}B)
             </button>
             <button
               onClick={() => {
                 onLaunchMission('nuclear');
                 setShowMissionOptions(false);
               }}
-              className="px-2 py-1 bg-red-700 hover:bg-red-800 rounded text-xs"
+              className="px-4 py-3 bg-red-700 hover:bg-red-800 rounded-lg text-sm font-medium transition-colors"
               title={`Nuclear Detonation - Standoff explosion ($${ACTION_COSTS.launchNuclearMission}B)`}
             >
-              Nuclear
+              Nuclear Detonation (${ACTION_COSTS.launchNuclearMission}B)
             </button>
             <button
               onClick={() => {
                 onLaunchMission('gravity_tractor');
                 setShowMissionOptions(false);
               }}
-              className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs"
+              className="px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors"
               title={`Gravity Tractor - Slow gravitational tug ($${ACTION_COSTS.launchGravityTractor}B)`}
             >
-              Gravity
+              Gravity Tractor (${ACTION_COSTS.launchGravityTractor}B)
             </button>
           </div>
         </div>
@@ -387,39 +376,39 @@ export default function AsteroidActionPanel({
       
       {/* Educational Tooltips */}
       {showTooltip && (
-        <div className="absolute top-full left-0 mt-2 p-3 bg-black border border-gray-600 rounded max-w-sm text-sm z-50">
+        <div className="absolute top-full left-0 mt-2 p-4 bg-slate-900 border border-slate-600 rounded-lg max-w-sm text-sm z-50 shadow-xl">
           {showTooltip === 'track' && (
             <div>
-              <div className="font-semibold mb-1">Precision Tracking</div>
-              <div>Deploy additional telescopes and radar systems to improve orbital determination. Reduces position uncertainty over time through repeated observations.</div>
-              <div className="text-gray-400 mt-1">Cost: ${ACTION_COSTS.trackAsteroid}B</div>
+              <div className="font-semibold mb-2 text-white">Precision Tracking</div>
+              <div className="text-slate-300 mb-2">Deploy additional telescopes and radar systems to improve orbital determination. Reduces position uncertainty over time through repeated observations.</div>
+              <div className="text-slate-400 text-xs">Cost: ${ACTION_COSTS.trackAsteroid}B</div>
             </div>
           )}
           {showTooltip === 'alert' && (
             <div>
-              <div className="font-semibold mb-1">Public Warning System</div>
-              <div>Activate emergency broadcasting and mobile alert systems. Reduces casualties but affects public trust if false alarm.</div>
-              <div className="text-gray-400 mt-1">Cost: ${ACTION_COSTS.alertPublic}B</div>
+              <div className="font-semibold mb-2 text-white">Public Warning System</div>
+              <div className="text-slate-300 mb-2">Activate emergency broadcasting and mobile alert systems. Reduces casualties but affects public trust if false alarm.</div>
+              <div className="text-slate-400 text-xs">Cost: ${ACTION_COSTS.alertPublic}B</div>
             </div>
           )}
           {showTooltip === 'mission' && (
             <div>
-              <div className="font-semibold mb-1">Deflection Missions</div>
-              <div className="space-y-1">
-                <div><strong>Kinetic Impactor:</strong> Direct collision to change momentum (like NASA's DART mission at Dimorphos)</div>
-                <div><strong>Nuclear Standoff:</strong> Detonation at distance using X-ray vaporization to push asteroid</div>
-                <div><strong>Gravity Tractor:</strong> Spacecraft flies alongside asteroid, using gravity to slowly nudge trajectory</div>
+              <div className="font-semibold mb-2 text-white">Deflection Missions</div>
+              <div className="space-y-2 text-slate-300">
+                <div><strong className="text-red-300">Kinetic Impactor:</strong> Direct collision to change momentum (like NASA's DART mission at Dimorphos)</div>
+                <div><strong className="text-red-300">Nuclear Standoff:</strong> Detonation at distance using X-ray vaporization to push asteroid</div>
+                <div><strong className="text-blue-300">Gravity Tractor:</strong> Spacecraft flies alongside asteroid, using gravity to slowly nudge trajectory</div>
               </div>
-              <div className="text-gray-400 mt-2 text-xs">
-                💡 NASA's DART successfully changed Dimorphos' orbit in 2022, proving kinetic deflection works!
+              <div className="text-blue-300 mt-3 text-xs bg-blue-900/20 p-2 rounded">
+                NASA's DART successfully changed Dimorphos' orbit in 2022, proving kinetic deflection works!
               </div>
             </div>
           )}
           {showTooltip === 'evacuate' && (
             <div>
-              <div className="font-semibold mb-1">Emergency Evacuation</div>
-              <div>Coordinate mass evacuation of predicted impact zone. Most effective for reducing casualties from medium+ asteroids.</div>
-              <div className="text-gray-400 mt-1">Cost: ${ACTION_COSTS.evacuateArea}B</div>
+              <div className="font-semibold mb-2 text-white">Emergency Evacuation</div>
+              <div className="text-slate-300 mb-2">Coordinate mass evacuation of predicted impact zone. Most effective for reducing casualties from medium+ asteroids.</div>
+              <div className="text-slate-400 text-xs">Cost: ${ACTION_COSTS.evacuateArea}B</div>
             </div>
           )}
         </div>
