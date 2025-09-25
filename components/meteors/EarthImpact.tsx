@@ -12,6 +12,7 @@ import Earth from "@/components/Earth";
 import ExplosionFlash from '@/components/ExplosionFlash';
 import { Damage_Results } from './DamageValuesOptimized';
 import { computeWaveRadii } from './utils/waveRadii';
+import TsunamiWaves  from '@/components/TsunamiWaves'
 
 type Meteor = {
   name: string;
@@ -43,13 +44,14 @@ interface Props {
   impactTime: number;  // when impact happens on timeline
   onImpactSelect?: (lat: number, lon: number) => void;
   effects: EffectsState;
+  tsunamiHeight: number;
 }
 
 const EARTH_R = 1;
-const EARTH_R_M = 6371000;
+export const EARTH_R_M = 6371000;
 type GLTFResult = GLTF & { scene: THREE.Group };
 
-function surfacemToChordUnits(m: number): number {
+export function surfacemToChordUnits(m: number): number {
   const maxm = Math.min(m, EARTH_R_M * 0.9);
   const theta = maxm / EARTH_R_M;
   return EARTH_R * theta * 0.8;
@@ -137,6 +139,7 @@ export default function EarthImpact({
   impactTime,
   onImpactSelect,
   effects,
+  tsunamiHeight
 }: Props) {
   const impactPos = useMemo(
     () => latLonToVec3(impact.lat, impact.lon, EARTH_R + 0.001),
@@ -500,6 +503,26 @@ export default function EarthImpact({
         ) : null
       )}
         </>
+      )}
+
+      {tsunamiHeight > 0 && t >= impactTime && (
+        <TsunamiWaves
+          position={impactPos}
+          height={tsunamiHeight}
+          expansionFactor={damageExpansionCurve(0.2)}
+          showLabels={effects.labels}
+        />
+      )}
+
+      {/* Impact label (DOM via Html overlay; uses CSS vars) */}
+      {effects.labels && (
+        <Html position={impactPos.clone().multiplyScalar(1.05)} center>
+          <div className="impact-label" style={{ ['--label-color' as string]: '#ffff00' }}>
+            <div className="impact-icon">⚡</div>
+            <div className="impact-title">IMPACT POINT</div>
+            <div className="impact-energy">{damage.E_Mt.toFixed(2)} MT TNT Equivalent</div>
+          </div>
+        </Html>
       )}
 
       {/* Impact label (DOM via Html overlay; uses CSS vars) */}

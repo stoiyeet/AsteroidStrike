@@ -325,6 +325,7 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
             onImpactSelect={(la, lo) => { setImpactLat(la); setImpactLon(lo); }}
             effects={effects}
             impactTime={IMPACT_TIME}
+            tsunamiHeight={2000000} //metres
           />
         </React.Suspense>
       </Canvas>
