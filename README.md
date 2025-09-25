@@ -2,7 +2,14 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+Create a `.env.local` file in the project root and add your gemini API key for the chatbot and isitwater API key for tsunami calculation.
+
+```bash
+GOOGLE_API_KEY="gemini_api_key"
+IS_WATER_API_KEY="https://isitwater.com/ api key"
+```
+
+Then, run the development server:
 
 ```bash
 npm run dev
