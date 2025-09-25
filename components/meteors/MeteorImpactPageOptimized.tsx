@@ -78,11 +78,11 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
     latitude: impactLat,
     longitude: actualLong, 
     is_water: overWater
-  }), [meteor.mass, meteor.diameter, meteor.density, meteor.speed, meteor.angle, impactLat, actualLong]);
+  }), [meteor.mass, meteor.diameter, meteor.density, meteor.speed, meteor.angle, impactLat, actualLong, overWater]);
 
   const typedName = formatAsteroidName(meteor.name);
   const damage = useMemo(() => computeImpactEffects(inputs), [inputs]);
-  const tsunamiResults = useMemo(() => tsunamiInfo(inputs.is_water, damage.Dtc_m, damage.airburst), [inputs.is_water])
+  const tsunamiResults: TsunamiResults = useMemo(() => tsunamiInfo(inputs.is_water, damage.Dtc_m, damage.airburst), [overWater, impactLat,impactLon])
 
   // Debounced mortality calculation with AbortController
   const calculateMortality = useCallback(async (
@@ -281,6 +281,7 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
           impactLat={impactLat} 
           impactLon={actualLong} 
           name={meteor.name} 
+          TsunamiResults = {tsunamiResults}
         />
       </div>
 
@@ -334,7 +335,7 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
             onImpactSelect={(la, lo) => { setImpactLat(la); setImpactLon(lo); }}
             effects={effects}
             impactTime={IMPACT_TIME}
-            tsunamiHeight={2000000} //metres
+            tsunamiRadius={tsunamiResults.tsunami_radius} //metres
           />
         </React.Suspense>
       </Canvas>

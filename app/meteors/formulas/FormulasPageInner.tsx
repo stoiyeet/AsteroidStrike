@@ -185,8 +185,52 @@ export default function FormulasPageInner() {
                     priority: "PRIMARY"
                 }
             ]
+        },
+        waterLayer: {
+            "title": "Tsunami Calculations",
+            "subtitle": "Predicting Wave Height, Speed, and Arrival Time",
+            "debrief": "This section provides the formulas and underlying principles for calculating key tsunami characteristics following a severe asteroid impact, including wave amplitude, propagation speed, and arrival time. A constant water depth of 3682 meters is assumed for all calculations.",
+            "equations": [
+                {
+                    "title": "Maximum Rim-Wave Amplitude",
+                    "equation": "A_{rw}^{max} = \\min\\left(\\frac{D_{tc}}{14.1}, H\\right)",
+                    "image": "",
+                    "description": "This formula, derived from oceanic impact simulations, estimates the maximum amplitude of the initial rim wave (Arw_max). It is the minimum of two values: the transient crater diameter (Dtc) divided by 14.1, and the water depth (H). This ensures the wave amplitude does not exceed the water depth itself.",
+                    "priority": "PRIMARY"
+                },
+                {
+                    "title": "Rim-Wave Amplitude at a Given Distance",
+                    "equation": "A_{rw} = A_{rw}^{max} \\left(\\frac{R_{rw}}{r}\\right)",
+                    "image": "",
+                    "description": "This equation calculates the rim-wave amplitude (Arw) at a specific radial distance (r) from the impact point, for r > Rrw, where Rrw is the radius of the rim-wave generation zone. The formula incorporates a 1/r decay, which is a common heuristic for wave attenuation with radial distance.",
+                    "priority": "PRIMARY"
+                },
+                {
+                    "title": "Tsunami Propagation Speed (Long-Wave Limit)",
+                    "equation": "c \\approx \\sqrt{gH}\\left(1 + \\frac{A}{2H}\\right)",
+                    "image": "",
+                    "description": "The propagation speed of the tsunami (c) is determined by the long-wave limit, which applies when the wavelength is much greater than the water depth. With an assumed water depth of 3682 meters, this formula is highly applicable. Here, g is the acceleration due to gravity, and A is the maximum amplitude of the wave.",
+                    "priority": "PRIMARY"
+                },
+                {
+                    "title": "Tsunami Propagation Speed (Short-Wave Limit)",
+                    "equation": "c \\approx \\sqrt{\\frac{g\\lambda}{2\\pi}}\\left(1 + \\frac{2\\pi^2 A^2}{\\lambda^2}\\right)",
+                    "image": "",
+                    "description": "This formula provides the propagation speed (c) for the short-wave limit, which applies when the wavelength is much less than the water depth. Here, lambda is the wavelength, g is the acceleration due to gravity, and A is the maximum amplitude of the wave. This formula is included as an alternative for different wave conditions.",
+                    "priority": "SECONDARY"
+                },
+                {
+                    "title": "Maximum Estimated Arrival Time",
+                    "equation": "T_w^{max} = \\frac{r}{\\sqrt{1.56D_{tc} \\tanh\\left(\\frac{6.28H}{D_{tc}}\\right)}}",
+                    "image": "",
+                    "description": "This equation provides the maximum estimated arrival time (Tw_max) of the rim wave or collapse wave at a distance (r). This formula uses a conservative speed estimate based on factors of the transient crater diameter (Dtc) and water depth (H) to provide an upper bound for the arrival time, which is useful for risk assessment and warning systems.",
+                    "priority": "PRIMARY"
+                }
+            ]
         }
     };
+
+    
 
     const categoryData = formulas[category as keyof typeof formulas];
 

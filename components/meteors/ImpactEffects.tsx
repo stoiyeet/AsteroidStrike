@@ -65,9 +65,16 @@ interface ImpactEffectsProps {
   impactLat: number;
   impactLon: number;
   name: string;
+  TsunamiResults: {
+    rim_wave_height: number;
+    tsunami_radius: number;
+    max_tsunami_speed: number;
+    time_to_reach_1_km: number;
+    time_to_reach_end: number;
+  }
 }
 
-export default function ImpactEffects({ effects, mortality, impactLat, impactLon, name }: ImpactEffectsProps) {
+export default function ImpactEffects({ effects, mortality, impactLat, impactLon, name, TsunamiResults }: ImpactEffectsProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState('overview');
   
@@ -129,6 +136,12 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
           onClick={() => setActiveTab('effects_on_life')}
         >
           Effects on Life
+        </button>
+        <button
+          className={`${styles.tab} ${activeTab === 'tsunami' ? styles.active : ''}`}
+          onClick={() => setActiveTab('tsunami')}
+        >
+          Tsunami
         </button>
       </div>
 
@@ -357,6 +370,37 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
               }
             </div>
             <Link href="/meteors/formulas?category=mortality" className={styles.scienceButton}>
+              🧪 Check the Science
+            </Link>
+          </div>
+        )}
+
+        {activeTab === 'tsunami' && (
+          <div className={styles.section}>
+            <div className={styles.sectionInfo}>
+              Tsunami Effects
+            </div>
+            <div className={styles.dataRow}>
+              <span className={styles.label}>Wave Height</span>
+              <span className={styles.value}>{TsunamiResults.rim_wave_height.toFixed(1)} m</span>
+            </div>
+            <div className={styles.dataRow}>
+              <span className={styles.label}>Radius</span>
+              <span className={styles.value}>{formatDistance(TsunamiResults.tsunami_radius)}</span>
+            </div>
+            <div className={styles.dataRow}>
+              <span className={styles.label}>Max Speed</span>
+              <span className={styles.value}>{TsunamiResults.max_tsunami_speed.toFixed(1)} m/s</span>
+            </div>
+            <div className={styles.dataRow}>
+              <span className={styles.label}>Time to Reach 1 km</span>
+              <span className={styles.value}>{TsunamiResults.time_to_reach_1_km.toFixed(1)} s</span>
+            </div>
+            <div className={styles.dataRow}>
+              <span className={styles.label}>Time to Reach End</span>
+              <span className={styles.value}>{TsunamiResults.time_to_reach_end.toFixed(1)} s</span>
+            </div>
+            <Link href="/meteors/formulas?category=waterLayer" className={styles.scienceButton}>
               🧪 Check the Science
             </Link>
           </div>
