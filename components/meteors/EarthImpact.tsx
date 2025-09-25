@@ -44,7 +44,7 @@ interface Props {
   impactTime: number;  // when impact happens on timeline
   onImpactSelect?: (lat: number, lon: number) => void;
   effects: EffectsState;
-  tsunamiHeight: number;
+  tsunamiRadius: number;
 }
 
 const EARTH_R = 1;
@@ -139,7 +139,7 @@ export default function EarthImpact({
   impactTime,
   onImpactSelect,
   effects,
-  tsunamiHeight
+  tsunamiRadius
 }: Props) {
   const impactPos = useMemo(
     () => latLonToVec3(impact.lat, impact.lon, EARTH_R + 0.001),
@@ -505,10 +505,10 @@ export default function EarthImpact({
         </>
       )}
 
-      {tsunamiHeight > 0 && t >= impactTime && (
+      {tsunamiRadius > 0 && t >= impactTime && (
         <TsunamiWaves
           position={impactPos}
-          height={tsunamiHeight}
+          height={tsunamiRadius}
           expansionFactor={damageExpansionCurve(0.2)}
           showLabels={effects.labels}
         />

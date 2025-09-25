@@ -61,6 +61,8 @@ const DEFAULTS = {
   fp: 7,
   rho_air_for_wind: 1.2,
   burn_horizon_m: 1_500_000, // 1500 km cap
+  water_depth_m: 3682,
+  gravity: 9.8
 };
 
 // Add caching for API results
@@ -617,6 +619,50 @@ export async function estimateAsteroidDeaths(
     deathCount: Math.round(totalDeaths),
     injuryCount: Math.round(totalInjuries)
   };
+}
+
+export function tsunamiInfo(is_water: boolean, Dtc: number | null, airburst: boolean){
+  if (!is_water || airburst || !Dtc){
+    return {
+      rim_wave_height: 0,
+      tsunami_radius: 0,
+      max_tsunami_speed: 0,
+      time_to_reach_1_km: 0,
+      time_to_reach_end: 0
+    }
+
+  }
+  const rim_wave_height = Math.min(Dtc/14.1, DEFAULTS.water_depth_m)
+  const tsunami_entry_radius = 3*Dtc/4;
+  const tsunami_radius = rim_wave_height*tsunami_entry_radius/0.5 // assume tsunami ends when water is less than 0.5 meters depth
+  const tsunami_wavelength = rim_wave_height > 80 ? rim_wave_height/0.07 : rim_wave_height / 0.4 // treat 80m as threshold from conceivable tsunami to crazy asteroi tsunami
+  const max_tsunami_speed = tsunami_wavelength < 0.9 * DEFAULTS.water_depth_m
+    ? eq_20_tsunami_speed(rim_wave_height, tsunami_wavelength)
+    : eq_19_tsunami_speed(rim_wave_height);
+
+  function eq_19_tsunami_speed(A: number): number{
+    return Math.sqrt(DEFAULTS.gravity*DEFAULTS.water_depth_m)*(1 + A/(2*DEFAULTS.water_depth_m))
+  }
+
+  function eq_20_tsunami_speed(A: number, lambda: number): number{
+    return Math.sqrt(DEFAULTS.gravity*lambda/(2*Math.PI)*(1+(2*Math.PI**2*A**2)/lambda**2))
+  }
+
+  function max_time(Dtc: number, r: number){
+    return r/Math.sqrt(1.56*Dtc*Math.tanh(6.28*DEFAULTS.water_depth_m/Dtc))
+  }
+
+  const time_to_reach_1_km = max_time(Dtc, 1000)
+
+  const time_to_reach_end = max_time(Dtc, tsunami_radius)
+
+  return {
+    rim_wave_height: rim_wave_height,
+    tsunami_radius: tsunami_radius,
+    max_tsunami_speed: max_tsunami_speed,
+    time_to_reach_1_km: time_to_reach_1_km,
+    time_to_reach_end: time_to_reach_end
+  }
 }
 
 export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {

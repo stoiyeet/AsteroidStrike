@@ -7,7 +7,7 @@ import { OrbitControls, Html, Stars } from '@react-three/drei';
 import EarthImpact from './EarthImpact';
 import ImpactEffects from './ImpactEffects';
 import styles from './MeteorImpactPage.module.css';
-import { Damage_Inputs, computeImpactEffects, estimateAsteroidDeaths } from './DamageValuesOptimized';
+import { Damage_Inputs, computeImpactEffects, estimateAsteroidDeaths, tsunamiInfo } from './DamageValuesOptimized';
 
 // NEW: styles outside Canvas
 import ImpactStyles from './styles/ImpactStyles';
@@ -31,6 +31,14 @@ type EffectsState = {
   ejecta: boolean;
   labels: boolean;
 };
+
+type TsunamiResults = {
+  rim_wave_height: number,
+  tsunami_radius: number,
+  max_tsunami_speed: number,
+  time_to_reach_1_km: number,
+  time_to_reach_end: number
+}
 
 const IMPACT_TIME = 0.40;
 
@@ -74,6 +82,7 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
 
   const typedName = formatAsteroidName(meteor.name);
   const damage = useMemo(() => computeImpactEffects(inputs), [inputs]);
+  const tsunamiResults = useMemo(() => tsunamiInfo(inputs.is_water, damage.Dtc_m, damage.airburst), [inputs.is_water])
 
   // Debounced mortality calculation with AbortController
   const calculateMortality = useCallback(async (
