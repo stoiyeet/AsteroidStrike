@@ -25,6 +25,7 @@ export async function GET(req: Request) {
 
     try {
         const response = await axios.request(options);
+        console.log("over water: ", response.data.water)
         return Response.json({ overWater: response.data.water });
     } catch (error) {
         return Response.json({ error: "Server error" }, { status: 500 });

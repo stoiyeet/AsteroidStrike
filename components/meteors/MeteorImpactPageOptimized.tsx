@@ -82,7 +82,7 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
 
   const typedName = formatAsteroidName(meteor.name);
   const damage = useMemo(() => computeImpactEffects(inputs), [inputs]);
-  const oceanWaterHit = oceanWaterCrater(meteor.diameter, meteor.density, meteor.speed, meteor.angle, )
+  const oceanWaterHit = oceanWaterCrater(meteor.diameter, meteor.density, meteor.speed, meteor.angle * Math.PI / 180.0 )
   const tsunamiResults: TsunamiResults = useMemo(() => tsunamiInfo(inputs.is_water, oceanWaterHit, damage.airburst), [overWater, impactLat,impactLon])
 
   // Debounced mortality calculation with AbortController

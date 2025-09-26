@@ -52,16 +52,26 @@ interface MitigationMethod {
 }
 
 /** Helpers */
-const badgeColor = (level: string) => {
+const badgeColor = (level: string, entity: string) => {
+  const green = "text-green-400 bg-green-400/15 ring-1 ring-green-500/30";
+  const yellow = "text-yellow-400 bg-yellow-400/15 ring-1 ring-yellow-500/30";
+  const red = "text-red-400 bg-red-400/15 ring-1 ring-red-500/30";
+  const gray = "text-gray-300 bg-gray-500/10 ring-1 ring-gray-500/20";
   switch (level) {
     case "High":
-      return "text-green-400 bg-green-400/15 ring-1 ring-green-500/30";
+        if (entity === "cost"){
+          return red;
+        }
+        return green;
     case "Medium":
-      return "text-yellow-400 bg-yellow-400/15 ring-1 ring-yellow-500/30";
+      return yellow;
     case "Low":
-      return "text-red-400 bg-red-400/15 ring-1 ring-red-500/30";
+      if (entity === "cost") {
+        return green;
+      }
+      return red;
     default:
-      return "text-gray-300 bg-gray-500/10 ring-1 ring-gray-500/20";
+      return gray;
   }
 };
 
@@ -88,7 +98,7 @@ const MitigationEducation: React.FC = () => {
         advantages: [
           "Dramatically improves early warning (infrared excels at dark objects)",
           "Enables slower, safer deflection methods",
-          "Targets U.S. goal to find 90% of ≥140 m NEOs",
+          "Targets U.S. goal to find 90% of NEOs ≥140 m in size",
         ],
         disadvantages: [
           "Does not deflect—only detects and characterizes",
@@ -98,7 +108,7 @@ const MitigationEducation: React.FC = () => {
         timeline: "Launch no earlier than Sep 2027 (NET), multi-year survey to ramp coverage",
         leadTimeCategory: "long",
         effectiveness: "High",
-        cost: "High",
+        cost: "Medium",
         bestFor:
           "Global early warning and characterization to unlock slow-push deflection options decades in advance",
         dataPoints: [
@@ -135,8 +145,8 @@ const MitigationEducation: React.FC = () => {
         ],
         timeline: "Typically 5–10+ years warning (mission design, launch, intercept)",
         leadTimeCategory: "medium",
-        effectiveness: "High",
-        cost: "Medium",
+        effectiveness: "Medium",
+        cost: "Low",
         bestFor:
           "Small–medium NEOs with sufficient warning; first-line option when object properties are reasonably constrained",
         dataPoints: [
@@ -174,7 +184,7 @@ const MitigationEducation: React.FC = () => {
         timeline: "Sometimes considered for 1–5 year warning or large objects",
         leadTimeCategory: "short",
         effectiveness: "High",
-        cost: "High",
+        cost: "Medium",
         bestFor:
           "Last-resort scenarios when warning time is short and/or object is very large; requires global approval",
         dataPoints: [
@@ -209,8 +219,8 @@ const MitigationEducation: React.FC = () => {
         ],
         timeline: "20+ years warning preferred",
         leadTimeCategory: "long",
-        effectiveness: "Medium",
-        cost: "Medium",
+        effectiveness: "Low",
+        cost: "High",
         bestFor: "Well-characterized targets with long warning and small required Δv",
         dataPoints: [
           { label: "Mode", value: "Non-contact tug via gravity" },
@@ -242,7 +252,7 @@ const MitigationEducation: React.FC = () => {
         ],
         timeline: "10–20+ years warning",
         leadTimeCategory: "long",
-        effectiveness: "Low",
+        effectiveness: "Medium",
         cost: "High",
         bestFor: "Small–moderate Δv over long timelines with robust power systems",
         dataPoints: [
@@ -275,12 +285,12 @@ const MitigationEducation: React.FC = () => {
         ],
         timeline: "15+ years warning",
         leadTimeCategory: "long",
-        effectiveness: "Medium",
-        cost: "Medium",
+        effectiveness: "Low",
+        cost: "High",
         bestFor: "Long-lead gradual deflection when precise control is required",
         dataPoints: [
           { label: "Concept", value: "Quasi-neutral ion plume momentum transfer" },
-          { label: "Heritage", value: "Academic/ESA studies (TRL growing)" },
+          { label: "Heritage", value: "European Space Agency studies: (TRL growing)" },
         ],
         sources: [
           { label: "Bombardelli & Peláez (2011/2013)", url: "https://ui.adsabs.harvard.edu/abs/2011JGCD...34.1270B/abstract" },
@@ -407,10 +417,10 @@ const MitigationEducation: React.FC = () => {
                       : "≈ 15–20+y"}
                   </td>
                   <td className="px-3 py-2">
-                    <span className={`${pill} ${badgeColor(m.effectiveness)}`}>{m.effectiveness}</span>
+                    <span className={`${pill} ${badgeColor(m.effectiveness, "effectiveness")}`}>{m.effectiveness}</span>
                   </td>
                   <td className="px-3 py-2">
-                    <span className={`${pill} ${badgeColor(m.cost)}`}>${m.cost}</span>
+                    <span className={`${pill} ${badgeColor(m.cost, "cost")}`}>${m.cost}</span>
                   </td>
                   <td className="px-3 py-2 text-gray-300">{m.bestFor ?? "—"}</td>
                 </tr>
@@ -440,8 +450,6 @@ const MitigationEducation: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="hidden sm:flex gap-2">
-                      <span className={`${pill} ${badgeColor(m.effectiveness)}`}>{m.effectiveness}</span>
-                      <span className={`${pill} ${badgeColor(m.cost)}`}>${m.cost}</span>
                     </div>
                     {isOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                   </div>
@@ -486,8 +494,8 @@ const MitigationEducation: React.FC = () => {
                           <span className="ml-1 text-white">{m.timeline}</span>
                         </div>
                         <div className="mt-2 flex items-center gap-3 text-sm">
-                          <span className={`${pill} ${badgeColor(m.effectiveness)}`}>Effectiveness: {m.effectiveness}</span>
-                          <span className={`${pill} ${badgeColor(m.cost)}`}>Cost: ${m.cost}</span>
+                          <span className={`${pill} ${badgeColor(m.effectiveness, "effectiveness")}`}>Effectiveness: {m.effectiveness}</span>
+                          <span className={`${pill} ${badgeColor(m.cost, "cost")}`}>Cost: {m.cost}</span>
                         </div>
                         {m.bestFor && (
                           <div className="mt-2 text-sm text-gray-300 flex items-start gap-2">
