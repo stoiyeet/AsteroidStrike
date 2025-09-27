@@ -21,13 +21,13 @@ export default function EarthVisualization({
   const [showImpactZones, setShowImpactZones] = useState(true);
   
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-b from-indigo-900 via-blue-900 to-black">
+    <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-black">
       {/* Stars background */}
-      <div className="absolute inset-0 opacity-30">
+      <div className="absolute inset-0 opacity-20">
         {STARS.map((star, i) => (
           <div
             key={i}
-            className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
+            className="absolute w-0.5 h-0.5 bg-white rounded-full animate-pulse"
             style={{
               left: `${star.left}%`,
               top: `${star.top}%`,
@@ -41,7 +41,7 @@ export default function EarthVisualization({
       {/* Earth system */}
       <div className="relative">
         {/* Earth's gravitational influence sphere */}
-        <div className="absolute inset-0 rounded-full border border-blue-300/20" style={{
+        <div className="absolute inset-0 rounded-full border border-slate-400/10" style={{
           width: '400px',
           height: '400px',
           left: '50%',
@@ -51,26 +51,26 @@ export default function EarthVisualization({
         
         {/* Earth */}
         <div className="relative">
-          <div className="w-64 h-64 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-green-500 border-4 border-blue-300 shadow-2xl relative overflow-hidden">
+          <div className="w-64 h-64 rounded-full bg-gradient-to-br from-blue-500 via-blue-600 to-green-600 border-2 border-slate-400/30 shadow-2xl relative overflow-hidden">
             {/* Earth atmosphere glow */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-300/30 via-transparent to-blue-300/30" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-300/20 via-transparent to-blue-300/20" />
             
             {/* Earth surface details */}
-            <div className="absolute inset-3 rounded-full bg-gradient-to-br from-green-400 to-blue-600 opacity-80">
+            <div className="absolute inset-3 rounded-full bg-gradient-to-br from-green-500 to-blue-700 opacity-90">
               {/* Continents (simplified) */}
-              <div className="absolute top-6 left-10 w-20 h-16 bg-green-700 rounded-lg opacity-90 transform rotate-12" />
-              <div className="absolute top-16 right-6 w-16 h-12 bg-green-700 rounded-full opacity-90" />
-              <div className="absolute bottom-8 left-12 w-24 h-8 bg-green-700 rounded-lg opacity-90 transform -rotate-6" />
-              <div className="absolute top-32 left-20 w-12 h-20 bg-green-700 rounded-lg opacity-90 transform rotate-45" />
+              <div className="absolute top-6 left-10 w-20 h-16 bg-green-600 rounded-lg opacity-90 transform rotate-12" />
+              <div className="absolute top-16 right-6 w-16 h-12 bg-green-600 rounded-full opacity-90" />
+              <div className="absolute bottom-8 left-12 w-24 h-8 bg-green-600 rounded-lg opacity-90 transform -rotate-6" />
+              <div className="absolute top-32 left-20 w-12 h-20 bg-green-600 rounded-lg opacity-90 transform rotate-45" />
               
               {/* Clouds */}
-              <div className="absolute top-12 left-16 w-12 h-6 bg-white/40 rounded-full" />
-              <div className="absolute top-28 right-12 w-16 h-4 bg-white/40 rounded-full" />
-              <div className="absolute bottom-16 left-6 w-10 h-4 bg-white/40 rounded-full" />
+              <div className="absolute top-12 left-16 w-12 h-6 bg-white/30 rounded-full" />
+              <div className="absolute top-28 right-12 w-16 h-4 bg-white/30 rounded-full" />
+              <div className="absolute bottom-16 left-6 w-10 h-4 bg-white/30 rounded-full" />
             </div>
             
             {/* Day/night terminator */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/20 to-black/40 rounded-full opacity-60" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-black/20 rounded-full opacity-40" />
           </div>
         </div>
         
@@ -161,13 +161,26 @@ export default function EarthVisualization({
               </svg>
               
               {/* Asteroid label */}
-              <div className={`absolute top-6 left-1/2 transform -translate-x-1/2 text-xs whitespace-nowrap px-2 py-1 rounded bg-black/70 border ${
-                isSelected ? 'text-yellow-300 font-semibold border-yellow-500/50' : 'text-gray-300 border-gray-500/50'
+              <div className={`absolute top-6 left-1/2 transform -translate-x-1/2 text-xs whitespace-nowrap px-3 py-2 rounded-lg bg-slate-900/90 border backdrop-blur-sm ${
+                isSelected ? 'text-blue-300 font-semibold border-blue-500/50 shadow-lg shadow-blue-500/20' : 'text-slate-300 border-slate-600/50'
               }`}>
-                <div>{asteroid.name}</div>
-                <div className="text-xs opacity-75">
-                  {asteroid.timeToImpactHours <= 0 ? 'Passed' : `${(asteroid.timeToImpactHours / 24).toFixed(1)}d`} • {(asteroid.impactProbability * 100).toFixed(0)}%
+                <div className="flex items-center gap-2">
+                  <div className="font-medium">{asteroid.name}</div>
+                  {asteroid.isPotentiallyHazardous && (
+                    <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                  )}
+                  {asteroid.realAsteroidKey && (
+                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                  )}
                 </div>
+                <div className="text-xs text-slate-400 mt-1">
+                  {asteroid.timeToImpactHours <= 0 ? 'Passed' : `${(asteroid.timeToImpactHours / 24).toFixed(1)}d`} • {(asteroid.impactProbability * 100).toFixed(0)}% • {asteroid.diameterM.toFixed(0)}m
+                </div>
+                {asteroid.realAsteroidKey && (
+                  <div className="text-xs text-blue-300/80 mt-1">
+                    NASA/JPL Data
+                  </div>
+                )}
               </div>
               
               {/* Impact zone preview on Earth's surface */}
@@ -206,57 +219,66 @@ export default function EarthVisualization({
       <div className="absolute top-4 right-4 space-y-2">
         <button
           onClick={() => setShowOrbits(!showOrbits)}
-          className={`px-3 py-1 rounded text-xs ${showOrbits ? 'bg-blue-600' : 'bg-gray-600'} hover:bg-opacity-80`}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            showOrbits 
+              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+              : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+          }`}
         >
-          Orbits {showOrbits ? '✓' : '✗'}
+          {showOrbits ? 'Hide' : 'Show'} Orbits
         </button>
         <button
           onClick={() => setShowImpactZones(!showImpactZones)}
-          className={`px-3 py-1 rounded text-xs ${showImpactZones ? 'bg-red-600' : 'bg-gray-600'} hover:bg-opacity-80`}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            showImpactZones 
+              ? 'bg-red-600 hover:bg-red-700 text-white' 
+              : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+          }`}
         >
-          Impact Zones {showImpactZones ? '✓' : '✗'}
+          {showImpactZones ? 'Hide' : 'Show'} Impact Zones
         </button>
       </div>
       
-      {/* Enhanced Legend */}
-      <div className="absolute bottom-4 left-4 bg-black/80 rounded p-4 text-xs border border-gray-600">
-        <div className="font-semibold mb-3">Command Center Legend</div>
+      {/* Legend */}
+      <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-sm rounded-lg p-4 text-sm border border-slate-600">
+        <div className="font-semibold mb-3 text-white">Object Classification</div>
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="w-3 h-3 rounded-full bg-red-500" />
-            <span>Large (140m+) - Global threat</span>
+            <span className="text-slate-300">Large (140m+) - Global threat</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="w-3 h-3 rounded-full bg-orange-500" />
-            <span>Medium (20-140m) - Regional danger</span>
+            <span className="text-slate-300">Medium (20-140m) - Regional danger</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="w-3 h-3 rounded-full bg-yellow-500" />
-            <span>Small (5-20m) - Airburst risk</span>
+            <span className="text-slate-300">Small (5-20m) - Airburst risk</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-gray-400" />
-            <span>Tiny (&lt;5m) - Burns up</span>
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full bg-slate-400" />
+            <span className="text-slate-300">Tiny (&lt;5m) - Burns up</span>
           </div>
           
-          <div className="border-t border-gray-600 pt-2 mt-2">
-            <div className="flex items-center gap-2">
+          <div className="border-t border-slate-600 pt-3 mt-3">
+            <div className="text-slate-400 text-xs font-medium mb-2">Mission Status</div>
+            <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              <span>Mission active</span>
+              <span className="text-slate-300 text-xs">Mission active</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-              <span>Mission en route</span>
+              <span className="text-slate-300 text-xs">Mission en route</span>
             </div>
           </div>
         </div>
       </div>
       
       {/* Time display */}
-      <div className="absolute top-4 left-4 bg-black/80 rounded p-3 text-sm border border-gray-600">
-        <div className="font-semibold text-green-400">Mission Time</div>
-        <div className="font-mono">{gameTime.toISOString().replace('T', ' ').slice(0, 19)} UTC</div>
-        <div className="text-xs text-gray-400 mt-1">
+      <div className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-sm rounded-lg p-4 text-sm border border-slate-600">
+        <div className="font-semibold text-green-400 mb-1">Mission Time</div>
+        <div className="font-mono text-slate-300">{gameTime.toISOString().replace('T', ' ').slice(0, 19)} UTC</div>
+        <div className="text-xs text-slate-400 mt-2">
           {asteroids.length} objects tracked
         </div>
       </div>

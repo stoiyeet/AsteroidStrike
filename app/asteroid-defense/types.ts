@@ -9,10 +9,25 @@ export interface Asteroid {
   velocityKmps: number;
   
   // Real asteroid data for education
-  realAsteroidKey?: string; // Key to asteroidInfo.json
+  realAsteroidKey?: string; // Key to asteroidInfo.json or NASA NEO reference ID
   material?: string; // e.g., "Carbonaceous (C-type)"
   density?: number; // g/cm3
   educationalBlurb?: string; // Educational description
+  
+  // NASA-specific data for enhanced realism
+  nasaJplUrl?: string; // Link to NASA JPL database
+  isPotentiallyHazardous?: boolean; // NASA PHA classification
+  absoluteMagnitude?: number; // H parameter for brightness
+  orbitalData?: {
+    orbit_id?: string;
+    eccentricity?: string;
+    semi_major_axis?: string;
+    inclination?: string;
+    orbital_period?: string;
+    perihelion_distance?: string;
+    aphelion_distance?: string;
+    [key: string]: any;
+  };
   
   // Detection properties
   detectionDate: Date;
@@ -26,6 +41,7 @@ export interface Asteroid {
   // Trajectory properties
   impactProbability: number;
   initialImpactProbability: number;
+  trueImpactProbability: number; // The actual probability, determined at creation
   uncertaintyKm: number; // Position uncertainty
   
   // Impact properties
@@ -37,6 +53,7 @@ export interface Asteroid {
   isTracked: boolean;
   publicAlerted: boolean;
   evacuationOrdered: boolean;
+  outcomeProcessed: boolean; // Prevents duplicate impact/miss events
   deflectionMissions: DeflectionMission[];
 }
 

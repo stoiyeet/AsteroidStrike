@@ -1,6 +1,7 @@
 import { Asteroid, AsteroidSize } from './types';
 import { ASTEROID_SIZE_CONFIGS } from './constants';
 import asteroidInfo from '../../data/asteroidInfo.json';
+import { nasaApi, NASAAsteroidData } from './services/nasaApi';
 
 function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min);
@@ -12,7 +13,65 @@ function massFromDiameter(diameterM: number, densityKgM3: number): number {
   return volume * densityKgM3;
 }
 
-export function generateAsteroid(currentTime: Date): Asteroid {
+// Cache for NASA asteroid data
+let nasaAsteroidsCache: NASAAsteroidData[] = [];
+let lastNASAFetch = 0;
+const NASA_CACHE_TIMEOUT = 300000; // 5 minutes
+
+export async function fetchNASAAsteroids(): Promise<NASAAsteroidData[]> {
+  const now = Date.now();
+  if (nasaAsteroidsCache.length > 0 && (now - lastNASAFetch) < NASA_CACHE_TIMEOUT) {
+    return nasaAsteroidsCache;
+  }
+
+  try {
+    // Try to fetch current NEO feed first
+    const neoFeed = await nasaApi.getCurrentNeoFeed();
+    if (neoFeed && neoFeed.near_earth_objects) {
+      const asteroids: NASAAsteroidData[] = [];
+      Object.values(neoFeed.near_earth_objects).forEach(dayAsteroids => {
+        asteroids.push(...dayAsteroids);
+      });
+      
+      if (asteroids.length > 0) {
+        nasaAsteroidsCache = asteroids;
+        lastNASAFetch = now;
+        return asteroids;
+      }
+    }
+
+    // Fallback to browse API if feed is empty
+    const browseResult = await nasaApi.browseAsteroids(0, 50);
+    if (browseResult && browseResult.asteroids.length > 0) {
+      nasaAsteroidsCache = browseResult.asteroids;
+      lastNASAFetch = now;
+      return browseResult.asteroids;
+    }
+  } catch (error) {
+    console.warn('Failed to fetch NASA asteroids, using fallback data');
+  }
+
+  return [];
+}
+
+export async function generateAsteroid(currentTime: Date): Promise<Asteroid> {
+  // Try to use real NASA data first (80% chance for demo)
+  const useNASAData = Math.random() < 0.8;
+  
+  if (useNASAData) {
+    const nasaAsteroids = await fetchNASAAsteroids();
+    if (nasaAsteroids.length > 0) {
+      // Pick a random NASA asteroid and try to convert it
+      const randomNASA = nasaAsteroids[Math.floor(Math.random() * nasaAsteroids.length)];
+      const convertedAsteroid = nasaApi.convertNASADataToGameAsteroid(randomNASA, currentTime);
+      
+      if (convertedAsteroid) {
+        return convertedAsteroid as Asteroid;
+      }
+    }
+  }
+
+  // Fallback to original generation logic
   // Get real asteroid data for educational purposes
   const realAsteroidKeys = Object.keys(asteroidInfo);
   const useRealData = Math.random() < 0.7; // 70% chance to use real asteroid data
@@ -87,6 +146,12 @@ export function generateAsteroid(currentTime: Date): Asteroid {
   const detectionChance = config.detectionChance * (timeToImpactHours / config.timeToImpactRange[1]);
   const isDetected = Math.random() < detectionChance;
   
+  // Calculate a more realistic true impact probability
+  // Base it on the initial probability with some variation
+  const baseProb = config.initialImpactProb;
+  const variationFactor = randomBetween(0.3, 2.0); // 30% to 200% of base
+  const trueImpactProbability = Math.min(0.95, Math.max(0.001, baseProb * variationFactor));
+  
   // Generate random impact location
   const impactLatitude = randomBetween(-60, 60); // Most impacts in populated zones
   const impactLongitude = randomBetween(-180, 180);
@@ -117,6 +182,7 @@ export function generateAsteroid(currentTime: Date): Asteroid {
     
     impactProbability: config.initialImpactProb,
     initialImpactProbability: config.initialImpactProb,
+    trueImpactProbability,
     uncertaintyKm,
     
     impactLatitude,
@@ -126,6 +192,7 @@ export function generateAsteroid(currentTime: Date): Asteroid {
     isTracked: false,
     publicAlerted: false,
     evacuationOrdered: false,
+    outcomeProcessed: false,
     deflectionMissions: [],
   };
   
@@ -163,10 +230,9 @@ export function updateAsteroid(asteroid: Asteroid, deltaTimeHours: number, isTra
     updated.uncertaintyKm = Math.max(1, asteroid.uncertaintyKm / (1 + improvementFactor * 0.1));
     
     // Refine impact probability (move towards true value)
-    const trueImpactProb = Math.random() < 0.1 ? 0.9 : 0.05; // 10% are actually dangerous
-    const refinementRate = 0.02 * improvementFactor;
+    const refinementRate = 0.05 * improvementFactor; // Increased rate for better gameplay
     updated.impactProbability = updated.impactProbability + 
-      (trueImpactProb - updated.impactProbability) * refinementRate;
+      (asteroid.trueImpactProbability - updated.impactProbability) * refinementRate;
     updated.impactProbability = Math.max(0, Math.min(1, updated.impactProbability));
   }
   
