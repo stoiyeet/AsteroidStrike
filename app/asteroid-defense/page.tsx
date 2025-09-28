@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Asteroid, GameState, EventLogEntry, DeflectionMission } from './types';
-import { ACTION_COSTS, TRUST_IMPACTS, SCORE_REWARDS } from './constants';
+import { ACTION_COSTS, TRUST_IMPACTS } from './constants';
 import { generateAsteroid, updateAsteroid, calculateCasualties } from './gameUtils';
 import EarthVisualization from './components/EarthVisualization';
 import AsteroidActionPanel from './components/AsteroidActionPanel';
@@ -40,7 +40,6 @@ export default function AsteroidDefensePage() {
     correctAlerts: 0,
     asteroidsTracked: 0,
     successfulDeflections: 0,
-    totalScore: 0,
   });
   
   // Asteroids state - Initialize empty to avoid hydration issues, populate client-side
@@ -166,18 +165,6 @@ export default function AsteroidDefensePage() {
         const updatedAsteroids = prev.map(asteroid => {
         const updated = updateAsteroid(asteroid, gameState.gameSpeed / 3600, asteroid.isTracked);
         
-        // Award continuous tracking bonus (once per day)
-        if (updated.isTracked && updated.timeToImpactHours > 0) {
-          const daysPassed = Math.floor((asteroid.initialTimeToImpact - updated.timeToImpactHours) / 24);
-          const previousDaysPassed = Math.floor((asteroid.initialTimeToImpact - asteroid.timeToImpactHours) / 24);
-          
-          if (daysPassed > previousDaysPassed) {
-            setGameState(prev => ({ 
-              ...prev, 
-              totalScore: prev.totalScore + SCORE_REWARDS.asteroidTracked
-            }));
-          }
-        }
         
         // Check for impacts (only process once per asteroid)
         if (updated.timeToImpactHours <= 0 && asteroid.timeToImpactHours > 0 && !asteroid.outcomeProcessed) {
@@ -204,10 +191,9 @@ export default function AsteroidDefensePage() {
             if (asteroid.publicAlerted) {
               setGameState(prev => ({ 
                 ...prev, 
-                correctAlerts: prev.correctAlerts + 1,
-                totalScore: prev.totalScore + SCORE_REWARDS.correctAlert
+                correctAlerts: prev.correctAlerts + 1
               }));
-              addEvent('system', `Public alert was correct. Trust increased. (+${SCORE_REWARDS.correctAlert} points)`, 'success');
+              addEvent('system', `Public alert was correct. Trust increased.`, 'success');
             } else {
               addEvent('system', `No warning was issued. Public trust severely damaged.`, 'critical');
             }
@@ -216,20 +202,15 @@ export default function AsteroidDefensePage() {
             
             // Handle trust impacts for false alarms or correct non-action
             if (asteroid.publicAlerted) {
-              addEvent('system', `False alarm issued. Public trust damaged. (${SCORE_REWARDS.falseAlarm} points)`, 'warning');
+              addEvent('system', `False alarm issued. Public trust damaged.`, 'warning');
               setGameState(prev => ({ 
                 ...prev, 
                 trustPoints: Math.max(0, prev.trustPoints + TRUST_IMPACTS.falseAlarm),
-                falseAlarms: prev.falseAlarms + 1,
-                totalScore: prev.totalScore + SCORE_REWARDS.falseAlarm
+                falseAlarms: prev.falseAlarms + 1
               }));
             } else {
-              // Reward for not issuing false alarm on a miss
-              setGameState(prev => ({ 
-                ...prev, 
-                totalScore: prev.totalScore + SCORE_REWARDS.goodDecision
-              }));
-              addEvent('system', `Good decision: No false alarm issued. (+${SCORE_REWARDS.goodDecision} points)`, 'success');
+              // Good decision for not issuing false alarm on a miss
+              addEvent('system', `Good decision: No false alarm issued.`, 'success');
             }
             
             // Handle successful deflection missions
@@ -237,14 +218,12 @@ export default function AsteroidDefensePage() {
               const successfulMissions = asteroid.deflectionMissions.filter(m => m.status === 'deployed');
               if (successfulMissions.length > 0) {
                 const preventedCasualties = calculateCasualties(asteroid);
-                const deflectionBonus = SCORE_REWARDS.successfulDeflection + (asteroid.impactProbability > 0.3 ? SCORE_REWARDS.preventedImpact : 0);
-                addEvent('mission', `Deflection missions successful! ${asteroid.name} trajectory altered. (+${deflectionBonus} points)`, 'success', asteroid.id);
+                addEvent('mission', `Deflection missions successful! ${asteroid.name} trajectory altered.`, 'success', asteroid.id);
                 setGameState(prev => ({ 
                   ...prev, 
                   trustPoints: Math.min(100, prev.trustPoints + TRUST_IMPACTS.successfulDeflection),
                   livesSaved: prev.livesSaved + preventedCasualties,
-                  successfulDeflections: prev.successfulDeflections + 1,
-                  totalScore: prev.totalScore + deflectionBonus
+                  successfulDeflections: prev.successfulDeflections + 1
                 }));
               }
             }
@@ -299,11 +278,10 @@ export default function AsteroidDefensePage() {
     setGameState(prev => ({
       ...prev,
       budget: prev.budget - ACTION_COSTS.trackAsteroid,
-      asteroidsTracked: prev.asteroidsTracked + 1,
-      totalScore: prev.totalScore + SCORE_REWARDS.trackAsteroid
+      asteroidsTracked: prev.asteroidsTracked + 1
     }));
     
-    addEvent('tracking', `Started precision tracking of ${asteroid.name} (+${SCORE_REWARDS.trackAsteroid} points)`, 'info', asteroidId);
+    addEvent('tracking', `Started precision tracking of ${asteroid.name}`, 'info', asteroidId);
   }, [asteroids, gameState.trackingCapacity, gameState.budget, addEvent]);
   
   const alertPublic = useCallback((asteroidId: string) => {
@@ -417,13 +395,6 @@ export default function AsteroidDefensePage() {
     return gameState.trustPoints <= 0 || gameState.budget <= 0;
   }, [gameState.trustPoints, gameState.budget]);
 
-  // Calculate final score (use accumulated totalScore plus bonuses)
-  const gameScore = useMemo(() => {
-    const trustBonus = gameState.trustPoints * 5;
-    const budgetEfficiencyBonus = (50 - gameState.budget) * 2; // Efficiency bonus
-    
-    return Math.max(0, gameState.totalScore + trustBonus + budgetEfficiencyBonus);
-  }, [gameState.totalScore, gameState.trustPoints, gameState.budget]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -483,7 +454,7 @@ export default function AsteroidDefensePage() {
           </div>
           
           {/* Bottom row - Key metrics */}
-          <div className="grid grid-cols-6 gap-4">
+          <div className="grid grid-cols-5 gap-4">
             <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700">
               <div className="flex items-center justify-between">
                 <div className="text-xs text-slate-400 uppercase tracking-wide">Budget</div>
@@ -524,14 +495,6 @@ export default function AsteroidDefensePage() {
               </div>
             </div>
             
-            <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700">
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-slate-400 uppercase tracking-wide">Score</div>
-                <div className="text-lg font-bold text-blue-400">
-                  {gameScore.toLocaleString()}
-                </div>
-              </div>
-            </div>
             
             <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700">
               <div className="flex items-center justify-between">
@@ -989,12 +952,6 @@ export default function AsteroidDefensePage() {
                     <span>Budget Remaining:</span>
                     <span className="text-green-400">${gameState.budget.toFixed(1)}B</span>
                   </div>
-                  <div className="border-t border-gray-600 pt-2 mt-2">
-                    <div className="flex justify-between font-semibold">
-                      <span>Final Score:</span>
-                      <span className="text-purple-400">{gameScore.toLocaleString()}</span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -1015,7 +972,6 @@ export default function AsteroidDefensePage() {
                   correctAlerts: 0,
                   asteroidsTracked: 0,
                   successfulDeflections: 0,
-                  totalScore: 0,
                 });
                 // Reset client state and let useEffect regenerate asteroids
                 setAsteroids([]);
