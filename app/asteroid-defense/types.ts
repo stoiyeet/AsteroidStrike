@@ -26,7 +26,7 @@ export interface Asteroid {
     orbital_period?: string;
     perihelion_distance?: string;
     aphelion_distance?: string;
-    [key: string]: any;
+    [key: string]: string | undefined;
   };
   
   // Detection properties

@@ -398,12 +398,12 @@ export default function AsteroidActionPanel({
             <div>
               <div className="font-semibold mb-2 text-white">Deflection Missions</div>
               <div className="space-y-2 text-slate-300">
-                <div><strong className="text-red-300">Kinetic Impactor:</strong> Direct collision to change momentum (like NASA's DART mission at Dimorphos)</div>
+                <div><strong className="text-red-300">Kinetic Impactor:</strong> Direct collision to change momentum (like NASA&apos;s DART mission at Dimorphos)</div>
                 <div><strong className="text-red-300">Nuclear Standoff:</strong> Detonation at distance using X-ray vaporization to push asteroid</div>
                 <div><strong className="text-blue-300">Gravity Tractor:</strong> Spacecraft flies alongside asteroid, using gravity to slowly nudge trajectory</div>
               </div>
               <div className="text-blue-300 mt-3 text-xs bg-blue-900/20 p-2 rounded">
-                NASA's DART successfully changed Dimorphos' orbit in 2022, proving kinetic deflection works!
+                NASA&apos;s DART successfully changed Dimorphos&apos; orbit in 2022, proving kinetic deflection works!
               </div>
             </div>
           )}

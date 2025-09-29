@@ -71,13 +71,22 @@ export async function generateAsteroid(currentTime: Date): Promise<Asteroid> {
     }
   }
 
+  type CelestialBody = {
+    size: string;
+    weight: string;
+    material: string;
+    density: string;
+    blurb: string;
+  };
+
+
   // Fallback to original generation logic
   // Get real asteroid data for educational purposes
   const realAsteroidKeys = Object.keys(asteroidInfo);
   const useRealData = Math.random() < 0.7; // 70% chance to use real asteroid data
   
   let realAsteroidKey: string | undefined;
-  let realAsteroidData: any;
+  let realAsteroidData: CelestialBody | undefined;
   let size: AsteroidSize;
   
   if (useRealData && realAsteroidKeys.length > 0) {

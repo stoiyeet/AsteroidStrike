@@ -395,6 +395,7 @@ export default function ScenarioGame() {
         theta_deg: 45,
         latitude: 44.6,
         longitude: 79.47,
+        is_water: false
       });
     }
     const inputs: Damage_Inputs = {
@@ -405,6 +406,7 @@ export default function ScenarioGame() {
       theta_deg: meteor.angleDeg,
       latitude: 44.6,
       longitude: 79.47,
+      is_water: false
     };
     return computeImpactEffects(inputs);
   }, [meteor]);

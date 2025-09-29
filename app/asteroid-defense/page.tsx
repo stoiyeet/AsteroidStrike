@@ -583,7 +583,7 @@ export default function AsteroidDefensePage() {
               </div>
             </div>
             <div className="text-slate-300 text-sm leading-relaxed">
-              You are leading NASA's Planetary Defense Coordination Office. Your mission: detect, track, and deflect potentially hazardous asteroids using real scientific methods and technologies.
+              You are leading NASA&apos;s Planetary Defense Coordination Office. Your mission: detect, track, and deflect potentially hazardous asteroids using real scientific methods and technologies.
               <div className="text-blue-200 mt-2 font-medium">
                 Early detection is key to successful deflection!
               </div>
@@ -902,11 +902,11 @@ export default function AsteroidDefensePage() {
             <div className="space-y-3 text-sm">
               <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
                 <div className="text-blue-200 font-medium mb-1">Real NASA Data</div>
-                <div className="text-slate-300 text-xs">Live data from NASA's Near-Earth Object Web Service API with real orbital parameters.</div>
+                <div className="text-slate-300 text-xs">Live data from NASA&apos;s Near-Earth Object Web Service API with real orbital parameters.</div>
               </div>
               <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
                 <div className="text-green-200 font-medium mb-1">DART Mission Success</div>
-                <div className="text-slate-300 text-xs">September 2022: NASA changed Dimorphos' orbit by 32 minutes using kinetic impact.</div>
+                <div className="text-slate-300 text-xs">September 2022: NASA changed Dimorphos&apos; orbit by 32 minutes using kinetic impact.</div>
               </div>
               <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
                 <div className="text-yellow-200 font-medium mb-1">Current Statistics</div>
