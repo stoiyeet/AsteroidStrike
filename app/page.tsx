@@ -5,7 +5,6 @@ import React, { useState, useEffect } from "react";
 import LoadingScreen from "../components/LoadingScreen";
 import Joyride, { CallBackProps, STATUS } from "react-joyride";
 
-
 const EarthScene = dynamic(() => import("@/components/EarthHome"), { ssr: false });
 
 export default function Home(): React.ReactElement {
@@ -14,8 +13,6 @@ export default function Home(): React.ReactElement {
   const [sceneLoaded, setSceneLoaded] = useState(false);
   const [runTour, setRunTour] = useState(false);
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
 
   const steps = [
     {
@@ -27,12 +24,24 @@ export default function Home(): React.ReactElement {
       content: "Simulate and learn cutting edge techniques to elimiate asteroid impact threats"
     },
     {
-      target: "#nav-scenario",
-      content: "Apply your mitigation strategies in a full-fledged simulation with consequences"
+       target: "#nav-scenario",
+        content: "Apply your mitigation strategies in a full-fledged simulation with consequences"
     }
-  ];
-  
+]
 
+  useEffect(() => setMounted(true), []);
+
+  // --- Visit counting logic ---
+  useEffect(() => {
+    const hasVisited = document.cookie.split("; ").find(row => row.startsWith("visited="));
+    if (!hasVisited) {
+      // first visit -> increment counter
+      fetch("/api/visits", { method: "POST" });
+      const expires = new Date();
+      expires.setHours(expires.getHours() + 24);
+      document.cookie = `visited=true; path=/; expires=${expires.toUTCString()}`;
+    }
+  }, []);
 
   useEffect(() => {
     const loadingInterval = setInterval(() => {
@@ -52,6 +61,7 @@ export default function Home(): React.ReactElement {
 
   return (
     <main className="relative w-full h-screen bg-black text-white overflow-hidden">
+
       {mounted && (
         <Joyride
           steps={steps}
@@ -60,14 +70,12 @@ export default function Home(): React.ReactElement {
           showSkipButton
           disableScrolling
           styles={{
-            options: { zIndex: 10000, arrowColor: "#111", backgroundColor: "#111", overlayColor: "rgba(0,0,0,0.6)", primaryColor: "#06b6d4", textColor: "#fff" },
-            buttonNext: { backgroundColor: "#06b6d4", color: "#000", fontWeight: "bold" },
-            buttonBack: { color: "#aaa" }
+            options: {zIndex: 10000, arrowColor: "#111", backgroundColor: "#111", overlayColor: "rgba(0,0,0,0.6)", primaryColor: "#06b6d4", textColor: "#fff" },
+            buttonNext: {backgroundColor: "#06b6d4", color: "#000", fontWeight: "bold" },
+            buttonBack: {color: "#aaa" }
           }}
         />
       )}
-
-
 
       {/* 3D Background */}
       <motion.div
