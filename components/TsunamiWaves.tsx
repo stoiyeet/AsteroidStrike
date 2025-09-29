@@ -97,7 +97,7 @@ const TsunamiWaves = ({
       uMaxRadius: { value: currentRadius },
       uHeight: { value: height },
       uColor: { value: new THREE.Color(height > 50 ? '#0d00ffff' : '#1429eaff') },
-      uLightDir: { value: new THREE.Vector3(0.3, 0.6, 0.7).normalize() },
+      uLightDir: { value: new THREE.Vector3(0.3, 0.6, 0.3).normalize() },
       uCameraPos: { value: new THREE.Vector3() }
     }),
     [expansionFactor, currentRadius, height]
