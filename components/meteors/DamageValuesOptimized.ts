@@ -51,7 +51,6 @@ const G = 9.81;
 const VE_KM3 = 1.083e12; // Earth's volume km^3 for comparison
 const GLOBAL_POP = 8_250_000_000;
 const GLOBAL_AVERAGE_DENSITY = 50;
-const LOCAL_SAMPLE_AREA = 90_000; // About max area that API can get loalized aread
 
 const DEFAULTS = {
   K: 3e-3,
@@ -62,7 +61,6 @@ const DEFAULTS = {
   rho_air_for_wind: 1.2,
   burn_horizon_m: 1_500_000, // 1500 km cap
   water_depth_m: 3682,
-  gravity: 9.8,
   density_water: 1000,
   water_drag_coeff: 0.877
 };
@@ -102,12 +100,12 @@ function atmosphericDensity(z: number, rho0 = DEFAULTS.rho0, H = DEFAULTS.H): nu
 
 
 // breakup If and altitude z* (analytic approx)
-export function breakupIfAndZstar(Lo: number, rho_i: number, vo: number, theta: number, CD = DEFAULTS.Cd, H = DEFAULTS.H, rho_0 = DEFAULTS.rho0) {
+export function breakupIfAndZstar(Lo: number, rho_i: number, vo: number, theta_rad: number, CD = DEFAULTS.Cd, H = DEFAULTS.H, rho_0 = DEFAULTS.rho0) {
   // Calculate the yield strength Y_i using the empirical formula.
   const Yi = Math.pow(10, 2.107 + 0.0624 * Math.sqrt(rho_i));
   
   // Calculate the breakup parameter I_f.
-  const If = (CD * H * Yi) / (rho_i * Lo * Math.pow(vo, 2) * Math.sin(theta));
+  const If = (CD * H * Yi) / (rho_i * Lo * Math.pow(vo, 2) * Math.sin(theta_rad));
   
   // Determine if breakup occurs.
   const breakup = If < 1;
@@ -121,13 +119,13 @@ export function breakupIfAndZstar(Lo: number, rho_i: number, vo: number, theta: 
   return { If, z_star, breakup };
 }
 
-export function pancakeAirburstAltitude(Lo: number, rho_i: number, theta: number, z_star: number, H = DEFAULTS.H, fp = DEFAULTS.fp, CD = DEFAULTS.Cd) {
+export function pancakeAirburstAltitude(Lo: number, rho_i: number, theta_rad: number, z_star: number, H = DEFAULTS.H, fp = DEFAULTS.fp, CD = DEFAULTS.Cd) {
   // The document uses rho(z*) which is the atmospheric density at the breakup altitude.
   // We need to use the provided atmosphericDensity function to get this value.
   const rho_z_star = atmosphericDensity(z_star);
   
   // Calculate the dispersion length scale 'l'.
-  const l = Lo * Math.sin(theta) * Math.sqrt(rho_i / (CD * rho_z_star));
+  const l = Lo * Math.sin(theta_rad) * Math.sqrt(rho_i / (CD * rho_z_star));
   
   // Calculate the airburst altitude z_b using the rearranged equation.
   const zb = z_star - 2 * H * Math.log(1 + (l / (2 * H)) * Math.sqrt(Math.pow(fp, 2) - 1));
@@ -648,11 +646,11 @@ export function tsunamiInfo(is_water: boolean, Dtc: number | null, airburst: boo
     : eq_19_tsunami_speed(rim_wave_height);
 
   function eq_19_tsunami_speed(A: number): number{
-    return Math.sqrt(DEFAULTS.gravity*DEFAULTS.water_depth_m)*(1 + A/(2*DEFAULTS.water_depth_m))
+    return Math.sqrt(G*DEFAULTS.water_depth_m)*(1 + A/(2*DEFAULTS.water_depth_m))
   }
 
   function eq_20_tsunami_speed(A: number, lambda: number): number{
-    return Math.sqrt(DEFAULTS.gravity*lambda/(2*Math.PI)*(1+(2*Math.PI**2*A**2)/lambda**2))
+    return Math.sqrt(G*lambda/(2*Math.PI)*(1+(2*Math.PI**2*A**2)/lambda**2))
   }
 
   function max_time(Dtc: number, r: number){
