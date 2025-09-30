@@ -7,6 +7,7 @@ import Joyride, { CallBackProps, STATUS } from "react-joyride";
 
 const EarthScene = dynamic(() => import("@/components/EarthHome"), { ssr: false });
 
+
 export default function Home(): React.ReactElement {
   const [currentPhase, setCurrentPhase] = useState<"loading" | "project">("loading");
   const [loadingProgress, setLoadingProgress] = useState(0);

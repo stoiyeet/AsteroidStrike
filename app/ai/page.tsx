@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import SpaceScene from "@/components/SpaceScene";
 import ChatBot from "@/components/ChatBot";
 import { ChevronUp, MessageSquare } from "lucide-react";
@@ -37,6 +37,11 @@ const Page: React.FC = () => {
   const [followingAsteroid, setFollowingAsteroid] = useState(false);
   const [asteroidClicked, setAsteroidClicked] = useState(false);
   const [chatExpanded, setChatExpanded] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const effectsActiveCount = Object.values(effects).filter(Boolean).length;
 
@@ -56,6 +61,10 @@ const Page: React.FC = () => {
   };
   
   const toggleChatExpansion = () => setChatExpanded((v) => !v);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 bg-black text-white overflow-hidden">

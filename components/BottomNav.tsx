@@ -1,11 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function BottomNav() {
   const [isNavExpanded, setIsNavExpanded] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const toggleNav = () => setIsNavExpanded((s) => !s);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-1">

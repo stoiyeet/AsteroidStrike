@@ -26,6 +26,9 @@ function formatTimeToImpact(timeToImpactHours: number): string {
 }
 
 export default function AsteroidDefensePage() {
+  // Mounting state to prevent hydration issues
+  const [mounted, setMounted] = useState(false);
+
   // Game state
   const [gameState, setGameState] = useState<GameState>({
     currentTime: new Date('2025-01-01T00:00:00Z'),
@@ -65,6 +68,11 @@ export default function AsteroidDefensePage() {
     
     setEventLog(prev => [event, ...prev].slice(0, 100)); // Keep last 100 events
   }, [gameState.currentTime]);
+
+  // Initialize mounting state
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Initialize asteroids client-side only to avoid hydration issues
   useEffect(() => {
@@ -424,6 +432,10 @@ export default function AsteroidDefensePage() {
     
     return Math.max(0, gameState.totalScore + trustBonus + budgetEfficiencyBonus);
   }, [gameState.totalScore, gameState.trustPoints, gameState.budget]);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">

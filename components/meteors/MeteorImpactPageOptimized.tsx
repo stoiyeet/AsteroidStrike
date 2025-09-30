@@ -48,6 +48,7 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
   const [impactLat, setImpactLat] = useState(44.60);
   const [impactLon, setImpactLon] = useState(79.47);
   const [isHudCollapsed, setIsHudCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const actualLong = - impactLon;  //longitude must be made negative because earth texture is flipped
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(true);
@@ -58,6 +59,10 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
 
   // Add AbortController ref for cancelling requests
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [effects, setEffects] = useState<EffectsState>({
     fireball: true,
@@ -216,6 +221,10 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
     }
     return mortality;
   }, [mortality, mortalityLoading]);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className={styles.container}>
