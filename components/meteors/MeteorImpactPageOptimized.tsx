@@ -61,11 +61,11 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
   const [effects, setEffects] = useState<EffectsState>({
     fireball: true,
     sonicWave: true,
-    shockwave: false,
-    thermal: false,
-    overpressure: false,
-    ejecta: false,
-    labels: false,
+    shockwave: true,
+    thermal: true,
+    overpressure: true,
+    ejecta: true,
+    labels: true,
   });
 
   const inputs: Damage_Inputs = useMemo(() => ({
