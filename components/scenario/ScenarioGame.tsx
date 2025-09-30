@@ -609,8 +609,8 @@ export default function ScenarioGame() {
   }
 
   return (
-    <div className="fixed inset-0 grid grid-cols-5 gap-0">
-      <div className="col-span-3 relative bg-black">
+    <div className="fixed inset-0 grid grid-cols-1 md:grid-cols-5 gap-0">
+      <div className="col-span-1 md:col-span-3 relative bg-black order-2 md:order-1">
         <SpaceScene
           effects={effects}
           followingAsteroid={followingAsteroid}
@@ -637,7 +637,7 @@ export default function ScenarioGame() {
         />
 
         {/* HUD */}
-        <div className="absolute top-4 left-4 z-20 bg-black/70 border border-white/20 rounded-xl p-3">
+        <div className="absolute top-4 left-4 z-20 bg-black/70 border border-white/20 rounded-xl p-3 max-w-[calc(100%-2rem)]">
           <div className="text-sm opacity-90">Choose-Your-Own-Adventure</div>
           <div className="font-bold">Incoming NEO Scenario</div>
         </div>
@@ -645,7 +645,7 @@ export default function ScenarioGame() {
         {/* Analyzer UI is rendered within SpaceScene when effects.analyze is true */}
 
         {/* Timeline footer */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center gap-4 text-xs">
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 bg-white/10 backdrop-blur-md px-2 md:px-4 py-2 rounded-full border border-white/20 flex items-center gap-2 md:gap-4 text-xs overflow-x-auto max-w-[calc(100vw-1rem)]">
           <button onClick={() => setIsPlaying(!isPlaying)} className="text-white hover:text-blue-300">
             {isPlaying ? '⏸' : '▶'}
           </button>
@@ -661,7 +661,7 @@ export default function ScenarioGame() {
       </div>
 
       {/* Right panel */}
-      <div className="col-span-2 h-full overflow-y-auto bg-gradient-to-b from-gray-900 to-black border-l border-white/10 p-5">
+      <div className="col-span-1 md:col-span-2 h-full overflow-y-auto bg-gradient-to-b from-gray-900 to-black border-l border-white/10 p-4 md:p-5 order-1 md:order-2">
         <div className="flex items-center justify-between mb-2">
           <div className="text-xl font-semibold">Policy Console</div>
           <button onClick={resetToNewScenario} className="text-xs bg-white/10 hover:bg-white/20 border border-white/15 rounded-md px-3 py-1">New Scenario</button>
@@ -862,7 +862,7 @@ export default function ScenarioGame() {
         {/* Educational facts */}
         <div className="mt-2 border-t border-white/10 pt-3 text-sm">
           <div className="font-semibold mb-2">Asteroid Facts ({meteor.name.replace('_', ' ')})</div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-white/5 rounded-lg p-3 border border-white/10">
               <div className="text-gray-400">Diameter</div>
               <div className="font-semibold">{formatNumber(meteor.diameterM)} m</div>

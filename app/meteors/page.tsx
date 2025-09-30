@@ -602,63 +602,36 @@ const sizeMeters = parseSize(info.size || '0') * 1000;
       </div>
 
       <div ref={mountRef} className={styles.viewer} />
+      <div className="fixed bottom-8 left-0 right-0 flex justify-center z-20 hidden md:flex">
+        <div className="flex gap-4 bg-[rgba(20,20,20,0.85)] rounded-xl shadow-md px-6 py-2 items-center border border-[#222]">
 
-      {/* Lighting control at the bottom center */}
-      <div style={{
-        position: 'fixed',
-        left: 0,
-        right: 0,
-        bottom: 32,
-        display: 'flex',
-        justifyContent: 'center',
-        zIndex: 20
-      }}>
-        <div style={{
-          display: 'flex',
-          gap: 16,
-          background: 'rgba(20,20,20,0.85)',
-          borderRadius: 12,
-          boxShadow: '0 2px 12px #000a',
-          padding: '8px 24px',
-          alignItems: 'center',
-          border: '1px solid #222'
-        }}>
           <button
             onClick={() => setLighting('flood')}
-            style={{
-              background: lighting === 'flood' ? 'linear-gradient(90deg,#fff,#ccc)' : 'transparent',
-              color: lighting === 'flood' ? '#111' : '#fff',
-              border: 'none',
-              borderRadius: 6,
-              padding: '8px 18px',
-              fontWeight: 600,
-              fontSize: 16,
-              cursor: 'pointer',
-              boxShadow: lighting === 'flood' ? '0 4px 16px #fff8' : 'none',
-              transition: 'all 0.15s'
-            }}
+            className={`px-2 py-0 rounded-lg font-semibold text-ms transition-all
+        ${lighting === 'flood'
+                ? 'bg-gradient-to-r from-white to-gray-300 text-gray-900 shadow-lg'
+                : 'bg-transparent text-white'}
+      `}
           >
             Flood Light
           </button>
+
           <button
             onClick={() => setLighting('shadow')}
-            style={{
-              background: lighting === 'shadow' ? 'linear-gradient(90deg,#222,#444)' : 'transparent',
-              color: lighting === 'shadow' ? '#fff' : '#aaa',
-              border: 'none',
-              borderRadius: 6,
-              padding: '8px 18px',
-              fontWeight: 600,
-              fontSize: 16,
-              cursor: 'pointer',
-              boxShadow: lighting === 'shadow' ? '0 2px 8px #0008' : 'none',
-              transition: 'all 0.15s'
-            }}
+            className={`px-4 py-2 rounded-lg font-semibold text-md transition-all
+        ${lighting === 'shadow'
+                ? 'bg-gradient-to-r from-gray-800 to-gray-600 text-white shadow-md'
+                : 'bg-transparent text-gray-400'}
+      `}
           >
             Shadow Lighting
           </button>
+
         </div>
       </div>
+
+
+
     </div>
   );
 }

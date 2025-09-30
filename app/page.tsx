@@ -88,7 +88,7 @@ export default function Home(): React.ReactElement {
       </motion.div>
 
       {/* Overlay Content */}
-      <section className="absolute inset-0 z-10 flex items-center justify-center px-6 md:px-16 pointer-events-none">
+      <section className="absolute inset-0 z-10 flex items-center justify-center px-4 md:px-16 pointer-events-none">
         <AnimatePresence mode="wait">
           {currentPhase === "loading" && (
             <motion.div

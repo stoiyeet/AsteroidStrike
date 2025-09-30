@@ -20,6 +20,17 @@
   backdrop-filter: blur(8px);
 }
 
+@media (max-width: 767px) {
+  .panel {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    padding: 12px 14px;
+    display: none; /* Hide impact controls on mobile */
+  }
+}
+
 .hud {
   position: absolute;
   top: 16px;
@@ -31,6 +42,26 @@
   min-width: 280px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(8px);
+}
+
+@media (max-width: 767px) {
+  .hud {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    min-width: auto;
+  }
+}
+
+.collapsed {
+  transform: translateX(calc(100% - 60px));
+  transition: transform 0.3s ease;
+}
+
+@media (min-width: 768px) {
+  .collapsed {
+    transform: none;
+  }
 }
 
 .bottomBar {
@@ -55,6 +86,15 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(8px);
   min-width: 600px;
+}
+
+@media (max-width: 767px) {
+  .barInner {
+    min-width: auto;
+    padding: 8px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
 }
 
 .title {
@@ -180,6 +220,14 @@
   align-items: center;
   gap: 12px;
   min-width: 480px;
+}
+
+@media (max-width: 767px) {
+  .timelineControls {
+    min-width: auto;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
 }
 
 .timelineLabel {

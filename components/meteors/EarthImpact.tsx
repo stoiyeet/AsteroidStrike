@@ -613,7 +613,7 @@ function EnhancedDamageDisk({
 
       {/* DOM label (Html overlay) */}
       {label && (expansionFactor || 0) > 0.3 && (
-        <Html position={outward.toArray()} center>
+        <Html position={outward.toArray()} center zIndexRange={[0, 0]}>
           <div
             className="damage-zone-label"
             style={{ ["--zone-color" as string]: borderColor }}

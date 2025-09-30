@@ -70,7 +70,7 @@ export default function AsteroidActionPanel({
             )}
           </div>
           
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             {asteroid.material && (
               <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
                 <div className="text-slate-400 text-sm">Composition</div>
@@ -103,7 +103,7 @@ export default function AsteroidActionPanel({
           {asteroid.orbitalData && (
             <div className="border-t border-blue-600/30 pt-2 mb-3">
               <div className="text-xs text-blue-300 font-semibold mb-1">Orbital Elements</div>
-              <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                 {asteroid.orbitalData.eccentricity && (
                   <div>
                     <div className="text-gray-400">Eccentricity</div>
@@ -179,7 +179,7 @@ export default function AsteroidActionPanel({
             </button>
           </div>
           
-          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-4">
             <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
               <div className="text-slate-400">Equivalent Earthquake</div>
               <div className="font-semibold text-red-200">Magnitude {impactAssessment.equivalentMagnitude}</div>
@@ -244,7 +244,7 @@ export default function AsteroidActionPanel({
         </div>
       )}
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-4">
         <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600 min-h-[120px] overflow-hidden text-center">
           <div className="text-slate-400 text-xs mb-2">Size Category</div>
           <div className={`font-bold text-base mb-1 ${
@@ -279,7 +279,7 @@ export default function AsteroidActionPanel({
       
       {/* Action Buttons - Sticky at bottom */}
       <div className="sticky bottom-0 bg-slate-800/95 backdrop-blur-sm border-t border-slate-600 pt-4 -mx-6 px-6">
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mb-4">
           <button
             onClick={onTrack}
             disabled={!canTrack}

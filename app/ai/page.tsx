@@ -59,9 +59,9 @@ const Page: React.FC = () => {
 
   return (
     <div className="fixed inset-0 bg-black text-white overflow-hidden">
-      <div className="flex h-full">
+      <div className="flex h-full flex-col md:flex-row">
         {/* LEFT: 3D Scene */}
-        <div className={`relative transition-all duration-300 ${chatExpanded ? "w-2/3" : "w-full"} h-full`}>
+        <div className={`relative transition-all duration-300 ${chatExpanded ? "w-full md:w-2/3 h-1/2 md:h-full" : "w-full h-full"} h-full`}>
           <div className="w-full h-full">
             <SpaceScene
               effects={effects}
@@ -75,7 +75,7 @@ const Page: React.FC = () => {
           </div>
 
           {/* HUD */}
-          <div className="absolute top-4 left-4 z-10 bg-black/70 backdrop-blur-md rounded-xl p-3 text-white">
+          <div className="absolute top-4 left-4 z-10 bg-black/70 backdrop-blur-md rounded-xl p-3 text-white max-w-[calc(100%-2rem)]">
             <div className="font-bold">🌍 Earth Defense</div>
             <div className="text-sm opacity-90">
               {effectsActiveCount > 0 ? `${effectsActiveCount} strategy active` : "Chat to deploy defense"}
@@ -92,7 +92,7 @@ const Page: React.FC = () => {
 
           {/* Manual Mitigation Controls (single-effect) */}
           <div className="absolute bottom-4 left-4 z-20">
-            <details className="bg-gray-900/80 backdrop-blur-md rounded-xl border border-gray-700 w-56">
+            <details className="bg-gray-900/80 backdrop-blur-md rounded-xl border border-gray-700 w-56 max-w-[calc(100vw-2rem)]">
               <summary className="cursor-pointer px-3 py-2 text-sm font-semibold flex items-center justify-between">
                 <span>⚙️ Manual Mitigation</span>
                 <ChevronUp size={14} />
@@ -161,7 +161,7 @@ const Page: React.FC = () => {
 
         {/* RIGHT PANEL */}
         {chatExpanded && (
-          <div className="w-1/3 h-full">
+          <div className="w-full md:w-1/3 h-1/2 md:h-full">
             <ChatBot
               effects={effects}
               onSetSingleEffect={setSingleEffect}

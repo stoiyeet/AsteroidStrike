@@ -47,6 +47,7 @@ const formatAsteroidName = (id: string): string =>
 export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }) {
   const [impactLat, setImpactLat] = useState(44.60);
   const [impactLon, setImpactLon] = useState(79.47);
+  const [isHudCollapsed, setIsHudCollapsed] = useState(false);
   const actualLong = - impactLon;  //longitude must be made negative because earth texture is flipped
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(true);
@@ -274,15 +275,19 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
       </div>
 
       {/* RIGHT HUD */}
-      <div className={styles.hud}>
-        <ImpactEffects 
-          effects={damage} 
-          mortality={mortalityData} 
-          impactLat={impactLat} 
-          impactLon={actualLong} 
-          name={meteor.name} 
-          TsunamiResults = {tsunamiResults}
-        />
+      <div className={`${styles.hud} ${isHudCollapsed ? styles.collapsed : ''}`}>
+
+        
+        {!isHudCollapsed && (
+          <ImpactEffects 
+            effects={damage} 
+            mortality={mortalityData} 
+            impactLat={impactLat} 
+            impactLon={actualLong} 
+            name={meteor.name} 
+            TsunamiResults = {tsunamiResults}
+          />
+        )}
       </div>
 
       {/* 3D CANVAS */}

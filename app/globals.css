@@ -25,6 +25,23 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Mobile-specific styles */
+@media (max-width: 767px) {
+  body {
+    font-size: 14px;
+  }
+  
+  /* Improve touch targets */
+  button, input, select, textarea {
+    min-height: 44px;
+  }
+  
+  /* Prevent zoom on input focus */
+  input, select, textarea {
+    font-size: 16px;
+  }
+}
+
 /* Animation for action panel slide-in */
 @keyframes slide-in-right {
   from {
