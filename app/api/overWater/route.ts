@@ -1,5 +1,7 @@
 // app/api/overWater/route.ts
-import axios from "axios";
+import axios, { AxiosRequestConfig } from "axios";
+
+const waterCache = new Map<string, boolean>();
 
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
@@ -10,7 +12,18 @@ export async function GET(req: Request) {
         return new Response("Missing lat/lon", { status: 400 });
     }
 
-    const options = {
+    const cacheKey = `${lat},${lon}`;
+
+    if (waterCache.has(cacheKey)) {
+        console.log(`Cache HIT for: ${cacheKey}`);
+        const overWater = waterCache.get(cacheKey);
+        return Response.json({ overWater });
+    }
+
+    // Cache MISS: proceed to fetch data from the external API.
+    console.log(`Cache MISS for: ${cacheKey}. Fetching from API...`);
+
+    const options: AxiosRequestConfig = {
         method: "GET",
         url: "https://isitwater-com.p.rapidapi.com/",
         params: {
@@ -25,9 +38,16 @@ export async function GET(req: Request) {
 
     try {
         const response = await axios.request(options);
-        console.log("over water: ", response.data.water)
-        return Response.json({ overWater: response.data.water });
+        const overWater: boolean = response.data.water;
+
+        console.log("over water: ", overWater);
+
+        // 4. Store the new result in the cache before returning.
+        waterCache.set(cacheKey, overWater);
+
+        return Response.json({ overWater });
     } catch (error) {
+        console.error("API request failed:", error);
         return Response.json({ error: "Server error" }, { status: 500 });
     }
 }
