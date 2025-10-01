@@ -694,10 +694,7 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
 
   // fireball and burns
   const burns = burnRadii(E_Mt, E_J, K);
-  let Rf_m: number | null = null;
-  if (!airburst) {
-    Rf_m = fireballRadius(E_J);
-  }
+  const Rf_m = fireballRadius(E_J);
 
   // crater and seismic only if not airburst
   let Dtc: number | null = null, dtc: number | null = null, Dfr: number | null = null, dfr: number | null = null;

@@ -326,7 +326,7 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
           enablePan
           enableZoom
           enableRotate
-          minDistance={1.6}
+          minDistance={1.2}
           maxDistance={8}
           maxPolarAngle={Math.PI}
         />

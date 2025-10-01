@@ -15,6 +15,7 @@ const AsteroidExplosion: React.FC<AsteroidExplosionProps> = ({
   intensity,
   fireballRadius,
 }) => {
+  fireballRadius = airburst ? fireballRadius * 300 : fireballRadius;
   const explosionRef = useRef<THREE.Group>(null!);
   const flashRef = useRef<THREE.PointLight>(null!);
   const emissiveCoreRef = useRef<THREE.MeshStandardMaterial>(null!);

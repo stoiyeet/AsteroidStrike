@@ -378,7 +378,7 @@ const info = asteroidInfo[selected as keyof typeof asteroidInfo];
                 value={customSize}
                 onChange={(e) => {
                   let val = Number(e.target.value);
-                  if (val < 1) val = 1;
+                  if (val < 0) val = 0;
                   if (val > 6000) val = 6000;
                   setCustomSize(val);
                 }}                
