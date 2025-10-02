@@ -58,7 +58,7 @@ export function surfacemToChordUnits(m: number): number {
 }
 
 // Debris field for destroyed Earth - separate component to avoid re-renders
-const DebrisField = () => {
+const DebrisField = ({t}: {t: number}) => {
   const debrisRef = useRef<THREE.Group>(null!);
 
   // Static debris data - generated once and never changes
@@ -66,15 +66,24 @@ const DebrisField = () => {
     const pieces = [];
     for (let i = 0; i < 200; i++) {
       const angle = (i / 200) * Math.PI * 2;
-      const radius = 0.8 + Math.random() * 2;
-      const height = (Math.random() - 0.5) * 0.8;
+      const cos_angle = Math.cos(angle);
+      const sin_angle = Math.sin(angle);
+      const baseRadius = -0.3;
+      const height_position = (Math.random() - 0.5) * 1.2;
+      const expansion = baseRadius + Math.random()*0.8;
+
 
       pieces.push({
         position: [
-          Math.cos(angle) * radius,
-          height,
-          Math.sin(angle) * radius
+          cos_angle * baseRadius,
+          height_position,
+          sin_angle * baseRadius
         ] as [number, number, number],
+        expansion,
+        baseRadius,
+        cos_angle,
+        sin_angle,
+        height_position,
         size: 0.02 + Math.random() * 0.04,
         // Random dimensions for irregular rock shapes
         width: 0.8 + Math.random() * 0.4,  // 0.8 to 1.2 multiplier
@@ -94,6 +103,28 @@ const DebrisField = () => {
     }
     return pieces;
   }, []);
+
+  useFrame(() => {
+    const meshChildren = debrisRef.current?.children;
+    if (!meshChildren) return;
+
+    const baseExpansion = t * 3 - 0.8;
+
+    for (let i = 0; i < meshChildren.length; i++) {
+      const mesh = meshChildren[i];
+      const d = debris[i];
+
+      const expansion = d.expansion + baseExpansion;
+
+      mesh.position.set(
+        d.cos_angle * expansion,
+        d.height_position,
+        d.sin_angle * expansion
+      );
+    }
+  });
+
+
 
   // Rotation state that persists across renders
   const rotationState = useRef({ field: 0, pieces: debris.map(() => ({ x: 0, z: 0 })) });
@@ -275,7 +306,7 @@ export default function EarthImpact({
         />
       )}
 
-      {["destroyed", "strongly_disturbed"].includes(damage.earth_effect) && t > impactTime && <DebrisField />}
+      {["destroyed", "strongly_disturbed"].includes(damage.earth_effect) && t > impactTime && <DebrisField t={t}/>}
 
 
       {/* Asteroid flight */}
