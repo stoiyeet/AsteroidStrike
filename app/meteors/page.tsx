@@ -124,13 +124,11 @@ import { useRouter } from 'next/navigation'
 import styles from "./AsteroidViewer.module.css";
 
 const asteroids = [
-  "16_psyche", "67p_churyumov_gerasimenko","5535_annefrank",
-  "99942_apophis", "101955_bennu", "19p_borrelly","9969_braille",
-  "65803_didymos","dimorphos","152830_dinkinesh","52246_donaldjohanson",
-  "433_eros","3548_eurybates","951_gaspra","103p_hartley","243_ida",
-  "25143_itokawa","11351_leucus","21_lutetia","menoetius","21900_orus",
-  "617_patroclus","15094_polymele","162173_ryugu","73p_schwassman_wachmann_3",
-  "9p_tempel_1","4_vesta","81p_wild_2"
+  '16_psyche', '67p_churyumov_gerasimenko', '99942_apophis', '101955_bennu', '19p_borrelly',
+  '65803_didymos', 'dimorphos', '433_eros', '951_gaspra', '103p_hartley', '25143_itokawa',
+  '162173_ryugu', '9p_tempel_1', '4_vesta', '5535_annefrank', '9969_braille', '152830_dinkinesh',
+  '52246_donaldjohanson', '3548_eurybates', '243_ida', '11351_leucus', '21_lutetia', 'menoetius',
+  '21900_orus', '617_patroclus', '15094_polymele', '73p_schwassman_wachmann_3', '81p_wild_2'
 ];
 
 const specialMap: Record<string, string> = {
@@ -149,6 +147,7 @@ const specialMap: Record<string, string> = {
   "73p_schwassman_wachmann_3": "3.glb",
   "81p_wild_2": "3.glb"
 };
+
 
 const formatName = (name: string) => name.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase());
 

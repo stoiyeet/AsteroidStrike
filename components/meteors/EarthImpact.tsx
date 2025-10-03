@@ -204,20 +204,38 @@ export default function EarthImpact({
     return Math.max(minVisible, Math.min(calculatedSize, maxVisible));
   }, [meteor.diameter]);
 
+  const MODEL_MAX_DIM: Record<string, number> = {
+    "apophis": 339,
+    "bennu": 552,
+    "borrelly": 8690,
+    "churyumov_gerasimenko": 8134,
+    "didymos": 828,
+    "dimorphos": 208,
+    "eros": 32601,
+    "gaspra": 18542,
+    "hartley": 2300,
+    "itokawa": 535,
+    "psyche": 3,
+    "ryugu": 850,
+    "tempel_1": 7735,
+    "vesta": 573280.0
+  };
+
+  const TARGET_SCENE_SIZE = 0.005; // arbitrary units you want all asteroids to roughly match
+
   const asteroidScale = useMemo(() => {
     if (meteor.isCustom) {
-      return meteor.diameter/20000;
+      return meteor.diameter / 20000;
     }
     if (!gltf) return 1;
-    const box = new THREE.Box3().setFromObject(gltf.scene);
-    const sphere = new THREE.Sphere();
-    box.getBoundingSphere(sphere);
-    let current = sphere.radius;
-    if (current < 100){
-      current = 20000;
-    }
-    return desiredAsteroidRadiusUnits / current;
-  }, [gltf?.scene, desiredAsteroidRadiusUnits, meteor.isCustom]);
+
+    const key = meteor.name.substring(meteor.name.indexOf('_') + 1).toLowerCase();    
+
+    const currentMaxDim = MODEL_MAX_DIM[key] ?? 2; // fallback if missing
+
+    return TARGET_SCENE_SIZE / currentMaxDim;
+  }, [meteor.name, gltf?.scene, meteor.isCustom]);
+
 
   // Get material color based on asteroid type
   const getAsteroidMaterial = () => {
