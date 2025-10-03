@@ -71,6 +71,7 @@ interface ImpactEffectsProps {
     airblast_radius_building_collapse_m: number | null;
     airblast_radius_glass_shatter_m: number | null;
     airblast_peak_overpressure: number | null;
+    top_wind_speed: number | null;
   };
   mortality: {
     deathCount: number | undefined;
@@ -247,6 +248,10 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
                     <span className={styles.label}>Peak Overpressure</span>
                     <span className={styles.value}>{formatOverPressure(effects.airblast_peak_overpressure)}</span>
               </div>
+            <div className={styles.dataRow}>
+              <span className={styles.label}>Top Wind Speed</span>
+              <span className={styles.value}>{effects.top_wind_speed}</span>
+            </div>
             <div className={styles.distanceGrid}>
               {effects.airblast_radius_building_collapse_m && (
                 <div className={styles.distanceCard}>

@@ -43,6 +43,7 @@ export type Damage_Results = {
   airblast_radius_building_collapse_m: number | null; // p=42600 Pa
   airblast_radius_glass_shatter_m: number | null; // p=6900 Pa
   airblast_peak_overpressure: number | null;
+  top_wind_speed: number | null;
 };
 
 // Constants
@@ -220,91 +221,65 @@ export function seismicMagnitudeAndRadius(E_J: number, threshold = 7.5) {
   return { M, radius_km: null, radius_m: null };
 }
 
-// peakOverpressure.ts
-// Implements Collins et al. (2005) air-blast fits (Eqs. 54-58).
-// Inputs: r_m (m), E_Mt (megaton), zb_m (m). Output: peak overpressure in Pa.
 
 export function peakOverpressureAtR(
   r_m: number,
   E_Mt: number,
   zb_m: number
 ): number {
-  if (!isFinite(r_m) || !isFinite(E_Mt) || !isFinite(zb_m)) return NaN;
-  if (r_m <= 0 || E_Mt <= 0) return 0;
+  const P_X = 75000; // Crossover pressure (Pa)
 
-  // convert yield to kilotons (Collins uses kt in scaling).
-  const Ekt = E_Mt * 1000;
-  const cubeRootE = Math.cbrt(Ekt);
+  // 1. Convert Energy and Apply Yield Scaling
+  const E_kt = E_Mt * 1000; // Energy in kilotons (kt)
+  const yield_factor = Math.pow(E_kt, 1 / 3);
+  const r_1 = r_m / yield_factor; // Equivalent 1kt distance (m)
 
-  // scaled distance and scaled burst altitude (1 kt equivalent)
-  const r1 = r_m / cubeRootE;    // metres scaled to 1 kt
-  const zb1 = zb_m / cubeRootE;  // metres scaled to 1 kt
+  // Helper function for Overpressure Formula 54
+  const calculateOverpressureEq54 = (r_x: number, r_1: number): number => {
+    const ratio_term = Math.pow(r_x / r_1, 1.3);
+    const p = (P_X * r_x / (4 * r_1)) * (1 + 3 * ratio_term);
+    return p;
+  };
 
-  // constants from PDF
-  const px = 75000;     // Pa at crossover rx for 1 kt surface burst.
-  // rx increases with burst altitude: rx = 289 + 0.65 * zb1 (Collins). 
-  const rx = 289 + 0.65 * zb1;
+  let peak_overpressure: number;
 
-  // p0 and E for regular-reflection exponential decay (Eq.56a/b). Valid for zb1>0.
-  let p0 = NaN;
-  let Ecoef = NaN;
-  if (zb1 > 0) {
-    p0 = 3.14e11 * Math.pow(zb1, -2.6);    // Pa. :contentReference[oaicite:9]{index=9}
-    Ecoef = 34.87 * Math.pow(zb1, -1.73);  // 1/m. :contentReference[oaicite:10]{index=10}
+  // 2. Determine Burst Type (Surface vs. Airburst)
+
+  // A. Surface Burst (zb_m <= 0)
+  if (zb_m <= 0) {
+    const r_x_surface = 290; // Standard crossover distance for 1kt surface burst (m)
+    peak_overpressure = calculateOverpressureEq54(r_x_surface, r_1);
   }
+  // B. Airburst (zb_m > 0)
+  else {
+    // Crossover altitude for mach region determination
+    const Z_CRITICAL = 550; // m
 
-  // Determine Mach-region inner boundary rm1.
-  // PDF: rm1 depends only on zb1; rm1=0 for zb1=0; no Mach region if zb1>550 m.
-  // PDF gives a simple fit; layout made the exact algebraic text compact.
-  // Use conservative linear fit rm1 = 1.2 * zb1 for implementation (keeps units m).
-  // If you prefer the exact fit from the PDF, replace this line with that formula.
-  const MACH_ZB_LIMIT = 550; // m scaled
-  const hasMachRegion = zb1 <= MACH_ZB_LIMIT;
-  const rm1 = zb1 <= 0 ? 0 : (hasMachRegion ? 1.2 * zb1 : Infinity);
+    // Determine if Mach Reflection Region applies
+    let r_m1: number; // Limit of Mach region
 
-  // Surface-burst formula (Eq.54 style).
-  // Implemented as a smooth near/far blend reproducing ~r^{-2.3} near and ~r^{-1} far.
-  // This form is algebraically equivalent to the behaviour described in the PDF.
-  function peakSurfaceBurst1kt(r1_local: number): number {
-    if (r1_local <= 0) return Number.POSITIVE_INFINITY;
-    const a = 2.3; // near-field exponent (Collins states ~2.3). :contentReference[oaicite:11]{index=11}
-    const b = 1.3; // blending exponent seen in PDF figure/text. :contentReference[oaicite:12]{index=12}
-    const x = rx / r1_local;
-    // avoid overflow
-    const xb = Math.pow(x, b);
-    const xa = Math.pow(x, a);
-    const p = px * (xa / (1 + xb));
-    return Math.max(0, p);
-  }
+    r_m1 = (Z_CRITICAL * zb_m) / (1.2 * (Z_CRITICAL - zb_m));
 
-  // Regular-reflection exponential region (Eq.55).
-  function peakRegularReflection1kt(r1_local: number): number {
-    if (r1_local <= 0) return Number.POSITIVE_INFINITY;
-    if (!(p0 > 0) || !(Ecoef > 0)) {
-      return peakSurfaceBurst1kt(r1_local);
-    }
-    const p = p0 * Math.exp(-Ecoef * r1_local);
-    return Math.max(0, p);
-  }
+    // Check if within Mach Region (or if zb_m is high)
+    if (zb_m >= Z_CRITICAL || r_1 > r_m1) {
+      // ii. Outside Mach Reflection Region -> Use Exponential Decay (Eq 55)
+      // p = p_0 * e^(-beta * r_1)
 
-  // Decide which formula to use for 1 kt scaled distance r1:
-  let p1kt: number;
-  if (zb1 <= 0) {
-    // surface burst (crater-forming impact). Use surface-burst form. :contentReference[oaicite:13]{index=13}
-    p1kt = peakSurfaceBurst1kt(r1);
-  } else {
-    // airburst: check if r1 lies inside regular-reflection (near) or Mach/surface (far)
-    if (r1 < rm1) {
-      // regular reflection region: exponential decay (Eq.55). :contentReference[oaicite:14]{index=14}
-      p1kt = peakRegularReflection1kt(r1);
+      // p_0 = 3.14 * 10^11 * zb_m^(-2.6)
+      const p_0 = 3.14e11 * Math.pow(zb_m, -2.6);
+
+      // beta = 34.87 * zb_m
+      const beta = 34.87 * Math.pow(zb_m, -1.73);
+
+      peak_overpressure = p_0 * Math.exp(-beta * r_1);
     } else {
-      // Mach region or beyond: treat with surface-burst style (Eq.54) but with increased rx.
-      p1kt = peakSurfaceBurst1kt(r1);
+      // i. Within Mach Reflection Region (or High Altitude) -> Use Eq 54 with modified r_x
+      const r_x_airburst = 289 + 0.65 * zb_m;
+      peak_overpressure = calculateOverpressureEq54(r_x_airburst, r_1);
     }
   }
 
-  // Return in Pascals.
-  return p1kt;
+  return peak_overpressure;
 }
 
 
@@ -314,8 +289,9 @@ export function findRadiusForOverpressure(
   E_Mt: number,
   zb_m: number,
   r_min: number,
-  r_max = 1.7e10
+  r_max = 1.2756e7 // 12,756 km
 ): number {
+  if (zb_m > 0) r_min = 0;
   if (!isFinite(targetP) || targetP <= 0) return NaN;
   if (r_min <= 0) r_min = 1e-6;
 
@@ -330,8 +306,6 @@ export function findRadiusForOverpressure(
   // Bisection on [lo, hi] such that p(lo) >= target >= p(hi).
   let lo = r_min;
   let hi = r_max;
-  let plo = pAtMin;
-  let phi = pAtMax;
   const maxIter = 200;
   const tol = 1e-6;
 
@@ -340,52 +314,12 @@ export function findRadiusForOverpressure(
     const pmid = peakOverpressureAtR(mid, E_Mt, zb_m);
     if (pmid >= targetP) {
       lo = mid;
-      plo = pmid;
     } else {
       hi = mid;
-      phi = pmid;
     }
   }
 
   return 0.5 * (lo + hi);
-}
-
-interface WorldPopTaskResponse {
-  taskid ?: string;
-  error_message ?: string;
-  [key: string]: string | undefined;
-}
-
-interface WorldPopResponse {
-  data: {
-    total_population: number;
-  };
-  status?: string;       // e.g., "finished", "running"
-  error_message?: string;
-}
-
-async function fetchWithRetry<T>(
-  url: string,
-  maxRetries = 3, // Reduced from 5
-  intervalMs = 2000 // Reduced from 4000
-): Promise<T> {
-  let lastErr: unknown;
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return (await res.json()) as T;
-    } catch (err) {
-      lastErr = err;
-      if (attempt < maxRetries - 1) {
-        // wait before retrying
-        await new Promise(resolve => setTimeout(resolve, intervalMs));
-      }
-    }
-  }
-
-  throw lastErr ?? new Error("Unknown fetch error"); 
 }
 
 let gpwTiff: GeoTIFF | null = null;
@@ -670,8 +604,12 @@ export function tsunamiInfo(is_water: boolean, Dtc: number | null, airburst: boo
   }
 }
 
+function peakWindSpeed(overpressure_Pa: number, P_0 = 1e5, c_0 = 330): number {
+  return (5 * overpressure_Pa / (7 * P_0)) * (c_0 / (Math.sqrt(1 + (6 * overpressure_Pa) / (7 * P_0))));
+}
+
 export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
-  const { L0, rho_i, v0, theta_deg, is_water, mass, latitude, longitude } = inputs;
+  const { L0, rho_i, v0, theta_deg, is_water, mass} = inputs;
   const K = inputs.K ?? DEFAULTS.K;
   const Cd = inputs.Cd ?? DEFAULTS.Cd;
   const rho0 = inputs.rho0 ?? DEFAULTS.rho0;
@@ -715,9 +653,10 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
   }
 
   // airblast radii for thresholds
-  const r_building = findRadiusForOverpressure(42600, E_Mt, zb, L0);
-  const r_glass = findRadiusForOverpressure(6900, E_Mt, zb, L0);
-  const peakoverpressure =  peakOverpressureAtR(Dtc || L0*1.1, E_Mt, zb);
+  const r_building = findRadiusForOverpressure(42600, E_Mt, zb, Rf_m);
+  const r_glass = findRadiusForOverpressure(6900, E_Mt, zb, Rf_m);
+  const peakoverpressure =  peakOverpressureAtR(Rf_m, E_Mt, zb);
+  const topWindSpeed = peakWindSpeed(peakoverpressure)
 
 
   const results: Damage_Results = {
@@ -744,6 +683,7 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
     airblast_radius_building_collapse_m: r_building,
     airblast_radius_glass_shatter_m: r_glass,
     airblast_peak_overpressure: peakoverpressure,
+    top_wind_speed: topWindSpeed
   };
 
   return results;
