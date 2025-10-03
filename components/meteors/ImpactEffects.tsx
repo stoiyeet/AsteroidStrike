@@ -35,7 +35,15 @@ function formatPopulation(pop: number | undefined): string {
 function formatTime(time_s: number): string {
   if (time_s > 3600) return `${(time_s / 3600).toFixed(2)} Hours`;
   if (time_s > 60) return `${(time_s / 60).toFixed(1)} Minutes`;
-  return `${(time_s).toFixed(1)}`
+  return `${(time_s).toFixed(1)} Seconds`;
+}
+
+function formatYears(years: number): string {
+  if (years >= 1e9) return `${(years / 1e9).toFixed(2)} Billion Years`;
+  if (years >= 1e6) return `${(years / 1e6).toFixed(2)} Million Years`;
+  if (years >= 1e3) return `${(years / 1e3).toFixed(2)} Thousand Years`;
+  if (years >= 1e2) return `${(years / 1e2).toFixed(2)} Centuries`;
+  return `${years.toFixed(1)} Years`;
 }
 
 interface ImpactEffectsProps {
@@ -168,7 +176,7 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
             </div>
             <div className={styles.dataRow}>
               <span className={styles.label}>Recurrence Period</span>
-              <span className={styles.value}>{effects.Tre_years.toFixed(1)} years</span>
+              <span className={styles.value}>{formatYears(effects.Tre_years)}</span>
             </div>
             <div className={styles.impactType + ' ' + (effects.airburst ? styles.airburst : styles.surface)}>
               {effects.airburst ? '☁️ Airburst' : '🌋 Surface Impact'}
@@ -404,11 +412,11 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
             </div>
             <div className={styles.dataRow}>
               <span className={styles.label}>Time to Reach 1 km</span>
-              <span className={styles.value}>{formatTime(TsunamiResults.time_to_reach_1_km)} s</span>
+              <span className={styles.value}>{formatTime(TsunamiResults.time_to_reach_1_km)}</span>
             </div>
             <div className={styles.dataRow}>
               <span className={styles.label}>Time to 100 km</span>
-              <span className={styles.value}>{formatTime(TsunamiResults.time_to_reach_100_km)} s</span>
+              <span className={styles.value}>{formatTime(TsunamiResults.time_to_reach_100_km)}</span>
             </div>
             {TsunamiResults.rim_wave_height >= 3682 && (
               <div className={styles.dataRow}>
