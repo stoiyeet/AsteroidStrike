@@ -279,15 +279,15 @@
   margin: 24px auto;
   padding: 12px 20px;
   color: #f5faff;
-  background: linear-gradient(145deg, #2b2b2b 0%, #3a3a3a 100%);
-  border: 1px solid rgba(0, 204, 255, 0.25);
+  background: black;
+  border: 1px solid rgba(255, 255, 255, 0.6); /* thin white border */
+  box-shadow: 0 0 4px rgba(0, 204, 255, 0.25); /* optional soft glow */
   border-radius: 10px;
   font-weight: 500;
   font-size: 0.95em;
   text-decoration: none;
   transition: all 0.25s ease;
   cursor: pointer;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
   width: 100%;
   height: 10px;
 }
