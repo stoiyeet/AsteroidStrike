@@ -139,7 +139,7 @@ export function pancakeAirburstAltitude(Lo: number, rho_i: number, theta_rad: nu
 // fireball radius
 export function fireballRadius(E_J: number) {
   // Rf = 0.002 * E^(1/3) with E in joules
-  return 0.002 * Math.pow(E_J, 1 / 3);
+  return Math.min(EARTH_DIAMETER, 0.002 * Math.pow(E_J, 1 / 3));
 }
 
 // 7) burn radii (clothing, 2nd, 3rd) with horizon cap
