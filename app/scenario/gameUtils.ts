@@ -61,13 +61,22 @@ export async function generateAsteroid(currentTime: Date): Promise<Asteroid> {
   if (useNASAData) {
     const nasaAsteroids = await fetchNASAAsteroids();
     if (nasaAsteroids.length > 0) {
-      // Pick a random NASA asteroid and try to convert it
-      const randomNASA = nasaAsteroids[Math.floor(Math.random() * nasaAsteroids.length)];
-      const convertedAsteroid = nasaApi.convertNASADataToGameAsteroid(randomNASA, currentTime);
+      // Try multiple times to find a medium or large asteroid suitable for deflection scenarios
+      const maxAttempts = Math.min(10, nasaAsteroids.length);
+      const shuffled = [...nasaAsteroids].sort(() => Math.random() - 0.5);
       
-      if (convertedAsteroid) {
-        return convertedAsteroid as Asteroid;
+      for (let i = 0; i < maxAttempts; i++) {
+        const randomNASA = shuffled[i];
+        // requireMinSize = true filters out tiny/small asteroids
+        const convertedAsteroid = nasaApi.convertNASADataToGameAsteroid(randomNASA, currentTime, true);
+        
+        if (convertedAsteroid) {
+          return convertedAsteroid as Asteroid;
+        }
       }
+      
+      // If all attempts failed to find a suitable NASA asteroid, log it
+      console.log('No suitable medium/large NASA asteroids found, using generated asteroid');
     }
   }
 
@@ -93,22 +102,24 @@ export async function generateAsteroid(currentTime: Date): Promise<Asteroid> {
     realAsteroidKey = realAsteroidKeys[Math.floor(Math.random() * realAsteroidKeys.length)];
     realAsteroidData = asteroidInfo[realAsteroidKey as keyof typeof asteroidInfo];
     
-    // Determine size from real asteroid dimensions
+    // Determine size from real asteroid dimensions (thresholds in meters)
     const sizeString = realAsteroidData.size;
     const diameterMatch = sizeString.match(/(\d+\.?\d*)\s*km/);
     const diameterKm = diameterMatch ? parseFloat(diameterMatch[1]) : 1;
+    const diameterMForSizing = diameterKm * 1000;
     
-    if (diameterKm < 0.02) size = 'tiny';
-    else if (diameterKm < 0.14) size = 'small';
-    else if (diameterKm < 140) size = 'medium';
+    // Match thresholds used elsewhere: tiny <5 m, small <20 m, medium <140 m, else large
+    if (diameterMForSizing < 5) size = 'tiny';
+    else if (diameterMForSizing < 20) size = 'small';
+    else if (diameterMForSizing < 140) size = 'medium';
     else size = 'large';
   } else {
-    // Randomly select size category (better distribution for gameplay)
+    // Randomly select size category (favor medium/large for better deflection scenarios)
     const sizeRoll = Math.random();
-    if (sizeRoll < 0.35) size = 'tiny';        // 35% tiny (reduced from 60%)
-    else if (sizeRoll < 0.70) size = 'small';  // 35% small (increased from 25%)
-    else if (sizeRoll < 0.92) size = 'medium'; // 22% medium (increased from 13%)
-    else size = 'large';                       // 8% large (increased from 2%)
+    if (sizeRoll < 0.10) size = 'tiny';        // 10% tiny (reduced for better gameplay)
+    else if (sizeRoll < 0.25) size = 'small';  // 15% small
+    else if (sizeRoll < 0.70) size = 'medium'; // 45% medium (increased for more interesting scenarios)
+    else size = 'large';                       // 30% large (increased for challenging scenarios)
   }
   
   const config = ASTEROID_SIZE_CONFIGS[size];
@@ -121,28 +132,37 @@ export async function generateAsteroid(currentTime: Date): Promise<Asteroid> {
     const diameterMatch = sizeString.match(/(\d+\.?\d*)\s*km/);
     diameterM = diameterMatch ? parseFloat(diameterMatch[1]) * 1000 : randomBetween(config.diameterRange[0], config.diameterRange[1]);
     
-    // Extract mass if available
+    // Extract mass if available, otherwise compute from density if provided
     if (realAsteroidData.weight && realAsteroidData.weight !== 'unknown') {
       const massMatch = realAsteroidData.weight.match(/(\d+\.?\d*)×10\^(\d+)/);
-      massKg = massMatch ? parseFloat(massMatch[1]) * Math.pow(10, parseInt(massMatch[2])) : massFromDiameter(diameterM, config.densityKgM3);
-    } else {
-      massKg = massFromDiameter(diameterM, config.densityKgM3);
+      massKg = massMatch ? parseFloat(massMatch[1]) * Math.pow(10, parseInt(massMatch[2])) : undefined as unknown as number;
     }
     
     material = realAsteroidData.material;
     educationalBlurb = realAsteroidData.blurb;
     
-    // Use real density if available
+    // Use real density if available (g/cm³), else fallback
     if (realAsteroidData.density && realAsteroidData.density !== 'unknown') {
       const densityMatch = realAsteroidData.density.match(/(\d+\.?\d*)/);
       density = densityMatch ? parseFloat(densityMatch[1]) : config.densityKgM3 / 1000;
     } else {
       density = config.densityKgM3 / 1000; // Convert to g/cm3
     }
+
+    // If mass not parsed, compute using parsed density (converted to kg/m³) and shape factor
+    if (massKg === undefined || Number.isNaN(massKg)) {
+      const densityKgm3 = (density ?? config.densityKgM3 / 1000) * 1000;
+      const shapeFactor = 0.9;
+      const radius = diameterM / 2;
+      const volume = (4 / 3) * Math.PI * Math.pow(radius, 3);
+      massKg = volume * densityKgm3 * shapeFactor;
+    }
   } else {
     // Use generated values
     diameterM = randomBetween(config.diameterRange[0], config.diameterRange[1]);
-    massKg = massFromDiameter(diameterM, config.densityKgM3);
+    // Compute mass using size-based density with shape factor for irregularity
+    const shapeFactor = 0.9;
+    massKg = massFromDiameter(diameterM, config.densityKgM3) * shapeFactor;
     density = config.densityKgM3 / 1000; // Convert to g/cm3
     material = size === 'large' ? 'Stony (S-type)' : size === 'medium' ? 'Carbonaceous (C-type)' : 'Metallic (M-type)';
   }
@@ -273,4 +293,75 @@ export function getTorinoScale(asteroid: Asteroid): number {
   if (energy < 1) return Math.min(4, 2 + Math.floor(impactProb * 3));
   if (energy < 1000) return Math.min(7, 5 + Math.floor(impactProb * 3));
   return Math.min(10, 8 + Math.floor(impactProb * 3));
+}
+
+// =========================
+// Risk & Observation Utils
+// =========================
+
+// Convert kinetic energy to MT TNT equivalent for Palermo scale and education
+export function computeImpactEnergyMT(asteroid: Asteroid): number {
+  const kineticEnergyJ = 0.5 * asteroid.massKg * Math.pow(asteroid.velocityKmps * 1000, 2);
+  return kineticEnergyJ / 4.184e15;
+}
+
+// Very rough background frequency model by impact energy (educational)
+export function approximateBackgroundImpactFrequencyPerYear(energyMT: number): number {
+  // Refined approximation based on bolide frequency scaling (Brown et al.)
+  // Roughly: N(>E) ~ k * E^{-0.9..1.0}; convert to differential annual frequency for given MT
+  // Here we use a smoothed curve anchored near Chelyabinsk (~0.5 Mt every few decades)
+  const E = Math.max(energyMT, 0.01);
+  const k = 0.03; // anchor constant
+  const alpha = 0.95; // slope in MT domain
+  const f = k * Math.pow(E, -alpha);
+  return Math.max(1e-8, Math.min(50, f));
+}
+
+// Palermo Scale (log10 of risk vs background)
+export function getPalermoScale(asteroid: Asteroid): number {
+  const energyMT = computeImpactEnergyMT(asteroid);
+  const fBackground = approximateBackgroundImpactFrequencyPerYear(energyMT);
+  const years = Math.max(asteroid.timeToImpactHours / (365.25 * 24), 0.01);
+  const annualizedRisk = asteroid.impactProbability / years;
+  const ratio = Math.max(1e-12, annualizedRisk / fBackground);
+  return Math.log10(ratio);
+}
+
+// Estimate a simple impact corridor band across Earth for visualization
+export function estimateImpactCorridorParams(asteroid: Asteroid): { angleDeg: number; widthKm: number; lengthKm: number } {
+  const baseAngle = (asteroid.id.charCodeAt(0) * 17) % 360; // pseudo-stable orientation
+  const widthKm = Math.max(10, Math.min(5000, asteroid.uncertaintyKm * 1.5));
+  const earthDiameterKm = 2 * 6371;
+  const lengthKm = earthDiameterKm * 1.1; // extend slightly beyond disk
+  return { angleDeg: baseAngle, widthKm, lengthKm };
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+// Apply effects of an optical follow-up campaign (educational approximation)
+export function applyOpticalFollowUp(asteroid: Asteroid): Asteroid {
+  const updated: Asteroid = { ...asteroid };
+  updated.isTracked = true;
+  updated.uncertaintyKm = Math.max(1, asteroid.uncertaintyKm * 0.7);
+  updated.impactProbability = clamp01(
+    asteroid.impactProbability + (asteroid.trueImpactProbability - asteroid.impactProbability) * 0.3
+  );
+  // Track observation arc length if present
+  updated.observationArcDays = (updated.observationArcDays ?? 0) + 3;
+  updated.numOpticalObs = (updated.numOpticalObs ?? 0) + 1;
+  return updated;
+}
+
+// Apply effects of a radar campaign (educational approximation)
+export function applyRadarCampaign(asteroid: Asteroid): Asteroid {
+  const updated: Asteroid = { ...asteroid };
+  updated.isTracked = true;
+  updated.uncertaintyKm = Math.max(1, asteroid.uncertaintyKm * 0.4);
+  updated.impactProbability = clamp01(
+    asteroid.impactProbability + (asteroid.trueImpactProbability - asteroid.impactProbability) * 0.6
+  );
+  updated.numRadarObs = (updated.numRadarObs ?? 0) + 1;
+  return updated;
 }

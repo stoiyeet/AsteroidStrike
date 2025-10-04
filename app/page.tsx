@@ -26,7 +26,7 @@ export default function Home(): React.ReactElement {
     },
     {
        target: "#nav-scenario",
-        content: "Apply your mitigation strategies in a full-fledged simulation with consequences"
+        content: "Test your knowledge in a realistic asteroid defense scenario with real consequences"
     }
 ]
 

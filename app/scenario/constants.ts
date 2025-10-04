@@ -54,15 +54,6 @@ export const TRUST_IMPACTS = {
   failedMission: -15,
 } as const;
 
-export const SCORE_REWARDS = {
-  trackAsteroid: 50, // Points for tracking
-  correctAlert: 200, // Bonus for correct alerts
-  falseAlarm: -300, // Penalty for false alarms
-  successfulDeflection: 1000, // Big bonus for deflection success
-  asteroidTracked: 25, // Points per day of tracking
-  preventedImpact: 5000, // Huge bonus for preventing real threats
-  goodDecision: 100, // General good decision making
-} as const;
 
 // Deterministic star positions to prevent hydration errors
 export const STARS = Array.from({ length: 100 }, (_, i) => {

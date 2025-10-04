@@ -1,4 +1,4 @@
-// app/api/visits/route.ts
+ // app/api/visits/route.ts
 import { NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
 

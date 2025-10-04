@@ -178,7 +178,7 @@ class NASAApiService {
   }
 
   // Convert NASA data to game asteroid format
-  convertNASADataToGameAsteroid(nasaAsteroid: NASAAsteroidData, gameTime: Date) {
+  convertNASADataToGameAsteroid(nasaAsteroid: NASAAsteroidData, gameTime: Date, requireMinSize: boolean = true) {
     const closeApproach = nasaAsteroid.close_approach_data?.[0];
     if (!closeApproach) return null;
 
@@ -190,7 +190,10 @@ class NASAApiService {
       return null;
     }
 
-    const diameter = nasaAsteroid.estimated_diameter.meters.estimated_diameter_max;
+    // Use the mean of NASA's diameter range for better central estimate
+    const dMin = nasaAsteroid.estimated_diameter.meters.estimated_diameter_min;
+    const dMax = nasaAsteroid.estimated_diameter.meters.estimated_diameter_max;
+    const diameter = (dMin + dMax) / 2;
     const velocity = parseFloat(closeApproach.relative_velocity.kilometers_per_second);
     const missDistanceKm = parseFloat(closeApproach.miss_distance.kilometers);
     
@@ -200,6 +203,11 @@ class NASAApiService {
     else if (diameter < 20) size = 'small';
     else if (diameter < 140) size = 'medium';
     else size = 'large';
+
+    // Skip tiny and small asteroids if minimum size is required (for deflection scenarios)
+    if (requireMinSize && (size === 'tiny' || size === 'small')) {
+      return null;
+    }
 
     // Calculate impact probability based on miss distance and uncertainty
     // This is for educational purposes - real impact probabilities are much more complex
@@ -257,10 +265,22 @@ class NASAApiService {
   }
 
   private estimateMass(diameterM: number): number {
-    // Rough estimate using average asteroid density (2.5 g/cm³)
+    // Estimate mass using a density-by-size heuristic and a shape/porosity factor
+    // 1) Classify size to pick a plausible density (in g/cm³), then convert to kg/m³
+    let size: 'tiny' | 'small' | 'medium' | 'large';
+    if (diameterM < 5) size = 'tiny';
+    else if (diameterM < 20) size = 'small';
+    else if (diameterM < 140) size = 'medium';
+    else size = 'large';
+
+    const densityGcm3 = this.estimateDensity(size); // g/cm³
+    const densityKgm3 = densityGcm3 * 1000; // kg/m³
+
+    // 2) Assume slightly irregular (voids/porosity): apply shape factor ~0.9
+    const shapeFactor = 0.9;
     const radius = diameterM / 2;
     const volume = (4 / 3) * Math.PI * Math.pow(radius, 3);
-    return volume * 2500; // kg
+    return volume * densityKgm3 * shapeFactor;
   }
 
   private estimateMaterial(absoluteMagnitude: number, diameterM: number): string {
