@@ -3,16 +3,19 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 
 interface AsteroidExplosionProps {
+  airburst: boolean;
   position: THREE.Vector3;
   intensity: number; // 1.0 at start, fades to 0 over time
   fireballRadius: number;
 }
 
 const AsteroidExplosion: React.FC<AsteroidExplosionProps> = ({
+  airburst,
   position,
   intensity,
   fireballRadius,
 }) => {
+  fireballRadius = airburst ? fireballRadius * 300 : fireballRadius;
   const explosionRef = useRef<THREE.Group>(null!);
   const flashRef = useRef<THREE.PointLight>(null!);
   const emissiveCoreRef = useRef<THREE.MeshStandardMaterial>(null!);
@@ -65,6 +68,7 @@ const AsteroidExplosion: React.FC<AsteroidExplosionProps> = ({
   return (
     <group ref={explosionRef} position={position}>
       {/* Actual light that illuminates the world */}
+      {!airburst && ( 
       <pointLight
         ref={flashRef}
         color="#ffffff"
@@ -72,7 +76,7 @@ const AsteroidExplosion: React.FC<AsteroidExplosionProps> = ({
         distance={0}             // animated in useFrame
         decay={2}
         castShadow={false}       // enable if you really want shadows (costly)
-      />
+      />)}
 
       {/* Emissive inner core (adds "self-glow" & works great with bloom) */}
       <mesh>

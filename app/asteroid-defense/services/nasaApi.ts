@@ -79,7 +79,9 @@ export interface NASANeoFeedResponse {
 class NASAApiService {
   private readonly baseUrl = 'https://api.nasa.gov/neo/rest/v1';
   private readonly apiKey = process.env.NEXT_PUBLIC_NASA_API_KEY || 'DEMO_KEY';
-  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private NEOcache: Map<string, { data: NASANeoFeedResponse; timestamp: number }> = new Map();
+  private Asteroidcache: Map<string, { data: NASAAsteroidData[]; timestamp: number }> = new Map();
+
   private readonly cacheTimeout = 300000; // 5 minutes
 
   // Get current Near-Earth Objects feed
@@ -90,7 +92,7 @@ class NASAApiService {
       const end = endDate || new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       
       const cacheKey = `neo-feed-${start}-${end}`;
-      const cached = this.cache.get(cacheKey);
+      const cached = this.NEOcache.get(cacheKey);
       
       if (cached && (Date.now() - cached.timestamp) < this.cacheTimeout) {
         return cached.data;
@@ -105,7 +107,7 @@ class NASAApiService {
       }
       
       const data: NASANeoFeedResponse = await response.json();
-      this.cache.set(cacheKey, { data, timestamp: Date.now() });
+      this.NEOcache.set(cacheKey, { data, timestamp: Date.now() });
       
       return data;
     } catch (error) {
@@ -118,10 +120,10 @@ class NASAApiService {
   async getAsteroidDetails(asteroidId: string): Promise<NASAAsteroidData | null> {
     try {
       const cacheKey = `asteroid-${asteroidId}`;
-      const cached = this.cache.get(cacheKey);
+      const cached = this.Asteroidcache.get(cacheKey);
       
       if (cached && (Date.now() - cached.timestamp) < this.cacheTimeout) {
-        return cached.data;
+        return cached.data[0];
       }
 
       const url = `${this.baseUrl}/neo/${asteroidId}?api_key=${this.apiKey}`;
@@ -133,7 +135,8 @@ class NASAApiService {
       }
       
       const data: NASAAsteroidData = await response.json();
-      this.cache.set(cacheKey, { data, timestamp: Date.now() });
+      const listdata = [data]
+      this.Asteroidcache.set(cacheKey, { data: [data], timestamp: Date.now() });
       
       return data;
     } catch (error) {
@@ -146,10 +149,10 @@ class NASAApiService {
   async browseAsteroids(page = 0, size = 20): Promise<{ asteroids: NASAAsteroidData[]; totalElements: number } | null> {
     try {
       const cacheKey = `browse-${page}-${size}`;
-      const cached = this.cache.get(cacheKey);
+      const cached = this.Asteroidcache.get(cacheKey);
       
       if (cached && (Date.now() - cached.timestamp) < this.cacheTimeout) {
-        return cached.data;
+        return {asteroids: cached.data, totalElements: size};
       }
 
       const url = `${this.baseUrl}/neo/browse?page=${page}&size=${size}&api_key=${this.apiKey}`;
@@ -161,12 +164,12 @@ class NASAApiService {
       }
       
       const data = await response.json();
-      const result = {
+      const result: { asteroids: NASAAsteroidData[]; totalElements: number } = {
         asteroids: data.near_earth_objects || [],
         totalElements: data.page?.total_elements || 0
       };
       
-      this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
+      this.Asteroidcache.set(cacheKey, { data: result.asteroids, timestamp: Date.now() });
       return result;
     } catch (error) {
       console.warn('Failed to browse asteroids:', error);

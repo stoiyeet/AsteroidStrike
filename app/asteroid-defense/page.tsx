@@ -26,6 +26,9 @@ function formatTimeToImpact(timeToImpactHours: number): string {
 }
 
 export default function AsteroidDefensePage() {
+  // Mounting state to prevent hydration issues
+  const [mounted, setMounted] = useState(false);
+
   // Game state
   const [gameState, setGameState] = useState<GameState>({
     currentTime: new Date('2025-01-01T00:00:00Z'),
@@ -64,6 +67,11 @@ export default function AsteroidDefensePage() {
     
     setEventLog(prev => [event, ...prev].slice(0, 100)); // Keep last 100 events
   }, [gameState.currentTime]);
+
+  // Initialize mounting state
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Initialize asteroids client-side only to avoid hydration issues
   useEffect(() => {
@@ -395,25 +403,36 @@ export default function AsteroidDefensePage() {
     return gameState.trustPoints <= 0 || gameState.budget <= 0;
   }, [gameState.trustPoints, gameState.budget]);
 
+  // Calculate final score (use accumulated totalScore plus bonuses)
+  const gameScore = useMemo(() => {
+    const trustBonus = gameState.trustPoints * 5;
+    const budgetEfficiencyBonus = (50 - gameState.budget) * 2; // Efficiency bonus
+    
+    return Math.max(0, gameState.totalScore + trustBonus + budgetEfficiencyBonus);
+  }, [gameState.totalScore, gameState.trustPoints, gameState.budget]);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
       <header className="bg-slate-900 border-b border-slate-700">
-        <div className="px-6 py-4">
+        <div className="px-4 md:px-6 py-4">
           {/* Top row - Title and status */}
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-3 gap-4">
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-gradient-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center border border-slate-600">
                 <div className="w-6 h-6 bg-blue-500 rounded-sm"></div>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Planetary Defense Command</h1>
-                <div className="text-sm text-slate-400">NASA Near Earth Object Studies • JPL/Caltech</div>
+                <h1 className="text-xl md:text-2xl font-bold text-white">Planetary Defense Command</h1>
+                <div className="text-xs md:text-sm text-slate-400">NASA Near Earth Object Studies • JPL/Caltech</div>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-4">
               <div className="flex items-center space-x-2 bg-slate-800 px-3 py-2 rounded-lg border border-slate-600">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-sm text-slate-300">LIVE</span>
@@ -454,7 +473,7 @@ export default function AsteroidDefensePage() {
           </div>
           
           {/* Bottom row - Key metrics */}
-          <div className="grid grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-4">
             <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700">
               <div className="flex items-center justify-between">
                 <div className="text-xs text-slate-400 uppercase tracking-wide">Budget</div>
@@ -546,7 +565,7 @@ export default function AsteroidDefensePage() {
               </div>
             </div>
             <div className="text-slate-300 text-sm leading-relaxed">
-              You are leading NASA's Planetary Defense Coordination Office. Your mission: detect, track, and deflect potentially hazardous asteroids using real scientific methods and technologies.
+              You are leading NASA&apos;s Planetary Defense Coordination Office. Your mission: detect, track, and deflect potentially hazardous asteroids using real scientific methods and technologies.
               <div className="text-blue-200 mt-2 font-medium">
                 Early detection is key to successful deflection!
               </div>
@@ -555,10 +574,10 @@ export default function AsteroidDefensePage() {
         )}
       </header>
 
-      <div className="flex h-[calc(100vh-200px)] min-h-0">
+      <div className="flex flex-col md:flex-row h-[calc(100vh-200px)] min-h-0">
         {/* Sidebar - Asteroid List */}
-        <div className="w-80 bg-slate-900 border-r border-slate-700 flex flex-col min-h-0">
-          <div className="p-6 border-b border-slate-700 flex-shrink-0">
+        <div className="w-full md:w-80 bg-slate-900 border-r border-slate-700 flex flex-col min-h-0 order-2 md:order-1">
+          <div className="p-4 md:p-6 border-b border-slate-700 flex-shrink-0">
             <h2 className="text-lg font-bold text-white mb-2">Detected Objects</h2>
             <div className="text-sm text-slate-400">
               {detectedAsteroids.length} detected • {asteroids.length - detectedAsteroids.length} undetected
@@ -645,7 +664,7 @@ export default function AsteroidDefensePage() {
         </div>
 
         {/* Main Panel */}
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col min-h-0 order-1 md:order-2">
           {/* Quick Action Bar */}
           {selectedAsteroid && (() => {
             const asteroid = asteroids.find(a => a.id === selectedAsteroid);
@@ -865,11 +884,11 @@ export default function AsteroidDefensePage() {
             <div className="space-y-3 text-sm">
               <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
                 <div className="text-blue-200 font-medium mb-1">Real NASA Data</div>
-                <div className="text-slate-300 text-xs">Live data from NASA's Near-Earth Object Web Service API with real orbital parameters.</div>
+                <div className="text-slate-300 text-xs">Live data from NASA&apos;s Near-Earth Object Web Service API with real orbital parameters.</div>
               </div>
               <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
                 <div className="text-green-200 font-medium mb-1">DART Mission Success</div>
-                <div className="text-slate-300 text-xs">September 2022: NASA changed Dimorphos' orbit by 32 minutes using kinetic impact.</div>
+                <div className="text-slate-300 text-xs">September 2022: NASA changed Dimorphos&apos; orbit by 32 minutes using kinetic impact.</div>
               </div>
               <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
                 <div className="text-yellow-200 font-medium mb-1">Current Statistics</div>

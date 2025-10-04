@@ -124,13 +124,11 @@ import { useRouter } from 'next/navigation'
 import styles from "./AsteroidViewer.module.css";
 
 const asteroids = [
-  "16_psyche", "67p_churyumov_gerasimenko","5535_annefrank",
-  "99942_apophis", "101955_bennu", "19p_borrelly","9969_braille",
-  "65803_didymos","dimorphos","152830_dinkinesh","52246_donaldjohanson",
-  "433_eros","3548_eurybates","951_gaspra","103p_hartley","243_ida",
-  "25143_itokawa","11351_leucus","21_lutetia","menoetius","21900_orus",
-  "617_patroclus","15094_polymele","162173_ryugu","73p_schwassman_wachmann_3",
-  "9p_tempel_1","4_vesta","81p_wild_2"
+  '16_psyche', '67p_churyumov_gerasimenko', '99942_apophis', '101955_bennu', '19p_borrelly',
+  '65803_didymos', 'dimorphos', '433_eros', '951_gaspra', '103p_hartley', '25143_itokawa',
+  '162173_ryugu', '9p_tempel_1', '4_vesta', '5535_annefrank', '9969_braille', '152830_dinkinesh',
+  '52246_donaldjohanson', '3548_eurybates', '243_ida', '11351_leucus', '21_lutetia', 'menoetius',
+  '21900_orus', '617_patroclus', '15094_polymele', '73p_schwassman_wachmann_3', '81p_wild_2'
 ];
 
 const specialMap: Record<string, string> = {
@@ -149,6 +147,7 @@ const specialMap: Record<string, string> = {
   "73p_schwassman_wachmann_3": "3.glb",
   "81p_wild_2": "3.glb"
 };
+
 
 const formatName = (name: string) => name.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase());
 
@@ -192,7 +191,7 @@ export default function AsteroidViewer() {
     }
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x222222);
+    scene.background = new THREE.Color(0x111111);
 
     const camera = new THREE.PerspectiveCamera(
       60,
@@ -372,7 +371,21 @@ const info = asteroidInfo[selected as keyof typeof asteroidInfo];
 
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', marginBottom: '8px', color: '#00ccff' }}>
-              Size: {customSize} {customSizeUnit}
+              Size:
+              <input
+                type="text"
+                value={customSize}
+                onChange={(e) => {
+                  let val = Number(e.target.value);
+                  if (val < 0) val = 0;
+                  if (val > 6000) val = 6000;
+                  setCustomSize(val);
+                }}                
+                style={{ width: '40px', marginLeft: '4px' }}
+                min = {1}
+                max = {6000}
+              />
+              {customSizeUnit}
             </label>
             <input
               type="range"
@@ -588,63 +601,36 @@ const sizeMeters = parseSize(info.size || '0') * 1000;
       </div>
 
       <div ref={mountRef} className={styles.viewer} />
+      <div className="fixed bottom-8 left-0 right-0 flex justify-center z-20 hidden md:flex">
+        <div className="flex gap-4 bg-[rgba(20,20,20,0.85)] rounded-xl shadow-md px-6 py-2 items-center border border-[#222]">
 
-      {/* Lighting control at the bottom center */}
-      <div style={{
-        position: 'fixed',
-        left: 0,
-        right: 0,
-        bottom: 32,
-        display: 'flex',
-        justifyContent: 'center',
-        zIndex: 20
-      }}>
-        <div style={{
-          display: 'flex',
-          gap: 16,
-          background: 'rgba(20,20,20,0.85)',
-          borderRadius: 12,
-          boxShadow: '0 2px 12px #000a',
-          padding: '8px 24px',
-          alignItems: 'center',
-          border: '1px solid #222'
-        }}>
           <button
             onClick={() => setLighting('flood')}
-            style={{
-              background: lighting === 'flood' ? 'linear-gradient(90deg,#fff,#ccc)' : 'transparent',
-              color: lighting === 'flood' ? '#111' : '#fff',
-              border: 'none',
-              borderRadius: 6,
-              padding: '8px 18px',
-              fontWeight: 600,
-              fontSize: 16,
-              cursor: 'pointer',
-              boxShadow: lighting === 'flood' ? '0 4px 16px #fff8' : 'none',
-              transition: 'all 0.15s'
-            }}
+            className={`px-2 py-0 rounded-lg font-semibold text-ms transition-all
+        ${lighting === 'flood'
+                ? 'bg-gradient-to-r from-white to-gray-300 text-gray-900 shadow-lg'
+                : 'bg-transparent text-white'}
+      `}
           >
             Flood Light
           </button>
+
           <button
             onClick={() => setLighting('shadow')}
-            style={{
-              background: lighting === 'shadow' ? 'linear-gradient(90deg,#222,#444)' : 'transparent',
-              color: lighting === 'shadow' ? '#fff' : '#aaa',
-              border: 'none',
-              borderRadius: 6,
-              padding: '8px 18px',
-              fontWeight: 600,
-              fontSize: 16,
-              cursor: 'pointer',
-              boxShadow: lighting === 'shadow' ? '0 2px 8px #0008' : 'none',
-              transition: 'all 0.15s'
-            }}
+            className={`px-4 py-2 rounded-lg font-semibold text-md transition-all
+        ${lighting === 'shadow'
+                ? 'bg-gradient-to-r from-gray-800 to-gray-600 text-white shadow-md'
+                : 'bg-transparent text-gray-400'}
+      `}
           >
             Shadow Lighting
           </button>
+
         </div>
       </div>
+
+
+
     </div>
   );
 }

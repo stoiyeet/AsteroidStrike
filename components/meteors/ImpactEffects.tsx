@@ -32,6 +32,20 @@ function formatPopulation(pop: number | undefined): string {
   return `${(pop)}`;
 }
 
+function formatTime(time_s: number): string {
+  if (time_s > 3600) return `${(time_s / 3600).toFixed(2)} Hours`;
+  if (time_s > 60) return `${(time_s / 60).toFixed(1)} Minutes`;
+  return `${(time_s).toFixed(1)} Seconds`;
+}
+
+function formatYears(years: number): string {
+  if (years >= 1e9) return `${(years / 1e9).toFixed(2)} Billion Years`;
+  if (years >= 1e6) return `${(years / 1e6).toFixed(2)} Million Years`;
+  if (years >= 1e3) return `${(years / 1e3).toFixed(2)} Thousand Years`;
+  if (years >= 1e2) return `${(years / 1e2).toFixed(2)} Centuries`;
+  return `${years.toFixed(1)} Years`;
+}
+
 interface ImpactEffectsProps {
   effects: {
     E_J: number;
@@ -65,9 +79,16 @@ interface ImpactEffectsProps {
   impactLat: number;
   impactLon: number;
   name: string;
+  TsunamiResults: {
+    rim_wave_height: number;
+    tsunami_radius: number;
+    max_tsunami_speed: number;
+    time_to_reach_1_km: number;
+    time_to_reach_100_km: number;
+  }
 }
 
-export default function ImpactEffects({ effects, mortality, impactLat, impactLon, name }: ImpactEffectsProps) {
+export default function ImpactEffects({ effects, mortality, impactLat, impactLon, name, TsunamiResults }: ImpactEffectsProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState('overview');
   
@@ -130,6 +151,12 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
         >
           Effects on Life
         </button>
+        <button
+          className={`${styles.tab} ${activeTab === 'tsunami' ? styles.active : ''}`}
+          onClick={() => setActiveTab('tsunami')}
+        >
+          Tsunami
+        </button>
       </div>
 
       <div className={styles.scrollContent}>
@@ -149,7 +176,7 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
             </div>
             <div className={styles.dataRow}>
               <span className={styles.label}>Recurrence Period</span>
-              <span className={styles.value}>{effects.Tre_years.toFixed(1)} years</span>
+              <span className={styles.value}>{formatYears(effects.Tre_years)}</span>
             </div>
             <div className={styles.impactType + ' ' + (effects.airburst ? styles.airburst : styles.surface)}>
               {effects.airburst ? '☁️ Airburst' : '🌋 Surface Impact'}
@@ -258,7 +285,7 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
             <div className={styles.sectionInfo}>
               Crater formation occurs in two phases: initial transient crater followed by final crater.
             </div>
-            {effects.Dtc_m && (
+            {effects.Dtc_m && TsunamiResults.rim_wave_height == 0 && (
               <>
                 <div className={styles.dataRow}>
                   <span className={styles.label}>Transient Diameter</span>
@@ -272,7 +299,15 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
                 )}
               </>
             )}
-            {effects.Dfr_m && (
+            {effects.Dtc_m && TsunamiResults.rim_wave_height > 0 && (
+              <>
+                <div className={styles.dataRow}>
+                  <span className={styles.label}>Ocean Floor Crater</span>
+                  <span className={styles.value}>{formatDistance(effects.Dtc_m)}</span>
+                </div>
+              </>
+            )}
+            {effects.Dfr_m && TsunamiResults.rim_wave_height == 0 && (
               <>
                 <div className={styles.dataRow}>
                   <span className={styles.label}>Final Diameter</span>
@@ -357,6 +392,38 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
               }
             </div>
             <Link href="/meteors/formulas?category=mortality" className={styles.scienceButton}>
+              🧪 Check the Science
+            </Link>
+          </div>
+        )}
+
+        {activeTab === 'tsunami' && (
+          <div className={styles.section}>
+            <div className={styles.sectionInfo}>
+              Tsunami Effects
+            </div>
+            <div className={styles.dataRow}>
+              <span className={styles.label}>Wave Height</span>
+              <span className={styles.value}>{TsunamiResults.rim_wave_height.toFixed(1)} m</span>
+            </div>
+            <div className={styles.dataRow}>
+              <span className={styles.label}>Max Speed</span>
+              <span className={styles.value}>{TsunamiResults.max_tsunami_speed.toFixed(1)} m/s</span>
+            </div>
+            <div className={styles.dataRow}>
+              <span className={styles.label}>Time to Reach 1 km</span>
+              <span className={styles.value}>{formatTime(TsunamiResults.time_to_reach_1_km)}</span>
+            </div>
+            <div className={styles.dataRow}>
+              <span className={styles.label}>Time to 100 km</span>
+              <span className={styles.value}>{formatTime(TsunamiResults.time_to_reach_100_km)}</span>
+            </div>
+            {TsunamiResults.rim_wave_height >= 3682 && (
+              <div className={styles.dataRow}>
+                <span style={{ color: "#d34646ff" }}>Tsunami height is limited by ocean depth. Assume average ocean depth of ~3682m</span>
+              </div>
+            )}
+            <Link href="/meteors/formulas?category=waterLayer" className={styles.scienceButton}>
               🧪 Check the Science
             </Link>
           </div>

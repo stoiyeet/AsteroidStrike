@@ -10,7 +10,7 @@ export type Damage_Inputs = {
   rho_i: number; // kg/m^3
   v0: number; // m/s
   theta_deg: number; // degrees from horizontal
-  is_water?: boolean; // true for water target
+  is_water: boolean; // true for water target
   K?: number; // luminous efficiency
   Cd?: number; // drag coefficient
   rho0?: number; // atmosphere surface density for breakup (kg/m^3)
@@ -51,7 +51,6 @@ const G = 9.81;
 const VE_KM3 = 1.083e12; // Earth's volume km^3 for comparison
 const GLOBAL_POP = 8_250_000_000;
 const GLOBAL_AVERAGE_DENSITY = 50;
-const LOCAL_SAMPLE_AREA = 90_000; // About max area that API can get loalized aread
 
 const DEFAULTS = {
   K: 3e-3,
@@ -61,6 +60,9 @@ const DEFAULTS = {
   fp: 7,
   rho_air_for_wind: 1.2,
   burn_horizon_m: 1_500_000, // 1500 km cap
+  water_depth_m: 3682,
+  density_water: 1000,
+  water_drag_coeff: 0.877
 };
 
 // Add caching for API results
@@ -98,12 +100,12 @@ function atmosphericDensity(z: number, rho0 = DEFAULTS.rho0, H = DEFAULTS.H): nu
 
 
 // breakup If and altitude z* (analytic approx)
-export function breakupIfAndZstar(Lo: number, rho_i: number, vo: number, theta: number, CD = DEFAULTS.Cd, H = DEFAULTS.H, rho_0 = DEFAULTS.rho0) {
+export function breakupIfAndZstar(Lo: number, rho_i: number, vo: number, theta_rad: number, CD = DEFAULTS.Cd, H = DEFAULTS.H, rho_0 = DEFAULTS.rho0) {
   // Calculate the yield strength Y_i using the empirical formula.
   const Yi = Math.pow(10, 2.107 + 0.0624 * Math.sqrt(rho_i));
   
   // Calculate the breakup parameter I_f.
-  const If = (CD * H * Yi) / (rho_i * Lo * Math.pow(vo, 2) * Math.sin(theta));
+  const If = (CD * H * Yi) / (rho_i * Lo * Math.pow(vo, 2) * Math.sin(theta_rad));
   
   // Determine if breakup occurs.
   const breakup = If < 1;
@@ -117,13 +119,13 @@ export function breakupIfAndZstar(Lo: number, rho_i: number, vo: number, theta: 
   return { If, z_star, breakup };
 }
 
-export function pancakeAirburstAltitude(Lo: number, rho_i: number, theta: number, z_star: number, H = DEFAULTS.H, fp = DEFAULTS.fp, CD = DEFAULTS.Cd) {
+export function pancakeAirburstAltitude(Lo: number, rho_i: number, theta_rad: number, z_star: number, H = DEFAULTS.H, fp = DEFAULTS.fp, CD = DEFAULTS.Cd) {
   // The document uses rho(z*) which is the atmospheric density at the breakup altitude.
   // We need to use the provided atmosphericDensity function to get this value.
   const rho_z_star = atmosphericDensity(z_star);
   
   // Calculate the dispersion length scale 'l'.
-  const l = Lo * Math.sin(theta) * Math.sqrt(rho_i / (CD * rho_z_star));
+  const l = Lo * Math.sin(theta_rad) * Math.sqrt(rho_i / (CD * rho_z_star));
   
   // Calculate the airburst altitude z_b using the rearranged equation.
   const zb = z_star - 2 * H * Math.log(1 + (l / (2 * H)) * Math.sqrt(Math.pow(fp, 2) - 1));
@@ -158,9 +160,10 @@ export function burnRadii(E_Mt: number, E_J: number, K = DEFAULTS.K) {
 }
 
 // 8) crater scaling
-export function transientCrater(L0: number, rho_i: number, v_i: number, theta_rad: number, is_water=false) {
+export function transientCrater(L0: number, rho_i: number, v_i: number, theta_rad: number, is_water: boolean) {
   const rho_t = is_water ? 2700 : 2500;
-  const coeff = is_water ? 1.365 : 1.161;
+  v_i = is_water ? v_i*Math.exp(-3*DEFAULTS.density_water*DEFAULTS.water_drag_coeff*DEFAULTS.water_depth_m/(2*L0*Math.sin(theta_rad)*rho_i)) : v_i;
+  const coeff  = 1.161;
   const term = Math.pow(rho_i / rho_t, 1 / 3);
   const Dtc = coeff * term * Math.pow(L0, 0.78) * Math.pow(v_i, 0.44) * Math.pow(G, -0.22) * Math.pow(Math.sin(theta_rad), 1 / 3);
   const dtc = Dtc / (2 * Math.sqrt(2));
@@ -176,6 +179,16 @@ export function transientCrater(L0: number, rho_i: number, v_i: number, theta_ra
   }
   return { Dtc, dtc, Dfr, dfr };
 }
+
+
+export function oceanWaterCrater(L0: number, rho_i: number, v_i: number, theta_rad: number) {
+  const coeff = 1.365 
+  const rho_t = 1000 // ocean water density
+  const term = Math.pow(rho_i / rho_t, 1 / 3);
+  const Dtc = coeff * term * Math.pow(L0, 0.78) * Math.pow(v_i, 0.44) * Math.pow(G, -0.22) * Math.pow(Math.sin(theta_rad), 1 / 3);
+  return Dtc
+}
+
 
 // 9) transient crater volume and Earth effect
 export function craterVolumeAndEffect(Dtc_m: number) {
@@ -458,12 +471,6 @@ async function populationDensityAt(
   return maxDensity;
 }
 
-// Calculate asteroid diameter from mass (assuming stony asteroid, density ~2.5 g/cm³)
-function getDiameterFromMass(mass_kg: number): number {
-  const density = 2500; // kg/m³ for typical stony asteroid
-  const volume = mass_kg / density;
-  return Math.pow((6 * volume) / Math.PI, 1 / 3); // diameter in meters
-}
 
 // Get size-based scaling factor
 function getSizeScalingFactor(diameter_m: number): number {
@@ -619,6 +626,50 @@ export async function estimateAsteroidDeaths(
   };
 }
 
+export function tsunamiInfo(is_water: boolean, Dtc: number | null, airburst: boolean){
+  if (!is_water || airburst || !Dtc){
+    return {
+      rim_wave_height: 0,
+      tsunami_radius: 0,
+      max_tsunami_speed: 0,
+      time_to_reach_1_km: 0,
+      time_to_reach_100_km: 0
+    }
+
+  }
+  const rim_wave_height = Math.min(Dtc/14.1, DEFAULTS.water_depth_m)
+  const tsunami_entry_radius = 3 * Dtc / 4;
+  const tsunami_radius = 0.01*rim_wave_height**0.5 * tsunami_entry_radius / 0.5 // assume tsunami ends when water is less than 0.5 meters depth, and land coefficient of 0.001
+  const tsunami_wavelength = rim_wave_height > 80 ? rim_wave_height/0.07 : rim_wave_height / 0.4 // treat 80m as threshold from conceivable tsunami to crazy asteroi tsunami
+  const max_tsunami_speed = tsunami_wavelength < 0.9 * DEFAULTS.water_depth_m
+    ? eq_20_tsunami_speed(rim_wave_height, tsunami_wavelength)
+    : eq_19_tsunami_speed(rim_wave_height);
+
+  function eq_19_tsunami_speed(A: number): number{
+    return Math.sqrt(G*DEFAULTS.water_depth_m)*(1 + A/(2*DEFAULTS.water_depth_m))
+  }
+
+  function eq_20_tsunami_speed(A: number, lambda: number): number{
+    return Math.sqrt(G*lambda/(2*Math.PI)*(1+(2*Math.PI**2*A**2)/lambda**2))
+  }
+
+  function max_time(Dtc: number, r: number){
+    return r/Math.sqrt(1.56*Dtc*Math.tanh(6.28*DEFAULTS.water_depth_m/Dtc))
+  }
+
+  const time_to_reach_1_km = max_time(Dtc, 1000)
+
+  const time_to_reach_100_km = max_time(Dtc, 100000)
+
+  return {
+    rim_wave_height: rim_wave_height,
+    tsunami_radius: tsunami_radius,
+    max_tsunami_speed: max_tsunami_speed,
+    time_to_reach_1_km: time_to_reach_1_km,
+    time_to_reach_100_km: time_to_reach_100_km
+  }
+}
+
 export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
   const { L0, rho_i, v0, theta_deg, is_water, mass, latitude, longitude } = inputs;
   const K = inputs.K ?? DEFAULTS.K;
@@ -643,10 +694,7 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
 
   // fireball and burns
   const burns = burnRadii(E_Mt, E_J, K);
-  let Rf_m: number | null = null;
-  if (!airburst) {
-    Rf_m = fireballRadius(E_J);
-  }
+  const Rf_m = fireballRadius(E_J);
 
   // crater and seismic only if not airburst
   let Dtc: number | null = null, dtc: number | null = null, Dfr: number | null = null, dfr: number | null = null;

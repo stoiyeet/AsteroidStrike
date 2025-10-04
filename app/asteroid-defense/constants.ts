@@ -1,5 +1,3 @@
-import { AsteroidSize } from './types';
-
 export const ASTEROID_SIZE_CONFIGS = {
   tiny: {
     diameterRange: [1, 5],

@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import React, { useMemo, useRef, useState } from 'react';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
-import { Html, useGLTF } from '@react-three/drei';
+import { Html, Line, useGLTF } from '@react-three/drei';
 import { GLTF } from 'three-stdlib';
 
 import { getGlbFile } from './asteroidGLB';
@@ -12,6 +12,7 @@ import Earth from "@/components/Earth";
 import ExplosionFlash from '@/components/ExplosionFlash';
 import { Damage_Results } from './DamageValuesOptimized';
 import { computeWaveRadii } from './utils/waveRadii';
+import TsunamiWaves  from '@/components/TsunamiWaves'
 
 type Meteor = {
   name: string;
@@ -43,20 +44,21 @@ interface Props {
   impactTime: number;  // when impact happens on timeline
   onImpactSelect?: (lat: number, lon: number) => void;
   effects: EffectsState;
+  tsunamiRadius: number;
 }
 
 const EARTH_R = 1;
-const EARTH_R_M = 6371000;
+export const EARTH_R_M = 6371000;
 type GLTFResult = GLTF & { scene: THREE.Group };
 
-function surfacemToChordUnits(m: number): number {
+export function surfacemToChordUnits(m: number): number {
   const maxm = Math.min(m, EARTH_R_M * 0.9);
   const theta = maxm / EARTH_R_M;
   return EARTH_R * theta * 0.8;
 }
 
 // Debris field for destroyed Earth - separate component to avoid re-renders
-const DebrisField = () => {
+const DebrisField = ({t}: {t: number}) => {
   const debrisRef = useRef<THREE.Group>(null!);
 
   // Static debris data - generated once and never changes
@@ -64,15 +66,24 @@ const DebrisField = () => {
     const pieces = [];
     for (let i = 0; i < 200; i++) {
       const angle = (i / 200) * Math.PI * 2;
-      const radius = 0.8 + Math.random() * 2;
-      const height = (Math.random() - 0.5) * 0.8;
+      const cos_angle = Math.cos(angle);
+      const sin_angle = Math.sin(angle);
+      const baseRadius = -0.3;
+      const height_position = (Math.random() - 0.5) * 1.2;
+      const expansion = baseRadius + Math.random()*0.8;
+
 
       pieces.push({
         position: [
-          Math.cos(angle) * radius,
-          height,
-          Math.sin(angle) * radius
+          cos_angle * baseRadius,
+          height_position,
+          sin_angle * baseRadius
         ] as [number, number, number],
+        expansion,
+        baseRadius,
+        cos_angle,
+        sin_angle,
+        height_position,
         size: 0.02 + Math.random() * 0.04,
         // Random dimensions for irregular rock shapes
         width: 0.8 + Math.random() * 0.4,  // 0.8 to 1.2 multiplier
@@ -92,6 +103,28 @@ const DebrisField = () => {
     }
     return pieces;
   }, []);
+
+  useFrame(() => {
+    const meshChildren = debrisRef.current?.children;
+    if (!meshChildren) return;
+
+    const baseExpansion = t * 3 - 0.8;
+
+    for (let i = 0; i < meshChildren.length; i++) {
+      const mesh = meshChildren[i];
+      const d = debris[i];
+
+      const expansion = d.expansion + baseExpansion;
+
+      mesh.position.set(
+        d.cos_angle * expansion,
+        d.height_position,
+        d.sin_angle * expansion
+      );
+    }
+  });
+
+
 
   // Rotation state that persists across renders
   const rotationState = useRef({ field: 0, pieces: debris.map(() => ({ x: 0, z: 0 })) });
@@ -137,11 +170,15 @@ export default function EarthImpact({
   impactTime,
   onImpactSelect,
   effects,
+  tsunamiRadius
 }: Props) {
+
+  const height = Math.max(3*damage.zb_breakup/EARTH_R_M, 0.001)
   const impactPos = useMemo(
-    () => latLonToVec3(impact.lat, impact.lon, EARTH_R + 0.001),
+    () => latLonToVec3(impact.lat, impact.lon, EARTH_R + height),
     [impact]
   );
+
 
   const entryStart = useMemo(
     () => latLonToVec3(impact.lat + (90 - meteor.angle)*12/17, impact.lon, EARTH_R * 1.8),
@@ -167,20 +204,53 @@ export default function EarthImpact({
     return Math.max(minVisible, Math.min(calculatedSize, maxVisible));
   }, [meteor.diameter]);
 
+  const MODEL_MAX_DIM: Record<string, number> = {
+    "apophis": 339*751,
+    "bennu": 552*492,
+    "borrelly": 8690*34.75,
+    "churyumov_gerasimenko": 8134*60, //67.8 times smaller than psyche
+    "didymos": 828*326.67,
+    "dimorphos": 208*1570,
+    "eros": 32601*16.5,
+    "gaspra": 23604*22.79,
+    "hartley": 2300*173.75,
+    "itokawa": 535*519.63,
+    "psyche": 3, //278 km max dimension
+    "ryugu": 502*277,
+    "tempel_1": 7735*36.58,
+    "vesta": 573280.0/2.06,
+    "annefrank": 2*64,
+    "braille": 2*173.75,
+    "dinkinesh": 2*351.9,
+    "donaldjohanson": 2*34.75,
+    "eurybates": 2*3.587,
+    "ida": 2*4.649,
+    "leucus": 2*4.57,
+    "lutetia": 2*2.3,
+    "menoetius": 2*2.78,
+    "orus": 2*3.93,
+    "patroclus": 2*2.19,
+    "polymele": 2*10.3,
+    "schwassman_wachmann_3": 2*126.36,
+    "wild_2": 2*50.55
+
+  };
+
+  const TARGET_SCENE_SIZE = 0.06; // arbitrary size that matched with psyche glb for good size
+
   const asteroidScale = useMemo(() => {
     if (meteor.isCustom) {
-      return meteor.diameter/20000;
+      return meteor.diameter / 25000;
     }
     if (!gltf) return 1;
-    const box = new THREE.Box3().setFromObject(gltf.scene);
-    const sphere = new THREE.Sphere();
-    box.getBoundingSphere(sphere);
-    let current = sphere.radius;
-    if (current < 100){
-      current = 20000;
-    }
-    return desiredAsteroidRadiusUnits / current;
-  }, [gltf?.scene, desiredAsteroidRadiusUnits, meteor.isCustom]);
+
+    const key = meteor.name.substring(meteor.name.indexOf('_') + 1).toLowerCase();    
+
+    const currentMaxDim = MODEL_MAX_DIM[key] ?? 2; // fallback if missing
+
+    return TARGET_SCENE_SIZE / currentMaxDim;
+  }, [meteor.name, gltf?.scene, meteor.isCustom]);
+
 
   // Get material color based on asteroid type
   const getAsteroidMaterial = () => {
@@ -243,14 +313,14 @@ export default function EarthImpact({
 
   // Zones
   const thermalZones = [
-    { radius: clothingIgnition,     color: '#ff1100', label: 'Complete Vaporization', opacity: 0.35, borderColor: '#ffffff', delay: 0.0,  priority: 3 },
-    { radius: third_degree_burn,   color: '#ff4400', label: '100% 3rd Degree Burns', opacity: 0.25, borderColor: '#ffaa00', delay: 0.15, priority: 2 },
-    { radius: second_degree_burn,  color: '#ff8800', label: '100% 2nd Degree Burns', opacity: 0.18, borderColor: '#ffcc00', delay: 0.30, priority: 1 },
+    { radius: clothingIgnition,     color: '#ff1100', label: 'Clothing ignites', opacity: 0.35, borderColor: '#ffffff', delay: 0.0,  priority: 3 },
+    { radius: third_degree_burn,   color: '#ff4400', label: '3rd Degree Burns', opacity: 0.25, borderColor: '#ffaa00', delay: 0.15, priority: 2 },
+    { radius: second_degree_burn,  color: '#ff8800', label: '2nd Degree Burns', opacity: 0.18, borderColor: '#ffcc00', delay: 0.30, priority: 1 },
   ];
 
   const pressureZones = [
-    { radius: buildingCollapseShockwave, color: '#0066cc', label: 'Total Destruction',       opacity: 0.28, borderColor: '#00aaff', delay: 0.10, priority: 3 },
-    { radius: glassShatter,              color: '#0099dd', label: 'Heavy Structural Damage', opacity: 0.20, borderColor: '#44ccff', delay: 0.25, priority: 2 },
+    { radius: buildingCollapseShockwave, color: '#0066cc', label: 'Building collapse', opacity: 0.28, borderColor: '#00aaff', delay: 0.10, priority: 3 },
+    { radius: glassShatter,              color: '#0099dd', label: 'Glass Shatters', opacity: 0.20, borderColor: '#44ccff', delay: 0.25, priority: 2 },
   ];
 
   const blastRadius = surfacemToChordUnits(fireball_radius || 0);
@@ -269,7 +339,7 @@ export default function EarthImpact({
         />
       )}
 
-      {["destroyed", "strongly_disturbed"].includes(damage.earth_effect) && t > impactTime && <DebrisField />}
+      {["destroyed", "strongly_disturbed"].includes(damage.earth_effect) && t > impactTime && <DebrisField t={t}/>}
 
 
       {/* Asteroid flight */}
@@ -326,6 +396,7 @@ export default function EarthImpact({
       {/* Fireball */}
       {effects.fireball && t >= impactTime && t < impactTime + 0.3 && (
         <AsteroidExplosion
+          airburst={damage.airburst}
           position={impactPos}
           intensity={explosionIntensity}
           fireballRadius={surfacemToChordUnits(fireball_radius || 0)}
@@ -502,15 +573,12 @@ export default function EarthImpact({
         </>
       )}
 
-      {/* Impact label (DOM via Html overlay; uses CSS vars) */}
-      {effects.labels && (
-        <Html position={impactPos.clone().multiplyScalar(1.05)} center>
-          <div className="impact-label" style={{ ['--label-color' as string]: '#ffff00' }}>
-            <div className="impact-icon">⚡</div>
-            <div className="impact-title">IMPACT POINT</div>
-            <div className="impact-energy">{damage.E_Mt.toFixed(2)} MT TNT Equivalent</div>
-          </div>
-        </Html>
+      {tsunamiRadius > 0 && t >= impactTime && (
+        <TsunamiWaves
+          position={impactPos}
+          height={tsunamiRadius}
+          expansionFactor={damageExpansionCurve(0.2)}
+        />
       )}
     </group>
   );
@@ -562,10 +630,14 @@ function EnhancedDamageDisk({
   if (currentRadius < 0.001) return null;
 
   const inner = Math.max(currentRadius - 0.006, 0);
-  const labelAngle = (type === 'thermal' ? 45 : 135) + (index * 30);
-  const labelRadius = Math.max(currentRadius * 0.7, 0.02);
+  const labelAngle = (type === 'thermal' ? 270 : 135) + (index * 45);
+  const labelRadius = Math.max(currentRadius, 0.02);
   const labelX = Math.cos(THREE.MathUtils.degToRad(labelAngle)) * labelRadius;
   const labelY = Math.sin(THREE.MathUtils.degToRad(labelAngle)) * labelRadius;
+
+  const offsetFactor = 0.8; // push labels outward
+  const base = new THREE.Vector3(labelX, labelY, 0.025);
+  const outward = base.clone().normalize().multiplyScalar(offsetFactor);
 
   return (
     <group position={position.clone().multiplyScalar(1.02 + (priority || 1) * 0.003)} rotation={ringRotation(position)}>
@@ -599,10 +671,21 @@ function EnhancedDamageDisk({
         />
       </mesh>
 
+
+      {label && (<Line
+        points={[base, outward]}
+        color={borderColor}
+        lineWidth={1}
+      />)}
+    
+
       {/* DOM label (Html overlay) */}
       {label && (expansionFactor || 0) > 0.3 && (
-        <Html position={[labelX, labelY, 0.025]} center>
-          <div className="damage-zone-label" style={{ ['--zone-color' as string]: borderColor }}>
+        <Html position={outward.toArray()} center zIndexRange={[0, 0]}>
+          <div
+            className="damage-zone-label"
+            style={{ ["--zone-color" as string]: borderColor }}
+          >
             <div className="zone-type">{type.toUpperCase()}</div>
             <div className="zone-name">{label}</div>
             <div className="zone-radius">{(kmRadius / 1000).toFixed(1)} km</div>

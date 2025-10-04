@@ -39,9 +39,9 @@ export default function FormulasPageInner() {
                 },
                 {
                     title: "Impact Velocity",
-                    equation: "v_{impact} = \\sqrt{v_{\\infty}^2 + v_{escape}^2}",
+                    equation: "v(z) = v_{0} \\exp\\left( -\\frac{3\\rho(z) C_{D} H}{4 \\rho_{l} L_{0} \\sin \\theta} \\right)",
                     image: "",
-                    description: "Final velocity at impact accounting for gravitational acceleration. Earth's escape velocity: 11.2 km/s.",
+                    description: "Velocity at altitude z accounting for atmospheric drag, density variation, drag coefficient, and entry angle.",
                     priority: "PRIMARY"
                 }
             ]
@@ -53,25 +53,34 @@ export default function FormulasPageInner() {
             equations: [
                 {
                     title: "Fireball Radius",
-                    equation: "R_f = 6.1 \\times 10^{-3} \\cdot E_{Mt}^{0.4}",
+                    equation: "R_{f} = 0.002 \\cdot E^{1/3}",
                     image: "",
-                    description: "Maximum extent of the thermal fireball. Radius in kilometers, energy in megatons TNT equivalent.",
+                    description: "If the impact velocity exceeds 15 km/s, the fireball radius R_f* is estimated at the time the transparency temperature (2000–3000 K) is reached, which corresponds to maximum thermal radiation output. Initially the fireball will be so hot that the air is ionized, causing it to be opaque to the emitted radiation.",
                     priority: "PRIMARY"
                 },
                 {
-                    title: "Thermal Flux",
-                    equation: "\\Phi = \\frac{f \\cdot E}{4\\pi r^2 \\cdot t}",
+                    title: "Fireball Duration",
+                    equation: "T_{f} = \\frac{R_{f}}{v_{i}}",
                     image: "",
-                    description: "Thermal energy per unit area. f = radiative efficiency, E = total energy, r = distance, t = pulse duration.",
+                    description: "The time for maximum thermal radiation T_f is estimated by assuming the fireball expands initially at approximately the impact velocity v_i.",
+                    priority: "SECONDARY"
+                },
+
+                {
+                    title: "Thermal Flux",
+                    equation: "\\Phi = \\frac{\\eta\\cdot E}{2\\pi r^2}",
+                    image: "",
+                    description: "The thermal exposure Φ measures the heat per unit area at a distance r away from fireball it depends on the blast Energy and constant η approximated at 0.003  ",
                     priority: "SECONDARY"
                 },
                 {
-                    title: "Burn Radius",
-                    equation: "r_{burn} = \\sqrt{\\frac{f \\cdot E}{4\\pi \\cdot \\Phi_{threshold}}}",
+                    title: "Ignition Thermal Exposure",
+                    equation: "\\Phi_{\\text{ignition}} \\approx T_{\\text{ignition}} \\rho c_{p} \\sqrt{\\kappa \\tau_{t}}",
                     image: "",
-                    description: "Distance at which thermal radiation causes burns. Third-degree burns: 125 kJ/m², Second-degree: 63 kJ/m².",
+                    description: "Thermal exposure required to ignite a material (J m^{-2}). It equates the radiant energy received per unit area with the heat needed to raise the surface to the ignition temperature T_{ignition}. Here, ρ is density, c_p is heat capacity, κ is thermal diffusivity, and τ_t is the irradiation time.",
                     priority: "PRIMARY"
                 }
+
             ]
         },
         blast: {
@@ -81,23 +90,22 @@ export default function FormulasPageInner() {
             equations: [
                 {
                     title: "Peak Overpressure",
-                    equation: "\\Delta P = \\frac{P_0}{(1 + \\frac{r}{r_0})^3}",
+                    equation: " p_0 = 3.14 \\times 10^{11} z_0^{-2.6} \\\\ \\beta = 34.87 z_0^{-1.73} \\\\\\\\ p = p_0 e^{-\\beta r}",
                     image: "",
-                    description: "Maximum pressure above atmospheric. P₀ = reference pressure, r = distance, r₀ = characteristic radius.",
+                    description: "Maximum pressure above atmospheric. z₀ = burst altitude in km, r = distance from ground zero in km.",
                     priority: "PRIMARY"
                 },
                 {
                     title: "Mach Reflection",
-                    equation: "P_{reflected} = 2P_{incident} \\cdot \\frac{\\gamma + 1}{\\gamma - 1}",
                     image: "",
-                    description: "Pressure amplification when shock waves reflect off surfaces. γ = heat capacity ratio (≈1.4 for air).",
+                    description: "Pressure amplification can occur when shock waves reflect off surfaces. This effect can increase the overpressure of a location by as much as double.",
                     priority: "SECONDARY"
                 },
                 {
-                    title: "Dynamic Pressure",
-                    equation: "q = \\frac{1}{2}\\rho v^2",
+                    title: "Peak Wind Velocity",
+                    equation: "u = \\frac{5p}{7P_0} \\frac{c_0}{(1 + 6p/7P_0)^{0.5}}",
                     image: "",
-                    description: "Wind pressure behind shock front. ρ = air density, v = particle velocity. Causes structural failure.",
+                    description: "Peak particle velocity (wind velocity) behind the shock front. p = overpressure, P₀ = atmospheric pressure, c₀ = speed of sound in air.",
                     priority: "SECONDARY"
                 }
             ]
@@ -105,27 +113,41 @@ export default function FormulasPageInner() {
         crater: {
             title: "CRATER FORMATION MECHANICS",
             subtitle: "Impact crater scaling and morphology",
-            debrief: "This section explores the equations governing the formation and characteristics of impact craters. These models help estimate crater size, volume, and the extent of material displacement resulting from an asteroid impact.",
+            debrief: "This section explores the equations governing the formation and characteristics of impact craters. Both land and ocean impacts are considered, including surface-water cavities and seafloor cratering after velocity reduction by water drag.",
             equations: [
                 {
-                    title: "Transient Crater Diameter",
-                    equation: "D_{tc} = 1.161\\left(\\frac{\\rho_i}{\\rho_t}\\right)^{1/3}L^{0.78}v_i^{0.44}g^{-0.22}\\sin^{1/3}\\theta",
+                    title: "Transient Crater Diameter (Land/Seafloor)",
+                    equation: "D_{tc} = 1.161\\left(\\frac{\\rho_i}{\\rho_t}\\right)^{1/3} L^{0.78} v_i^{0.44} g^{-0.22} \\sin^{1/3}\\theta",
                     image: "",
-                    description: "Initial excavation diameter. ρᵢ = impactor density, ρₜ = target density, L = impactor diameter, vᵢ = impact velocity, θ = impact angle.",
+                    description: "Baseline excavation diameter in rock or seafloor targets. ρᵢ = impactor density, ρₜ = target density (≈2700 kg/m³ for ocean bedrock or ≈2500 for land strike), L = impactor diameter, vᵢ = impact velocity (accounting for water drag adjustment), θ = impact angle.",
                     priority: "PRIMARY"
                 },
                 {
-                    title: "Final Crater Diameter",
-                    equation: "D_{fr} = \\begin{cases} 1.25D_{tc} & D_{tc} < 3.2\\text{ km} \\\\ 1.17D_{tc}^{1.13}/3200^{0.13} & D_{tc} \\geq 3.2\\text{ km} \\end{cases}",
+                    title: "Transient Water Cavity Diameter",
+                    equation: "D_{tc,w} = 1.365\\left(\\frac{\\rho_i}{\\rho_w}\\right)^{1/3} L^{0.78} v_i^{0.44} g^{-0.22} \\sin^{1/3}\\theta",
                     image: "",
-                    description: "Post-collapse crater size accounting for rim slumping and gravitational modification.",
+                    description: "Cavity formed at the ocean surface. Uses water density ρ_w = 1000 kg/m³ and coefficient 1.365.",
+                    priority: "PRIMARY"
+                },
+                {
+                    title: "Velocity Attenuation in Water",
+                    equation: "v_{sf} = v_i \\exp\\left(-\\tfrac{3\\,\\rho_w C_D d_w}{2 \\rho_i L \\sin\\theta\\,}\\right)",
+                    image: "",
+                    description: "Impactor velocity upon reaching the seafloor. ρ_w = water density, C_D = drag coefficient, d_w = water depth, L = impactor diameter, ρᵢ = impactor density, θ = impact angle.",
+                    priority: "SECONDARY"
+                },
+                {
+                    title: "Final Crater Diameter",
+                    equation: "D_{fr} = \\begin{cases} 1.25D_{tc} & D_{tc} < 3.2\\,\\text{km} \\\\ 1.17 D_{tc}^{1.13} / 3200^{0.13} & D_{tc} \\geq 3.2\\,\\text{km} \\end{cases}",
+                    image: "",
+                    description: "Post-collapse crater size accounting for rim slumping and gravitational modification. Past a diameter of 3.2km, we transition from a simple to complex crater as collapse processes become less understood due to complex relationships between gravitational forces and rock strength",
                     priority: "PRIMARY"
                 },
                 {
                     title: "Excavated Volume",
-                    equation: "V = \\frac{\\pi}{24}D_{tc}^3",
+                    equation: "V = \\tfrac{\\pi}{16\\sqrt{2}} D_{tc}^3",
                     image: "",
-                    description: "Total material displaced during crater formation. Assumes parabolic crater profile.",
+                    description: "Total displaced material. Assumes a parabolic crater profile.",
                     priority: "SECONDARY"
                 }
             ]
@@ -143,18 +165,11 @@ export default function FormulasPageInner() {
                     priority: "PRIMARY"
                 },
                 {
-                    title: "Ground Motion Attenuation",
-                    equation: "a(r) = a_0 \\cdot \\left(\\frac{r_0}{r}\\right)^n \\cdot e^{-\\alpha(r-r_0)}",
+                    title: "Effective Seismic Magnitude",
+                    equation: "M_{eff} = \\begin{cases} M - 0.0238r_{km} & \\text{for } r_{km} < 60 \\text{ km} \\\\ M - 0.0048r_{km} - 1.1644 & \\text{for } 60 \\leq r_{km} < 700 \\text{ km} \\\\ M - 1.66\\log_{10}\\Delta - 6.399 & \\text{for } r_{km} \\geq 700 \\text{ km} \\end{cases}",
                     image: "",
-                    description: "Peak ground acceleration decay. a₀ = source acceleration, n = geometric spreading, α = anelastic attenuation.",
-                    priority: "SECONDARY"
-                },
-                {
-                    title: "Surface Wave Magnitude",
-                    equation: "M_s = \\log_{10}\\left(\\frac{A}{T}\\right) + 1.66\\log_{10}(\\Delta) + 3.3",
-                    image: "",
-                    description: "Long-period surface wave magnitude. A = amplitude, T = period, Δ = epicentral distance in degrees.",
-                    priority: "SECONDARY"
+                    description: "Effective seismic magnitude as a function of distance from impact site. M = actual seismic magnitude, r_km = distance in km, Δ = distance away from impact site.",
+                    priority: "PRIMARY"
                 }
             ]
         },
@@ -174,7 +189,7 @@ export default function FormulasPageInner() {
                     title: "Population within Bounding Square",
                     equation: "density = \\frac{population_{square}}{s^2}, \\quad population_{outside} = 50 \\text{ people/km}^2",
                     image: "",
-                    description: "The bounding square is defined with center at the impact latitude and longitude, and side length s. The square's corners are latitude ± s/2 and longitude ± s/2. Population inside the square is retrieved via API, and density is computed as total population divided by s². For effects outside the bounding square, we approximate a global average density of 50 people/km² to account for water and sparsely populated regions.",
+                    description: "The bounding square is defined with center at the impact latitude and longitude, and side length s. The square's corners are latitude ± s/2 and longitude ± s/2. Population is simpled via 8 local points in impact location via .tif file, and density is computed as total population divided by s². For effects outside the bounding square, we approximate a global average density of 50 people/km² to account for water and sparsely populated regions.",
                     priority: "PRIMARY"
                 },
                 {
@@ -185,8 +200,52 @@ export default function FormulasPageInner() {
                     priority: "PRIMARY"
                 }
             ]
+        },
+        waterLayer: {
+            "title": "Tsunami Calculations",
+            "subtitle": "Predicting Wave Height, Speed, and Arrival Time",
+            "debrief": "This section provides the formulas and underlying principles for calculating key tsunami characteristics following a severe asteroid impact, including wave amplitude, propagation speed, and arrival time. A constant water depth of 3682 meters is assumed for all calculations.",
+            "equations": [
+                {
+                    "title": "Maximum Rim-Wave Amplitude",
+                    "equation": "A_{rw}^{max} = \\min\\left(\\frac{D_{tc}}{14.1}, H\\right)",
+                    "image": "",
+                    "description": "This formula, derived from oceanic impact simulations, estimates the maximum amplitude of the initial rim wave (Arw_max). It is the minimum of two values: the transient crater diameter (Dtc) divided by 14.1, and the water depth (H). This ensures the wave amplitude does not exceed the water depth itself.",
+                    "priority": "PRIMARY"
+                },
+                {
+                    "title": "Rim-Wave Amplitude at a Given Distance",
+                    "equation": "A_{rw} = A_{rw}^{max} \\left(\\frac{R_{rw}}{r}\\right)",
+                    "image": "",
+                    "description": "This equation calculates the rim-wave amplitude (Arw) at a specific radial distance (r) from the impact point, for r > Rrw, where Rrw is the radius of the rim-wave generation zone. The formula incorporates a 1/r decay, which is a common heuristic for wave attenuation with radial distance.",
+                    "priority": "PRIMARY"
+                },
+                {
+                    "title": "Tsunami Propagation Speed (Long-Wave Limit)",
+                    "equation": "c \\approx \\sqrt{gH}\\left(1 + \\frac{A}{2H}\\right)",
+                    "image": "",
+                    "description": "The propagation speed of the tsunami (c) is determined by the long-wave limit, which applies when the wavelength is much greater than the water depth. With an assumed water depth of 3682 meters, this formula is highly applicable. Here, g is the acceleration due to gravity, and A is the maximum amplitude of the wave.",
+                    "priority": "PRIMARY"
+                },
+                {
+                    "title": "Tsunami Propagation Speed (Short-Wave Limit)",
+                    "equation": "c \\approx \\sqrt{\\frac{g\\lambda}{2\\pi}}\\left(1 + \\frac{2\\pi^2 A^2}{\\lambda^2}\\right)",
+                    "image": "",
+                    "description": "This formula provides the propagation speed (c) for the short-wave limit, which applies when the wavelength is much less than the water depth. Here, lambda is the wavelength, g is the acceleration due to gravity, and A is the maximum amplitude of the wave. This formula is included as an alternative for different wave conditions.",
+                    "priority": "SECONDARY"
+                },
+                {
+                    "title": "Maximum Estimated Arrival Time",
+                    "equation": "T_w^{max} = \\frac{r}{\\sqrt{1.56D_{tc} \\tanh\\left(\\frac{6.28H}{D_{tc}}\\right)}}",
+                    "image": "",
+                    "description": "This equation provides the maximum estimated arrival time (Tw_max) of the rim wave or collapse wave at a distance (r). This formula uses a conservative speed estimate based on factors of the transient crater diameter (Dtc) and water depth (H) to provide an upper bound for the arrival time, which is useful for risk assessment and warning systems.",
+                    "priority": "PRIMARY"
+                }
+            ]
         }
     };
+
+    
 
     const categoryData = formulas[category as keyof typeof formulas];
 
