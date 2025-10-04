@@ -31,7 +31,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ loadingProgress }) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, ease: "easeOut" }}
       >
-        Near Earth Objects
+        IMPACT
       </motion.h1>
 
       {/* Loading Bar Container */}

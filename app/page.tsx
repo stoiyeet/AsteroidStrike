@@ -119,7 +119,7 @@ export default function Home(): React.ReactElement {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.6 }}
               >
-                Project Near Earth Objects
+                Project
               </motion.p>
 
               {/* Title */}
@@ -135,23 +135,7 @@ export default function Home(): React.ReactElement {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.5, duration: 0.4 }}
                 >
-                  N
-                </motion.span>
-                <motion.span
-                  className="text-cyan-300 drop-shadow-lg"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.6, duration: 0.4 }}
-                >
-                  E
-                </motion.span>
-                <motion.span
-                  className="text-cyan-200 drop-shadow-lg"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.7, duration: 0.4 }}
-                >
-                  O
+                  IMPACT
                 </motion.span>
               </motion.h1>
 
@@ -162,7 +146,7 @@ export default function Home(): React.ReactElement {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.9, duration: 0.6 }}
               >
-                Project NEO is a real-time simulator that visualizes asteroids in 3D.  
+                Project Impact is a real-time simulator that visualizes asteroids in 3D.  
                 Explore how they move, interact, and what can be done to keep our planet safe.
               </motion.p>
 
