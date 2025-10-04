@@ -17,12 +17,12 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
 }) => {
   const groupRef = useRef<THREE.Group>(null);
   const impactorRef = useRef<THREE.Group>(null);
-  const explosionRef = useRef<THREE.Mesh>(null);
-  const shockwaveRef = useRef<THREE.Mesh>(null);
-  const flashRef = useRef<THREE.Mesh>(null);
-  const debrisRef = useRef<THREE.Points>(null);
+  const impactGroupRef = useRef<THREE.Group>(null);
   const trailRef = useRef<THREE.Points>(null);
   const engineGlowRef = useRef<THREE.Mesh>(null);
+  
+  const dustCloudRefs = useRef<THREE.Mesh[]>([]);
+  const rockDebrisRefs = useRef<THREE.Mesh[]>([]);
   
   const startTime = useRef<number>(0);
   const hasStarted = useRef<boolean>(false);
@@ -34,13 +34,13 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
     const targetPos = asteroidPosition.clone();
     const earthPos = new THREE.Vector3(0, 0, 0);
     const direction = targetPos.clone().sub(earthPos).normalize();
-    return earthPos.clone().add(direction.multiplyScalar(25)); // Launch from near Earth
+    return earthPos.clone().add(direction.multiplyScalar(25));
   }, [asteroidPosition]);
 
   // Create impactor geometry and materials
   const impactorGeometry = useMemo(() => {
     const geometry = new THREE.CylinderGeometry(0.3, 0.5, 2.5, 8);
-    geometry.rotateZ(Math.PI / 2); // Point it horizontally
+    geometry.rotateZ(Math.PI / 2);
     return geometry;
   }, []);
 
@@ -80,9 +80,9 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
       positions[i * 3 + 2] = 0;
       
       const intensity = (50 - i) / 50;
-      colors[i * 3] = 1.0 * intensity; // Red
-      colors[i * 3 + 1] = 0.4 * intensity; // Green
-      colors[i * 3 + 2] = 0.0; // Blue
+      colors[i * 3] = 1.0 * intensity;
+      colors[i * 3 + 1] = 0.4 * intensity;
+      colors[i * 3 + 2] = 0.0;
     }
     
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -102,16 +102,16 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
     []
   );
 
-  // Create explosion material
+  // Physical impact dust cloud material (grey/brown, not fiery)
   const explosionMaterial = useMemo(
     () =>
       new THREE.ShaderMaterial({
         uniforms: {
           time: { value: 0 },
           intensity: { value: 1.0 },
-          color1: { value: new THREE.Color(1, 0.8, 0) }, // Orange
-          color2: { value: new THREE.Color(1, 0.3, 0) }, // Red
-          color3: { value: new THREE.Color(1, 1, 0.8) }, // Yellow-white
+          color1: { value: new THREE.Color(0.65, 0.65, 0.65) }, // Grey dust
+          color2: { value: new THREE.Color(0.5, 0.42, 0.35) }, // Brown rock
+          color3: { value: new THREE.Color(0.85, 0.85, 0.85) }, // Light grey
         },
         vertexShader: `
           varying vec2 vUv;
@@ -122,15 +122,13 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
             vUv = uv;
             vPosition = position;
             
-            // Animate explosion expansion
             vec3 pos = position;
-            float expansionFactor = 1.0 + time * 8.0;
+            float expansionFactor = 1.0 + time * 5.0;
             pos *= expansionFactor;
             
-            // Add noise for irregular explosion
-            float noise = sin(pos.x * 10.0 + time * 20.0) * 
-                         sin(pos.y * 10.0 + time * 20.0) * 
-                         sin(pos.z * 10.0 + time * 20.0) * 0.1;
+            float noise = sin(pos.x * 8.0 + time * 10.0) * 
+                         sin(pos.y * 8.0 + time * 10.0) * 
+                         sin(pos.z * 8.0 + time * 10.0) * 0.2;
             pos += normalize(pos) * noise;
             
             gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
@@ -149,34 +147,31 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
             float dist = length(vPosition);
             float t = clamp(time * 1.5, 0.0, 1.0);
             
-            // Create fireball gradient
             vec3 color = mix(color3, color1, smoothstep(0.0, 0.5, dist));
             color = mix(color, color2, smoothstep(0.5, 1.0, dist));
             
-            // Add pulsing effect
-            float pulse = sin(time * 30.0) * 0.3 + 0.7;
-            color *= pulse;
+            float variation = sin(time * 15.0) * 0.1 + 0.9;
+            color *= variation;
             
-            // Fade out over time
             float fadeOut = 1.0 - smoothstep(0.5, 1.0, time);
             
-            gl_FragColor = vec4(color, intensity * fadeOut * (1.0 - dist * 0.5));
+            gl_FragColor = vec4(color, intensity * fadeOut * (0.65 - dist * 0.35));
           }
         `,
         transparent: true,
         side: THREE.DoubleSide,
-        blending: THREE.AdditiveBlending,
+        blending: THREE.NormalBlending,
       }),
     []
   );
 
-  // Create shockwave material
+  // Crater ring material (ground dust ring, not energy shockwave)
   const shockwaveMaterial = useMemo(
     () =>
       new THREE.ShaderMaterial({
         uniforms: {
           time: { value: 0 },
-          color: { value: new THREE.Color(0.6, 0.8, 1.0) },
+          color: { value: new THREE.Color(0.68, 0.68, 0.68) },
         },
         vertexShader: `
           varying vec2 vUv;
@@ -186,8 +181,7 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
             vUv = uv;
             vec3 pos = position;
             
-            // Expand shockwave
-            float expansion = time * 15.0;
+            float expansion = time * 10.0;
             pos *= (1.0 + expansion);
             
             gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
@@ -203,21 +197,21 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
             float ring = smoothstep(0.6, 1.0, dist) * smoothstep(1.0, 0.6, dist);
             float fadeOut = 1.0 - smoothstep(0.2, 1.0, time);
             
-            gl_FragColor = vec4(color, ring * fadeOut * 0.6);
+            gl_FragColor = vec4(color, ring * fadeOut * 0.35);
           }
         `,
         transparent: true,
         side: THREE.DoubleSide,
-        blending: THREE.AdditiveBlending,
+        blending: THREE.NormalBlending,
       }),
     []
   );
 
-  // Create flash material
+  // Brief white flash (not intense)
   const flashMaterial = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
-        color: new THREE.Color(2, 2, 2),
+        color: new THREE.Color(1.2, 1.2, 1.2),
         transparent: true,
         opacity: 0,
         side: THREE.DoubleSide,
@@ -236,41 +230,34 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
     []
   );
 
-  // Create debris particles
-  const debrisGeometry = useMemo(() => {
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(300 * 3);
-    const velocities = new Float32Array(300 * 3);
-    
-    for (let i = 0; i < 300; i++) {
-      // Random positions around impact center
-      positions[i * 3] = (Math.random() - 0.5) * 2;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 2;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 2;
-      
-      // Random velocities
-      velocities[i * 3] = (Math.random() - 0.5) * 20;
-      velocities[i * 3 + 1] = (Math.random() - 0.5) * 20;
-      velocities[i * 3 + 2] = (Math.random() - 0.5) * 20;
-    }
-    
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
-    
-    return geometry;
+  // Dust cloud spheres data
+  const dustClouds = useMemo(() => {
+    return Array.from({ length: 8 }, (_, i) => ({
+      id: i,
+      angle: (i / 8) * Math.PI * 2,
+      elevation: (i % 3) * 0.3 - 0.3,
+      speed: 2 + (i % 3) * 0.5,
+      size: 0.6 + Math.random() * 0.4,
+      color: i % 2 === 0 ? new THREE.Color(0.6, 0.6, 0.6) : new THREE.Color(0.5, 0.42, 0.35),
+    }));
   }, []);
 
-  const debrisMaterial = useMemo(
-    () =>
-      new THREE.PointsMaterial({
-        color: new THREE.Color(1, 0.5, 0.1),
-        size: 0.1,
-        transparent: true,
-        opacity: 0.8,
-        blending: THREE.AdditiveBlending,
-      }),
-    []
-  );
+  // Rock debris chunks data
+  const rockDebris = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => ({
+      id: i,
+      angle: (i / 12) * Math.PI * 2,
+      elevation: ((i % 4) / 4) * Math.PI / 2,
+      speed: 3 + (i % 4),
+      size: [0.15 + Math.random() * 0.2, 0.12 + Math.random() * 0.15, 0.18 + Math.random() * 0.2] as [number, number, number],
+      color: i % 3 === 0 ? 0x696969 : i % 3 === 1 ? 0x8B7355 : 0x5A5A5A,
+      rotationSpeed: [
+        (Math.random() - 0.5) * 20,
+        (Math.random() - 0.5) * 20,
+        (Math.random() - 0.5) * 20
+      ] as [number, number, number],
+    }));
+  }, []);
 
   useFrame((state) => {
     if (!isActive) {
@@ -286,8 +273,8 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
     }
 
     const elapsed = state.clock.elapsedTime - startTime.current;
-    const flightDuration = 2.5; // 2.5 seconds flight time
-    const explosionDuration = 3.0; // 3 seconds explosion
+    const flightDuration = 2.5;
+    const explosionDuration = 3.0;
     const totalDuration = flightDuration + explosionDuration;
 
     // Phase 1: Impactor flight
@@ -295,7 +282,6 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
       const flightProgress = elapsed / flightDuration;
       
       if (impactorRef.current && trailRef.current && engineGlowRef.current) {
-        // Interpolate impactor position
         const currentPos = new THREE.Vector3().lerpVectors(
           launchPosition,
           asteroidPosition,
@@ -305,24 +291,20 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
         impactorRef.current.position.copy(currentPos);
         impactorRef.current.visible = true;
         
-        // Point impactor toward target
         const direction = asteroidPosition.clone().sub(currentPos).normalize();
         impactorRef.current.lookAt(currentPos.clone().add(direction));
         
-        // Engine glow pulsing
         const pulse = 0.6 + Math.sin(elapsed * 15) * 0.4;
         engineGlowMaterial.opacity = pulse;
         const scale = 1 + Math.sin(elapsed * 12) * 0.2;
         engineGlowRef.current.scale.setScalar(scale);
         
-        // Update trail
         const trailPositions = trailGeometry.attributes.position.array as Float32Array;
         for (let i = 49; i > 0; i--) {
           trailPositions[i * 3] = trailPositions[(i - 1) * 3];
           trailPositions[i * 3 + 1] = trailPositions[(i - 1) * 3 + 1];
           trailPositions[i * 3 + 2] = trailPositions[(i - 1) * 3 + 2];
         }
-        // Add slight offset for engine exhaust position
         const exhaustPos = currentPos.clone().add(direction.clone().multiplyScalar(-1.5));
         trailPositions[0] = exhaustPos.x;
         trailPositions[1] = exhaustPos.y;
@@ -334,7 +316,6 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
     }
     // Phase 2: Impact and explosion
     else {
-      // Hide impactor and trail after impact
       if (impactorRef.current) impactorRef.current.visible = false;
       if (trailRef.current) trailRef.current.visible = false;
       
@@ -345,51 +326,61 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
       const explosionElapsed = elapsed - flightDuration;
       const explosionProgress = Math.min(explosionElapsed / explosionDuration, 1);
 
-      // Update explosion effects
-      if (explosionRef.current && explosionMaterial) {
-        explosionMaterial.uniforms.time.value = explosionProgress;
-        explosionMaterial.uniforms.intensity.value = Math.max(0, 1.0 - explosionProgress * 1.5); // Fade faster
+      // Animate dust cloud spheres
+      dustCloudRefs.current.forEach((cloud, i) => {
+        if (!cloud) return;
         
-        // Hide explosion sphere completely after short duration
-        if (explosionProgress > 0.4) {
-          explosionRef.current.visible = false;
-        } else {
-          explosionRef.current.visible = true;
-        }
-      }
-
-      // Update shockwave
-      if (shockwaveRef.current && shockwaveMaterial) {
-        shockwaveMaterial.uniforms.time.value = explosionProgress;
-      }
-
-      // Update flash (brief initial flash)
-      if (flashRef.current && flashMaterial) {
-        if (explosionProgress < 0.1) {
-          flashMaterial.opacity = (1 - explosionProgress * 10) * 0.8;
-        } else {
-          flashMaterial.opacity = 0;
-        }
-      }
-
-      // Update debris
-      if (debrisRef.current && debrisGeometry) {
-        const positions = debrisGeometry.attributes.position.array as Float32Array;
-        const velocities = debrisGeometry.attributes.velocity.array as Float32Array;
+        const data = dustClouds[i];
+        const horizontalDist = explosionProgress * data.speed;
         
-        for (let i = 0; i < positions.length; i += 3) {
-          positions[i] += velocities[i] * 0.015 * explosionProgress;
-          positions[i + 1] += velocities[i + 1] * 0.015 * explosionProgress;
-          positions[i + 2] += velocities[i + 2] * 0.015 * explosionProgress;
-        }
+        cloud.position.set(
+          Math.cos(data.angle) * horizontalDist,
+          data.elevation + Math.sin(explosionProgress * Math.PI) * 0.8,
+          Math.sin(data.angle) * horizontalDist
+        );
         
-        debrisGeometry.attributes.position.needsUpdate = true;
-        debrisMaterial.opacity = Math.max(0, 0.8 - explosionProgress);
-      }
+        // Scale up dust clouds as they expand
+        const scale = 1 + explosionProgress * 2.5;
+        cloud.scale.setScalar(scale);
+        
+        // Slow rotation
+        cloud.rotation.y += 0.01;
+        
+        // Fade out
+        const material = cloud.material as THREE.MeshBasicMaterial;
+        material.opacity = Math.max(0, 0.6 - explosionProgress * 0.6);
+      });
 
-      // Camera shake effect
-      if (explosionProgress < 0.4) {
-        const shakeIntensity = (0.4 - explosionProgress) * 0.3;
+      // Animate rock debris chunks
+      rockDebrisRefs.current.forEach((rock, i) => {
+        if (!rock) return;
+        
+        const data = rockDebris[i];
+        const speed = data.speed;
+        const horizontalDist = explosionProgress * speed * Math.cos(data.elevation);
+        const verticalVel = speed * Math.sin(data.elevation);
+        const gravity = -4.9;
+        const verticalDist = verticalVel * explosionElapsed + 0.5 * gravity * explosionElapsed * explosionElapsed;
+        
+        rock.position.set(
+          Math.cos(data.angle) * horizontalDist,
+          Math.max(0, verticalDist),
+          Math.sin(data.angle) * horizontalDist
+        );
+        
+        // Tumbling motion
+        rock.rotation.x += data.rotationSpeed[0] * 0.016;
+        rock.rotation.y += data.rotationSpeed[1] * 0.016;
+        rock.rotation.z += data.rotationSpeed[2] * 0.016;
+        
+        // Fade out
+        const material = rock.material as THREE.MeshStandardMaterial;
+        material.opacity = Math.max(0, 1 - explosionProgress * 0.8);
+      });
+
+      // Reduced camera shake
+      if (explosionProgress < 0.25) {
+        const shakeIntensity = (0.25 - explosionProgress) * 0.12;
         state.camera.position.add(
           new THREE.Vector3(
             (Math.random() - 0.5) * shakeIntensity,
@@ -400,7 +391,6 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
       }
     }
 
-    // Complete the effect
     if (elapsed > totalDuration && !isComplete.current) {
       isComplete.current = true;
       onComplete?.();
@@ -413,13 +403,10 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
     <group ref={groupRef}>
       {/* Kinetic Impactor Spacecraft */}
       <group ref={impactorRef}>
-        {/* Main body */}
         <mesh geometry={impactorGeometry} material={impactorMaterial} />
         
-        {/* Reinforced nose cone */}
         <mesh geometry={noseConeGeometry} material={noseConeMaterial} position={[1.5, 0, 0]} />
         
-        {/* Solar panels */}
         <mesh position={[0, 1.5, 0]} rotation={[0, 0, Math.PI/2]}>
           <boxGeometry args={[0.03, 2.5, 1]} />
           <meshStandardMaterial color={0x1a237e} metalness={0.1} roughness={0.8} />
@@ -429,7 +416,6 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
           <meshStandardMaterial color={0x1a237e} metalness={0.1} roughness={0.8} />
         </mesh>
         
-        {/* Thruster nozzles */}
         {Array.from({ length: 4 }).map((_, i) => (
           <mesh 
             key={i}
@@ -444,7 +430,6 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
           </mesh>
         ))}
         
-        {/* Main engine exhaust glow */}
         <mesh 
           ref={engineGlowRef}
           position={[-2, 0, 0]}
@@ -453,7 +438,6 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
           <coneGeometry args={[0.25, 1.2]} />
         </mesh>
         
-        {/* Status lights */}
         <mesh position={[1, 0, 0.35]}>
           <sphereGeometry args={[0.04]} />
           <meshBasicMaterial color={0x00FF00} />
@@ -467,7 +451,6 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
           <meshBasicMaterial color={0xFF0000} />
         </mesh>
 
-        {/* Engine illumination */}
         <pointLight
           position={[-2, 0, 0]}
           color={0xFF4500}
@@ -476,34 +459,61 @@ const KineticImpactor: React.FC<KineticImpactorProps> = ({
         />
       </group>
       
-      {/* Engine trail */}
       <points ref={trailRef} geometry={trailGeometry} material={trailMaterial} />
       
-      {/* Impact explosion effects positioned at asteroid */}
-      <group position={asteroidPosition}>
-        {/* Main explosion fireball */}
-        <mesh ref={explosionRef} material={explosionMaterial}>
-          <sphereGeometry args={[1.5, 32, 32]} />
+      {/* Physical impact effects at asteroid position */}
+      <group ref={impactGroupRef} position={asteroidPosition}>
+        {/* Dust cloud spheres */}
+        {dustClouds.map((data, i) => (
+          <mesh
+            key={`dust-${data.id}`}
+            ref={(el) => {
+              if (el) dustCloudRefs.current[i] = el;
+            }}
+          >
+            <sphereGeometry args={[data.size, 16, 16]} />
+            <meshBasicMaterial
+              color={data.color}
+              transparent
+              opacity={0.6}
+            />
+          </mesh>
+        ))}
+
+        {/* Rock debris chunks */}
+        {rockDebris.map((data, i) => (
+          <mesh
+            key={`rock-${data.id}`}
+            ref={(el) => {
+              if (el) rockDebrisRefs.current[i] = el;
+            }}
+          >
+            <boxGeometry args={data.size} />
+            <meshStandardMaterial
+              color={data.color}
+              roughness={0.9}
+              metalness={0.1}
+              transparent
+              opacity={1}
+            />
+          </mesh>
+        ))}
+        
+        {/* Brief impact flash */}
+        <mesh>
+          <sphereGeometry args={[0.5, 16, 16]} />
+          <meshBasicMaterial
+            color={new THREE.Color(1.2, 1.2, 1.2)}
+            transparent
+            opacity={hasImpacted.current ? 0.3 : 0}
+          />
         </mesh>
         
-        {/* Shockwave */}
-        <mesh ref={shockwaveRef} material={shockwaveMaterial}>
-          <sphereGeometry args={[2, 32, 32]} />
-        </mesh>
-        
-        {/* Initial flash */}
-        <mesh ref={flashRef} material={flashMaterial}>
-          <sphereGeometry args={[4, 16, 16]} />
-        </mesh>
-        
-        {/* Debris particles */}
-        <points ref={debrisRef} geometry={debrisGeometry} material={debrisMaterial} />
-        
-        {/* Impact flash light */}
+        {/* Warm orange light for physical impact */}
         <pointLight
-          color={0xFFFFFF}
-          intensity={15}
-          distance={25}
+          color={0xFFA500}
+          intensity={6}
+          distance={16}
           decay={2}
         />
       </group>
