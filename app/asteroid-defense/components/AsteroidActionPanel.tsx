@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Asteroid, GameState, DeflectionMission } from '../types';
 import { ACTION_COSTS } from '../constants';
-import { getTorinoScale } from '../gameUtils';
+import { getTorinoScale, getPalermoScale, applyOpticalFollowUp, applyRadarCampaign } from '../gameUtils';
 import { impactModeling } from '../services/impactModeling';
 
 interface AsteroidActionPanelProps {
@@ -13,6 +13,7 @@ interface AsteroidActionPanelProps {
   onAlert: () => void;
   onLaunchMission: (missionType: DeflectionMission['type']) => void;
   onEvacuate: () => void;
+  onAsteroidUpdate?: (updated: Asteroid) => void;
 }
 
 export default function AsteroidActionPanel({ 
@@ -21,7 +22,8 @@ export default function AsteroidActionPanel({
   onTrack, 
   onAlert, 
   onLaunchMission, 
-  onEvacuate 
+  onEvacuate,
+  onAsteroidUpdate
 }: AsteroidActionPanelProps) {
   const timeToImpactDays = asteroid.timeToImpactHours / 24;
   const canTrack = !asteroid.isTracked && gameState.budget >= ACTION_COSTS.trackAsteroid;
@@ -34,6 +36,7 @@ export default function AsteroidActionPanel({
   const [showImpactDetails, setShowImpactDetails] = useState(false);
   
   const torinoScale = getTorinoScale(asteroid);
+  const palermoScale = getPalermoScale(asteroid);
   const torinoColors = ['bg-gray-600', 'bg-green-600', 'bg-green-600', 'bg-yellow-600', 'bg-yellow-600', 'bg-orange-600', 'bg-orange-600', 'bg-red-600', 'bg-red-700', 'bg-red-800', 'bg-red-900'];
   
   // Calculate impact assessment
@@ -53,48 +56,67 @@ export default function AsteroidActionPanel({
   
   return (
     <div className="relative">
-      <div className="mb-4">
-        <h3 className="text-xl font-bold text-white mb-2">{asteroid.name}</h3>
-        <div className="text-sm text-slate-400">Detailed analysis and action options</div>
+      {/* Header with gradient background */}
+      <div className="mb-6 relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 border border-slate-700/50 p-6 shadow-2xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5" />
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-2">
+            <div className={`w-3 h-3 rounded-full animate-pulse ${
+              asteroid.size === 'large' ? 'bg-red-500' :
+              asteroid.size === 'medium' ? 'bg-orange-500' :
+              asteroid.size === 'small' ? 'bg-yellow-500' :
+              'bg-slate-400'
+            }`} />
+            <h3 className="text-2xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+              {asteroid.name}
+            </h3>
+          </div>
+          <div className="text-sm text-slate-400">Detailed threat analysis and response options</div>
+        </div>
       </div>
       
       {/* Enhanced NASA Data Section */}
       {asteroid.realAsteroidKey && (
-        <div className="mb-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-semibold text-blue-300">NASA/JPL Database</h4>
+        <div className="mb-6 p-6 bg-gradient-to-br from-blue-950/40 via-blue-900/20 to-indigo-950/40 border border-blue-500/30 rounded-xl shadow-lg backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                <span className="text-blue-300 text-sm font-bold">NASA</span>
+              </div>
+              <h4 className="font-semibold text-blue-200 text-lg">JPL Database Record</h4>
+            </div>
             {asteroid.isPotentiallyHazardous && (
-              <div className="px-3 py-1 bg-red-500/20 text-red-300 border border-red-500/30 rounded text-xs font-medium">
-                PHA - Potentially Hazardous
+              <div className="px-3 py-1.5 bg-gradient-to-r from-red-500/20 to-orange-500/20 text-red-200 border border-red-400/40 rounded-lg text-xs font-semibold shadow-lg shadow-red-500/10">
+                ⚠️ PHA - Potentially Hazardous
               </div>
             )}
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             {asteroid.material && (
-              <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
-                <div className="text-slate-400 text-sm">Composition</div>
-                <div className="font-semibold text-blue-200">{asteroid.material}</div>
+              <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 p-4 rounded-lg border border-slate-600/50 hover:border-blue-500/40 transition-all duration-200 shadow-lg">
+                <div className="text-slate-400 text-xs mb-1.5 uppercase tracking-wider">Composition</div>
+                <div className="font-semibold text-blue-100 text-lg">{asteroid.material}</div>
               </div>
             )}
             {asteroid.density && (
-              <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
-                <div className="text-slate-400 text-sm">Density</div>
-                <div className="font-semibold text-blue-200">{asteroid.density} g/cm³</div>
+              <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 p-4 rounded-lg border border-slate-600/50 hover:border-blue-500/40 transition-all duration-200 shadow-lg">
+                <div className="text-slate-400 text-xs mb-1.5 uppercase tracking-wider">Density</div>
+                <div className="font-semibold text-blue-100 text-lg">{asteroid.density} g/cm³</div>
               </div>
             )}
-            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
-              <div className="text-slate-400 text-sm">Mass (Estimated)</div>
-              <div className="font-semibold text-blue-200">{(asteroid.massKg / 1e12).toExponential(2)} × 10¹² kg</div>
+            <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 p-4 rounded-lg border border-slate-600/50 hover:border-blue-500/40 transition-all duration-200 shadow-lg">
+              <div className="text-slate-400 text-xs mb-1.5 uppercase tracking-wider">Mass (Estimated)</div>
+              <div className="font-semibold text-blue-100 text-lg">{(asteroid.massKg / 1e12).toExponential(2)} × 10¹² kg</div>
             </div>
-            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
-              <div className="text-slate-400 text-sm">Velocity</div>
-              <div className="font-semibold text-blue-200">{asteroid.velocityKmps.toFixed(1)} km/s</div>
+            <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 p-4 rounded-lg border border-slate-600/50 hover:border-blue-500/40 transition-all duration-200 shadow-lg">
+              <div className="text-slate-400 text-xs mb-1.5 uppercase tracking-wider">Velocity</div>
+              <div className="font-semibold text-blue-100 text-lg">{asteroid.velocityKmps.toFixed(1)} km/s</div>
             </div>
             {asteroid.absoluteMagnitude && (
-              <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
-                <div className="text-slate-400 text-sm">Abs. Magnitude (H)</div>
-                <div className="font-semibold text-blue-200">{asteroid.absoluteMagnitude.toFixed(1)}</div>
+              <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 p-4 rounded-lg border border-slate-600/50 hover:border-blue-500/40 transition-all duration-200 shadow-lg">
+                <div className="text-slate-400 text-xs mb-1.5 uppercase tracking-wider">Abs. Magnitude (H)</div>
+                <div className="font-semibold text-blue-100 text-lg">{asteroid.absoluteMagnitude.toFixed(1)}</div>
               </div>
             )}
           </div>
@@ -168,35 +190,40 @@ export default function AsteroidActionPanel({
 
       {/* Impact Assessment Section */}
       {impactAssessment && (
-        <div className="mb-4 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-semibold text-red-300">Impact Assessment (USGS Model)</h4>
+        <div className="mb-6 p-6 bg-gradient-to-br from-red-950/40 via-red-900/20 to-orange-950/40 border border-red-500/30 rounded-xl shadow-lg backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center border border-red-400/30">
+                <span className="text-red-300 text-xl">⚠</span>
+              </div>
+              <h4 className="font-semibold text-red-200 text-lg">Impact Assessment (USGS Model)</h4>
+            </div>
             <button
               onClick={() => setShowImpactDetails(!showImpactDetails)}
-              className="px-3 py-1 text-sm bg-red-600/50 hover:bg-red-600/70 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm bg-gradient-to-r from-red-600/60 to-red-700/60 hover:from-red-600/80 hover:to-red-700/80 rounded-lg transition-all duration-200 font-medium text-white shadow-lg border border-red-500/30"
             >
-              {showImpactDetails ? 'Hide' : 'Show'} Details
+              {showImpactDetails ? '▲ Hide' : '▼ Show'} Details
             </button>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-4">
-            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
-              <div className="text-slate-400">Equivalent Earthquake</div>
-              <div className="font-semibold text-red-200">Magnitude {impactAssessment.equivalentMagnitude}</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
+            <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 p-4 rounded-lg border border-slate-600/50 hover:border-red-500/40 transition-all duration-200 shadow-lg">
+              <div className="text-slate-400 text-xs mb-1.5 uppercase tracking-wider">Equivalent Earthquake</div>
+              <div className="font-semibold text-red-200 text-lg">Magnitude {impactAssessment.equivalentMagnitude}</div>
             </div>
-            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
-              <div className="text-slate-400">Impact Energy</div>
-              <div className="font-semibold text-red-200">{impactAssessment.energyMegatonsTNT.toExponential(1)} MT TNT</div>
+            <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 p-4 rounded-lg border border-slate-600/50 hover:border-red-500/40 transition-all duration-200 shadow-lg">
+              <div className="text-slate-400 text-xs mb-1.5 uppercase tracking-wider">Impact Energy</div>
+              <div className="font-semibold text-red-200 text-lg">{impactAssessment.energyMegatonsTNT.toExponential(1)} MT TNT</div>
             </div>
             {impactAssessment.craterDiameter && (
-              <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
-                <div className="text-slate-400">Crater Diameter</div>
-                <div className="font-semibold text-red-200">{impactAssessment.craterDiameter.toFixed(1)} km</div>
+              <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 p-4 rounded-lg border border-slate-600/50 hover:border-red-500/40 transition-all duration-200 shadow-lg">
+                <div className="text-slate-400 text-xs mb-1.5 uppercase tracking-wider">Crater Diameter</div>
+                <div className="font-semibold text-red-200 text-lg">{impactAssessment.craterDiameter.toFixed(1)} km</div>
               </div>
             )}
-            <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-600">
-              <div className="text-slate-400">Seismic Radius</div>
-              <div className="font-semibold text-red-200">{impactAssessment.seismicRadius} km</div>
+            <div className="bg-gradient-to-br from-slate-800/70 to-slate-900/70 p-4 rounded-lg border border-slate-600/50 hover:border-red-500/40 transition-all duration-200 shadow-lg">
+              <div className="text-slate-400 text-xs mb-1.5 uppercase tracking-wider">Seismic Radius</div>
+              <div className="font-semibold text-red-200 text-lg">{impactAssessment.seismicRadius} km</div>
             </div>
           </div>
 
@@ -244,134 +271,229 @@ export default function AsteroidActionPanel({
         </div>
       )}
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-4">
-        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600 min-h-[120px] overflow-hidden text-center">
-          <div className="text-slate-400 text-xs mb-2">Size Category</div>
-          <div className={`font-bold text-base mb-1 ${
-            asteroid.size === 'large' ? 'text-red-400' :
-            asteroid.size === 'medium' ? 'text-orange-400' :
-            asteroid.size === 'small' ? 'text-yellow-400' :
-            'text-slate-400'
-          }`}>
-            {asteroid.size.toUpperCase()}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 p-5 rounded-xl border border-slate-600/50 min-h-[140px] overflow-hidden text-center shadow-lg hover:shadow-xl hover:border-slate-500/60 transition-all duration-200">
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-500/5 to-transparent" />
+          <div className="relative">
+            <div className="text-slate-400 text-[10px] mb-2 uppercase tracking-wider font-medium">Size Category</div>
+            <div className={`font-bold text-2xl mb-2 ${
+              asteroid.size === 'large' ? 'text-red-400' :
+              asteroid.size === 'medium' ? 'text-orange-400' :
+              asteroid.size === 'small' ? 'text-yellow-400' :
+              'text-slate-400'
+            }`}>
+              {asteroid.size.toUpperCase()}
+            </div>
+            <div className="text-slate-300 text-sm font-medium">{asteroid.diameterM.toFixed(0)}m diameter</div>
           </div>
-          <div className="text-slate-300 text-xs leading-tight">{asteroid.diameterM.toFixed(0)}m diameter</div>
         </div>
         
-        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600 min-h-[120px] overflow-hidden text-center">
-          <div className="text-slate-400 text-xs mb-2">Time to Impact</div>
-          <div className="font-bold text-base text-white mb-1">{timeToImpactDays.toFixed(1)} days</div>
-          <div className="text-slate-300 text-xs leading-tight">±{asteroid.uncertaintyKm.toFixed(0)}km uncertainty</div>
+        <div className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 p-5 rounded-xl border border-slate-600/50 min-h-[140px] overflow-hidden text-center shadow-lg hover:shadow-xl hover:border-slate-500/60 transition-all duration-200">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent" />
+          <div className="relative">
+            <div className="text-slate-400 text-[10px] mb-2 uppercase tracking-wider font-medium">Time to Impact</div>
+            <div className="font-bold text-2xl text-blue-200 mb-2">{timeToImpactDays.toFixed(1)}</div>
+            <div className="text-slate-300 text-xs">days</div>
+            <div className="text-slate-400 text-xs mt-1">±{asteroid.uncertaintyKm.toFixed(0)}km uncertainty</div>
+          </div>
         </div>
         
-        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-600 min-h-[120px] overflow-hidden text-center">
-          <div className="text-slate-400 text-xs mb-2">Impact Probability</div>
-          <div className={`font-bold text-base mb-1 ${
-            asteroid.impactProbability > 0.5 ? 'text-red-400' :
-            asteroid.impactProbability > 0.2 ? 'text-orange-400' :
-            'text-yellow-400'
-          }`}>
-            {(asteroid.impactProbability * 100).toFixed(1)}%
+        <div className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 p-5 rounded-xl border border-slate-600/50 min-h-[140px] overflow-hidden text-center shadow-lg hover:shadow-xl hover:border-slate-500/60 transition-all duration-200">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent" />
+          <div className="relative">
+            <div className="text-slate-400 text-[10px] mb-2 uppercase tracking-wider font-medium">Impact Probability</div>
+            <div className={`font-bold text-2xl mb-1 ${
+              asteroid.impactProbability > 0.5 ? 'text-red-400' :
+              asteroid.impactProbability > 0.2 ? 'text-orange-400' :
+              'text-yellow-400'
+            }`}>
+              {(asteroid.impactProbability * 100).toFixed(1)}%
+            </div>
+            <div className="text-slate-300 text-xs mb-1">Torino Scale: {torinoScale}/10</div>
+            <div className="text-slate-400 text-[10px] leading-tight">
+              Risk assessment scale (0–10)
+            </div>
           </div>
-          <div className="text-slate-300 text-xs leading-tight">Torino Scale: {torinoScale}</div>
+        </div>
+
+        <div className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 p-5 rounded-xl border border-slate-600/50 min-h-[140px] overflow-hidden text-center shadow-lg hover:shadow-xl hover:border-slate-500/60 transition-all duration-200">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent" />
+          <div className="relative">
+            <div className="text-slate-400 text-[10px] mb-2 uppercase tracking-wider font-medium">Palermo Scale</div>
+            <div className={`font-bold text-2xl mb-1 ${
+              palermoScale >= 0 ? 'text-red-300' : 'text-slate-300'
+            }`}>
+              {palermoScale.toFixed(2)}
+            </div>
+            <div className="text-slate-300 text-xs mb-1">
+              {palermoScale < 0 ? 'Below background' : palermoScale < 1 ? 'Comparable' : 'Above background'}
+            </div>
+            <div className="text-slate-400 text-[10px] leading-tight">
+              Technical hazard scale
+            </div>
+          </div>
         </div>
       </div>
       
       {/* Action Buttons - Sticky at bottom */}
-      <div className="sticky bottom-0 bg-slate-800/95 backdrop-blur-sm border-t border-slate-600 pt-4 -mx-6 px-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mb-4">
+      <div className="sticky bottom-0 bg-gradient-to-t from-slate-900/98 via-slate-800/95 to-slate-800/90 backdrop-blur-md border-t border-slate-600/50 pt-5 -mx-6 px-6 shadow-2xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
           <button
             onClick={onTrack}
             disabled={!canTrack}
-            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors relative ${
+            className={`relative px-5 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 shadow-lg ${
               canTrack 
-                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                : 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white border border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/20 hover:scale-[1.02]' 
+                : 'bg-slate-700/50 text-slate-500 cursor-not-allowed border border-slate-600/30'
             }`}
             onMouseEnter={() => setShowTooltip('track')}
             onMouseLeave={() => setShowTooltip(null)}
           >
-            Track Object
+            <span className="flex items-center justify-center gap-2">
+              <span>🔭</span>
+              <span>Track Object</span>
+            </span>
           </button>
           
           <button
             onClick={onAlert}
             disabled={!canAlert}
-            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+            className={`relative px-5 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 shadow-lg ${
               canAlert 
-                ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-                : 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                ? 'bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-white border border-yellow-500/30 hover:shadow-xl hover:shadow-yellow-500/20 hover:scale-[1.02]' 
+                : 'bg-slate-700/50 text-slate-500 cursor-not-allowed border border-slate-600/30'
             }`}
             onMouseEnter={() => setShowTooltip('alert')}
             onMouseLeave={() => setShowTooltip(null)}
           >
-            Issue Alert
+            <span className="flex items-center justify-center gap-2">
+              <span>📢</span>
+              <span>Issue Alert</span>
+            </span>
           </button>
           
           <button
             onClick={() => setShowMissionOptions(!showMissionOptions)}
             disabled={!canLaunchMission}
-            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+            className={`relative px-5 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 shadow-lg ${
               canLaunchMission 
-                ? 'bg-red-600 hover:bg-red-700 text-white' 
-                : 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white border border-red-500/30 hover:shadow-xl hover:shadow-red-500/20 hover:scale-[1.02]' 
+                : 'bg-slate-700/50 text-slate-500 cursor-not-allowed border border-slate-600/30'
             }`}
             onMouseEnter={() => setShowTooltip('mission')}
             onMouseLeave={() => setShowTooltip(null)}
           >
-            Launch Mission
+            <span className="flex items-center justify-center gap-2">
+              <span>🚀</span>
+              <span>Launch Mission</span>
+            </span>
           </button>
           
           <button
             onClick={onEvacuate}
             disabled={!canEvacuate}
-            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+            className={`relative px-5 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 shadow-lg ${
               canEvacuate
-                ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                : 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white border border-purple-500/30 hover:shadow-xl hover:shadow-purple-500/20 hover:scale-[1.02]'
+                : 'bg-slate-700/50 text-slate-500 cursor-not-allowed border border-slate-600/30'
             }`}
             onMouseEnter={() => setShowTooltip('evacuate')}
             onMouseLeave={() => setShowTooltip(null)}
           >
-            Order Evacuation
+            <span className="flex items-center justify-center gap-2">
+              <span>🚨</span>
+              <span>Order Evacuation</span>
+            </span>
+          </button>
+
+          {/* Observation actions */}
+          <button
+            onClick={() => onAsteroidUpdate && onAsteroidUpdate(applyOpticalFollowUp(asteroid))}
+            className="relative px-5 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white border border-emerald-500/30 shadow-lg hover:shadow-xl hover:shadow-emerald-500/20 hover:scale-[1.02]"
+            title="Optical follow-up reduces uncertainty and refines probability"
+          >
+            <span className="flex items-center justify-center gap-2">
+              <span>📡</span>
+              <span>Optical Follow-up</span>
+            </span>
+          </button>
+          <button
+            onClick={() => onAsteroidUpdate && onAsteroidUpdate(applyRadarCampaign(asteroid))}
+            className="relative px-5 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 bg-gradient-to-r from-green-700 to-green-800 hover:from-green-600 hover:to-green-700 text-white border border-green-600/30 shadow-lg hover:shadow-xl hover:shadow-green-600/20 hover:scale-[1.02]"
+            title="Radar campaign significantly reduces uncertainty"
+          >
+            <span className="flex items-center justify-center gap-2">
+              <span>📊</span>
+              <span>Radar Campaign</span>
+            </span>
           </button>
         </div>
       </div>
       
       {/* Mission Options */}
       {showMissionOptions && canLaunchMission && (
-        <div className="mb-4 p-4 bg-slate-800/50 rounded-lg border border-slate-600">
-          <h4 className="font-semibold mb-3 text-white">Mission Options</h4>
+        <div className="mb-6 p-5 bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-xl border border-slate-600/50 shadow-xl">
+          <h4 className="font-semibold mb-4 text-white text-lg flex items-center gap-2">
+            <span className="text-2xl">🚀</span>
+            <span>Select Mission Type</span>
+          </h4>
           <div className="grid grid-cols-1 gap-3">
             <button
               onClick={() => {
                 onLaunchMission('kinetic');
                 setShowMissionOptions(false);
               }}
-              className="px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium transition-colors"
+              className="group px-5 py-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 rounded-xl text-sm font-semibold transition-all duration-200 border border-red-500/30 shadow-lg hover:shadow-xl hover:shadow-red-500/20 hover:scale-[1.02]"
               title={`Kinetic Impactor - Direct collision ($${ACTION_COSTS.launchKineticMission}B)`}
             >
-              Kinetic Impactor (${ACTION_COSTS.launchKineticMission}B)
+              <div className="flex items-center justify-between text-white">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">💥</span>
+                  <div className="text-left">
+                    <div>Kinetic Impactor</div>
+                    <div className="text-xs text-red-100 opacity-90 font-normal">Direct high-speed collision</div>
+                  </div>
+                </div>
+                <div className="text-lg">${ACTION_COSTS.launchKineticMission}B</div>
+              </div>
             </button>
             <button
               onClick={() => {
                 onLaunchMission('nuclear');
                 setShowMissionOptions(false);
               }}
-              className="px-4 py-3 bg-red-700 hover:bg-red-800 rounded-lg text-sm font-medium transition-colors"
+              className="group px-5 py-4 bg-gradient-to-r from-red-700 to-red-800 hover:from-red-600 hover:to-red-700 rounded-xl text-sm font-semibold transition-all duration-200 border border-red-600/30 shadow-lg hover:shadow-xl hover:shadow-red-600/20 hover:scale-[1.02]"
               title={`Nuclear Detonation - Standoff explosion ($${ACTION_COSTS.launchNuclearMission}B)`}
             >
-              Nuclear Detonation (${ACTION_COSTS.launchNuclearMission}B)
+              <div className="flex items-center justify-between text-white">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">☢️</span>
+                  <div className="text-left">
+                    <div>Nuclear Detonation</div>
+                    <div className="text-xs text-red-100 opacity-90 font-normal">Standoff explosion</div>
+                  </div>
+                </div>
+                <div className="text-lg">${ACTION_COSTS.launchNuclearMission}B</div>
+              </div>
             </button>
             <button
               onClick={() => {
                 onLaunchMission('gravity_tractor');
                 setShowMissionOptions(false);
               }}
-              className="px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors"
+              className="group px-5 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-xl text-sm font-semibold transition-all duration-200 border border-blue-500/30 shadow-lg hover:shadow-xl hover:shadow-blue-500/20 hover:scale-[1.02]"
               title={`Gravity Tractor - Slow gravitational tug ($${ACTION_COSTS.launchGravityTractor}B)`}
             >
-              Gravity Tractor (${ACTION_COSTS.launchGravityTractor}B)
+              <div className="flex items-center justify-between text-white">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🛸</span>
+                  <div className="text-left">
+                    <div>Gravity Tractor</div>
+                    <div className="text-xs text-blue-100 opacity-90 font-normal">Slow gravitational tug</div>
+                  </div>
+                </div>
+                <div className="text-lg">${ACTION_COSTS.launchGravityTractor}B</div>
+              </div>
             </button>
           </div>
         </div>

@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Asteroid } from '../types';
 import { STARS } from '../constants';
+import { estimateImpactCorridorParams } from '../gameUtils';
 
 interface EarthVisualizationProps {
   asteroids: Asteroid[];
@@ -19,23 +20,51 @@ export default function EarthVisualization({
 }: EarthVisualizationProps) {
   const [showOrbits, setShowOrbits] = useState(true);
   const [showImpactZones, setShowImpactZones] = useState(true);
+  const [showCorridor, setShowCorridor] = useState(true);
+  const [autoFit, setAutoFit] = useState(true);
+  const [zoom, setZoom] = useState(1);
+
+  // Compute auto-fit scale so farthest object stays within the view
+  const { distancesRaw, baseDistance, autoScale } = useMemo(() => {
+    const base = 180;
+    const raw = asteroids.map(a => {
+      const distanceMultiplier = Math.max(0.2, a.timeToImpactHours / (24 * 7));
+      return base + (distanceMultiplier * 120);
+    });
+    const maxRaw = raw.length ? Math.max(...raw) : base;
+    const maxViewRadius = 180; // keep within the gravity sphere (~200px) with small margin
+    const scale = maxRaw > 0 ? Math.min(1, maxViewRadius / (maxRaw + 20)) : 1;
+    return { distancesRaw: raw, baseDistance: base, autoScale: scale };
+  }, [asteroids]);
+
+  const viewScale = (autoFit ? autoScale : 1) * zoom;
   
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-black">
-      {/* Stars background */}
-      <div className="absolute inset-0 opacity-20">
-        {STARS.map((star, i) => (
-          <div
-            key={i}
-            className="absolute w-0.5 h-0.5 bg-white rounded-full animate-pulse"
-            style={{
-              left: `${star.left}%`,
-              top: `${star.top}%`,
-              animationDelay: `${star.animationDelay}s`,
-              animationDuration: `${star.animationDuration}s`,
-            }}
-          />
-        ))}
+    <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 via-40% to-indigo-950 to-90%">
+      {/* Stars background with multiple layers */}
+      <div className="absolute inset-0">
+        {/* Distant stars */}
+        <div className="absolute inset-0 opacity-30">
+          {STARS.map((star, i) => (
+            <div
+              key={i}
+              className="absolute bg-white rounded-full animate-pulse"
+              style={{
+                width: i % 3 === 0 ? '2px' : '1px',
+                height: i % 3 === 0 ? '2px' : '1px',
+                left: `${star.left}%`,
+                top: `${star.top}%`,
+                animationDelay: `${star.animationDelay}s`,
+                animationDuration: `${star.animationDuration}s`,
+                opacity: i % 2 === 0 ? 0.8 : 0.5,
+              }}
+            />
+          ))}
+        </div>
+        
+        {/* Nebula-like background glow */}
+        <div className="absolute top-20 right-20 w-96 h-96 bg-purple-600/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-32 left-32 w-80 h-80 bg-blue-600/5 rounded-full blur-3xl" />
       </div>
       
       {/* Earth system */}
@@ -51,36 +80,53 @@ export default function EarthVisualization({
         
         {/* Earth */}
         <div className="relative">
-          <div className="w-64 h-64 rounded-full bg-gradient-to-br from-blue-500 via-blue-600 to-green-600 border-2 border-slate-400/30 shadow-2xl relative overflow-hidden">
-            {/* Earth atmosphere glow */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-300/20 via-transparent to-blue-300/20" />
+          {/* Outer glow/atmosphere */}
+          <div className="absolute w-72 h-72 rounded-full bg-blue-400/10 blur-2xl" style={{ left: '-16px', top: '-16px' }} />
+          <div className="absolute w-68 h-68 rounded-full bg-cyan-300/20 blur-xl" style={{ left: '-8px', top: '-8px' }} />
+          
+          <div className="w-64 h-64 rounded-full bg-gradient-to-br from-blue-500 via-blue-600 to-green-600 border-2 border-blue-300/40 shadow-2xl relative overflow-hidden">
+            {/* Atmospheric rim light */}
+            <div className="absolute inset-0 rounded-full shadow-[inset_0_0_60px_rgba(96,165,250,0.4)]" />
             
-            {/* Earth surface details */}
-            <div className="absolute inset-3 rounded-full bg-gradient-to-br from-green-500 to-blue-700 opacity-90">
-              {/* Continents (simplified) */}
-              <div className="absolute top-6 left-10 w-20 h-16 bg-green-600 rounded-lg opacity-90 transform rotate-12" />
-              <div className="absolute top-16 right-6 w-16 h-12 bg-green-600 rounded-full opacity-90" />
-              <div className="absolute bottom-8 left-12 w-24 h-8 bg-green-600 rounded-lg opacity-90 transform -rotate-6" />
-              <div className="absolute top-32 left-20 w-12 h-20 bg-green-600 rounded-lg opacity-90 transform rotate-45" />
+            {/* Earth surface details with better coloring */}
+            <div className="absolute inset-3 rounded-full bg-gradient-to-br from-green-600 via-blue-600 to-blue-800 opacity-95">
+              {/* Continents (simplified) with better shaping */}
+              <div className="absolute top-6 left-10 w-20 h-16 bg-green-700/80 rounded-lg transform rotate-12 shadow-lg" />
+              <div className="absolute top-16 right-6 w-16 h-12 bg-green-700/80 rounded-full shadow-lg" />
+              <div className="absolute bottom-8 left-12 w-24 h-8 bg-green-700/80 rounded-lg transform -rotate-6 shadow-lg" />
+              <div className="absolute top-32 left-20 w-12 h-20 bg-green-700/80 rounded-lg transform rotate-45 shadow-lg" />
               
-              {/* Clouds */}
-              <div className="absolute top-12 left-16 w-12 h-6 bg-white/30 rounded-full" />
-              <div className="absolute top-28 right-12 w-16 h-4 bg-white/30 rounded-full" />
-              <div className="absolute bottom-16 left-6 w-10 h-4 bg-white/30 rounded-full" />
+              {/* Additional terrain features */}
+              <div className="absolute top-20 left-6 w-8 h-10 bg-yellow-700/40 rounded-full" />
+              <div className="absolute bottom-14 right-8 w-14 h-6 bg-green-600/60 rounded-lg transform -rotate-12" />
+              
+              {/* Clouds with animation */}
+              <div className="absolute top-12 left-16 w-14 h-6 bg-white/40 rounded-full blur-[2px] animate-pulse" style={{ animationDuration: '3s' }} />
+              <div className="absolute top-28 right-12 w-18 h-5 bg-white/40 rounded-full blur-[2px] animate-pulse" style={{ animationDuration: '4s' }} />
+              <div className="absolute bottom-16 left-6 w-12 h-5 bg-white/40 rounded-full blur-[2px] animate-pulse" style={{ animationDuration: '3.5s' }} />
+              <div className="absolute top-36 right-16 w-10 h-4 bg-white/35 rounded-full blur-[2px]" />
+              
+              {/* Polar ice caps */}
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-16 h-6 bg-white/60 rounded-full blur-[1px]" />
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-20 h-8 bg-white/60 rounded-full blur-[1px]" />
             </div>
             
-            {/* Day/night terminator */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-black/20 rounded-full opacity-40" />
+            {/* Day/night terminator with enhanced lighting */}
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-200/5 via-transparent via-50% to-slate-900/60 rounded-full" />
+            
+            {/* Atmospheric scattering effect */}
+            <div className="absolute inset-0 rounded-full bg-gradient-radial from-transparent via-transparent to-blue-300/20" />
+            
+            {/* Specular highlight (sun reflection) */}
+            <div className="absolute top-10 left-12 w-16 h-16 bg-white/20 rounded-full blur-xl" />
           </div>
         </div>
         
         {/* Asteroid trajectories and positions */}
-        {asteroids.map(asteroid => {
+        {asteroids.map((asteroid, i) => {
           const isSelected = asteroid.id === selectedAsteroid;
           const angle = (asteroid.id.charCodeAt(0) * 17) % 360; // Pseudo-random angle based on ID
-          const baseDistance = 180;
-          const distanceMultiplier = Math.max(0.2, asteroid.timeToImpactHours / (24 * 7)); // Closer as impact approaches
-          const distance = baseDistance + (distanceMultiplier * 120);
+          const distance = distancesRaw[i] * viewScale;
           
           const x = Math.cos(angle * Math.PI / 180) * distance;
           const y = Math.sin(angle * Math.PI / 180) * distance;
@@ -92,7 +138,7 @@ export default function EarthVisualization({
             medium: 8,
             large: 12
           }[asteroid.size];
-          
+
           return (
             <div key={asteroid.id} className="absolute cursor-pointer" style={{ 
               left: '50%', 
@@ -130,7 +176,7 @@ export default function EarthVisualization({
                   asteroid.size === 'medium' ? 'bg-orange-500 border-orange-300' :
                   asteroid.size === 'small' ? 'bg-yellow-500 border-yellow-300' :
                   'bg-gray-400 border-gray-300'
-                } shadow-lg`}
+                } shadow-lg animate-ping-slow`}
                 style={{
                   width: `${dotSize}px`,
                   height: `${dotSize}px`,
@@ -196,7 +242,7 @@ export default function EarthVisualization({
                   }}
                 />
               )}
-              
+
               {/* Mission indicators */}
               {asteroid.deflectionMissions.length > 0 && (
                 <div className="absolute -top-2 -right-2">
@@ -213,6 +259,40 @@ export default function EarthVisualization({
             </div>
           );
         })}
+
+        {/* Uncertainty corridor anchored to Earth's center (selected or highest-risk asteroid) */}
+        {showCorridor && (() => {
+          const active = asteroids.find(a => a.id === selectedAsteroid) || (asteroids.length ? asteroids.reduce((p, c) => c.impactProbability > p.impactProbability ? c : p) : null);
+          if (!active || active.impactProbability <= 0.01) return null;
+          const c = estimateImpactCorridorParams(active);
+          const lengthPx = c.lengthKm / 50;
+          const widthPx = c.widthKm / 50;
+          return (
+            <svg
+              className="absolute pointer-events-none"
+              style={{ left: '50%', top: '50%', width: '400px', height: '400px', transform: 'translate(-50%, -50%)' }}
+            >
+              <g transform={`rotate(${c.angleDeg} 200 200)`} opacity={0.25}>
+                <rect
+                  x={200 - lengthPx / 2}
+                  y={200 - widthPx / 2}
+                  width={lengthPx}
+                  height={widthPx}
+                  fill="#22c55e"
+                />
+                <rect
+                  x={200 - lengthPx / 2}
+                  y={200 - widthPx / 2}
+                  width={lengthPx}
+                  height={widthPx}
+                  fill="none"
+                  stroke="#16a34a"
+                  strokeWidth={1}
+                />
+              </g>
+            </svg>
+          );
+        })()}
       </div>
       
       {/* Controls */}
@@ -224,6 +304,7 @@ export default function EarthVisualization({
               ? 'bg-blue-600 hover:bg-blue-700 text-white' 
               : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
           }`}
+          title="Show/hide stylized projected orbit path"
         >
           {showOrbits ? 'Hide' : 'Show'} Orbits
         </button>
@@ -234,41 +315,102 @@ export default function EarthVisualization({
               ? 'bg-red-600 hover:bg-red-700 text-white' 
               : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
           }`}
+          title="Show/hide approximate ground footprint at predicted impact location"
         >
           {showImpactZones ? 'Hide' : 'Show'} Impact Zones
         </button>
+        <button
+          onClick={() => setShowCorridor(!showCorridor)}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            showCorridor 
+              ? 'bg-green-600 hover:bg-green-700 text-white' 
+              : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+          }`}
+          title="Show/hide 3σ impact corridor based on current orbit uncertainty"
+        >
+          {showCorridor ? 'Hide' : 'Show'} Corridor
+        </button>
+        <button
+          onClick={() => setAutoFit(!autoFit)}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            autoFit 
+              ? 'bg-indigo-600 hover:bg-indigo-700 text-white' 
+              : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+          }`}
+        >
+          {autoFit ? 'Auto-fit: On' : 'Auto-fit: Off'}
+        </button>
+        <div className="bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300">
+          <div className="mb-1">Zoom</div>
+          <input
+            type="range"
+            min="0.5"
+            max="2"
+            step="0.1"
+            value={zoom}
+            onChange={(e) => setZoom(Number(e.target.value))}
+            className="w-40 accent-indigo-500"
+          />
+        </div>
       </div>
       
-      {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-sm rounded-lg p-4 text-sm border border-slate-600">
-        <div className="font-semibold mb-3 text-white">Object Classification</div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-red-500" />
-            <span className="text-slate-300">Large (140m+) - Global threat</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-orange-500" />
-            <span className="text-slate-300">Medium (20-140m) - Regional danger</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-yellow-500" />
-            <span className="text-slate-300">Small (5-20m) - Airburst risk</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-slate-400" />
-            <span className="text-slate-300">Tiny (&lt;5m) - Burns up</span>
+      {/* Legend - Compact Design */}
+      <div className="absolute bottom-4 left-4 bg-slate-900/95 backdrop-blur-md rounded-xl p-3 text-xs border border-slate-700/80 shadow-2xl max-w-xs">
+        <div className="space-y-2.5">
+          {/* Object Classification - Horizontal compact layout */}
+          <div>
+            <div className="font-semibold mb-1.5 text-slate-200 text-[10px] uppercase tracking-wider">Object Classification</div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="flex items-center gap-1.5 bg-slate-800/50 rounded px-1.5 py-1">
+                <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
+                <span className="text-slate-300 text-[10px]">Large (140m+)</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-slate-800/50 rounded px-1.5 py-1">
+                <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
+                <span className="text-slate-300 text-[10px]">Medium (20-140m)</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-slate-800/50 rounded px-1.5 py-1">
+                <div className="w-2 h-2 rounded-full bg-yellow-500 flex-shrink-0" />
+                <span className="text-slate-300 text-[10px]">Small (5-20m)</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-slate-800/50 rounded px-1.5 py-1">
+                <div className="w-2 h-2 rounded-full bg-slate-400 flex-shrink-0" />
+                <span className="text-slate-300 text-[10px]">Tiny (&lt;5m)</span>
+              </div>
+            </div>
           </div>
           
-          <div className="border-t border-slate-600 pt-3 mt-3">
-            <div className="text-slate-400 text-xs font-medium mb-2">Mission Status</div>
+          {/* Mission Status */}
+          <div className="border-t border-slate-700/50 pt-2">
+            <div className="font-semibold mb-1.5 text-slate-200 text-[10px] uppercase tracking-wider">Mission Status</div>
             <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-slate-300 text-xs">Mission active</span>
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-slate-300 text-[10px]">Active</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                <span className="text-slate-300 text-[10px]">En route</span>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-              <span className="text-slate-300 text-xs">Mission en route</span>
+          </div>
+
+          {/* Overlays - Condensed */}
+          <div className="border-t border-slate-700/50 pt-2">
+            <div className="font-semibold mb-1.5 text-slate-200 text-[10px] uppercase tracking-wider">Overlays</div>
+            <div className="space-y-1">
+              <div className="flex items-start gap-1.5">
+                <div className="w-2 h-2 bg-green-500/60 border border-green-400 flex-shrink-0 mt-0.5" />
+                <div className="text-slate-300 text-[10px] leading-tight">
+                  <span className="font-semibold text-green-300">Corridor (3σ):</span> impact path uncertainty band
+                </div>
+              </div>
+              <div className="flex items-start gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-red-500/40 border border-red-400 flex-shrink-0 mt-0.5" />
+                <div className="text-slate-300 text-[10px] leading-tight">
+                  <span className="font-semibold text-red-300">Impact zone:</span> surface footprint preview
+                </div>
+              </div>
             </div>
           </div>
         </div>

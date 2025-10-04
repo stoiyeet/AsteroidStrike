@@ -44,6 +44,11 @@ export interface Asteroid {
   trueImpactProbability: number; // The actual probability, determined at creation
   uncertaintyKm: number; // Position uncertainty
   
+  // Observation state (for risk & corridor updates)
+  observationArcDays?: number; // Total days of observations accumulated
+  numOpticalObs?: number; // Count of optical follow-up campaigns
+  numRadarObs?: number; // Count of radar campaigns
+  
   // Impact properties
   impactLatitude?: number;
   impactLongitude?: number;
