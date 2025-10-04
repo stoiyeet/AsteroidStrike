@@ -42,8 +42,8 @@ export type Damage_Results = {
   radius_M_ge_7_5_m: number | null;
   airblast_radius_building_collapse_m: number | null; // p=42600 Pa
   airblast_radius_glass_shatter_m: number | null; // p=6900 Pa
-  airblast_peak_overpressure: number | null;
-  top_wind_speed: number | null;
+  overpressure_at_50_km: number | null;
+  wind_speed_at_50_km: number | null;
 };
 
 // Constants
@@ -52,6 +52,8 @@ const G = 9.81;
 const VE_KM3 = 1.083e12; // Earth's volume km^3 for comparison
 const GLOBAL_POP = 8_250_000_000;
 const GLOBAL_AVERAGE_DENSITY = 50;
+const EARTH_DIAMETER = 12756e3; // in meters
+
 
 const DEFAULTS = {
   K: 3e-3,
@@ -70,8 +72,6 @@ const DEFAULTS = {
 const populationCache = new Map<string, { density: number; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-// Add request deduplication
-const pendingRequests = new Map<string, Promise<number>>();
 
 // energy and mass
 export function energyFromDiameter(m: number, v0: number) {
@@ -166,8 +166,8 @@ export function transientCrater(L0: number, rho_i: number, v_i: number, theta_ra
   v_i = is_water ? v_i*Math.exp(-3*DEFAULTS.density_water*DEFAULTS.water_drag_coeff*DEFAULTS.water_depth_m/(2*L0*Math.sin(theta_rad)*rho_i)) : v_i;
   const coeff  = 1.161;
   const term = Math.pow(rho_i / rho_t, 1 / 3);
-  const Dtc = coeff * term * Math.pow(L0, 0.78) * Math.pow(v_i, 0.44) * Math.pow(G, -0.22) * Math.pow(Math.sin(theta_rad), 1 / 3);
-  const dtc = Dtc / (2 * Math.sqrt(2));
+  let Dtc = coeff * term * Math.pow(L0, 0.78) * Math.pow(v_i, 0.44) * Math.pow(G, -0.22) * Math.pow(Math.sin(theta_rad), 1 / 3);
+  let dtc = Dtc / (2 * Math.sqrt(2));
   // final diameter
   let Dfr: number;
   let dfr: number;
@@ -178,6 +178,7 @@ export function transientCrater(L0: number, rho_i: number, v_i: number, theta_ra
     Dfr = 1.17 * Math.pow(Dtc, 1.13) / Math.pow(3200, 0.13);
     dfr = 1000*(0.294 * Math.pow(Dfr/1000, 0.301));
   }
+  [Dtc, dtc, Dfr, dfr] = [Dtc, dtc, Dfr, dfr].map(x  => Math.min(x, EARTH_DIAMETER));
   return { Dtc, dtc, Dfr, dfr };
 }
 
@@ -193,6 +194,9 @@ export function oceanWaterCrater(L0: number, rho_i: number, v_i: number, theta_r
 
 // 9) transient crater volume and Earth effect
 export function craterVolumeAndEffect(Dtc_m: number) {
+  if (Dtc_m >= EARTH_DIAMETER) {
+    return { Vtc_km3: VE_KM3, ratio: 1, effect: 'destroyed'as Damage_Results['earth_effect'] };
+  }
   // Vtc = pi * Dtc^3 / (16*sqrt(2))  (m^3)
   const Vtc_m3 = Math.PI * Math.pow(Dtc_m, 3) / (16 * Math.sqrt(2));
   const Vtc_km3 = Vtc_m3 / 1e9;
@@ -642,7 +646,8 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
     const crater = transientCrater(L0, rho_i, v_i, theta_rad, is_water);
     Dtc = crater.Dtc; dtc = crater.dtc; Dfr = crater.Dfr; dfr = crater.dfr;
   const vol = craterVolumeAndEffect(Dtc);
-    Vtc_km3 = Math.min(vol.Vtc_km3,VE_KM3) ; ratio = vol.ratio; effect = vol.effect;
+    Vtc_km3 = Math.min(vol.Vtc_km3,VE_KM3) ; 
+    ratio = vol.ratio; effect = vol.effect;
   }
 
   // seismic
@@ -653,10 +658,10 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
   }
 
   // airblast radii for thresholds
-  const r_building = findRadiusForOverpressure(42600, E_Mt, zb, Rf_m);
+  const r_building = findRadiusForOverpressure(273000, E_Mt, zb, Rf_m);
   const r_glass = findRadiusForOverpressure(6900, E_Mt, zb, Rf_m);
-  const peakoverpressure =  peakOverpressureAtR(Rf_m, E_Mt, zb);
-  const topWindSpeed = peakWindSpeed(peakoverpressure)
+  const overpressureAt50_km =  peakOverpressureAtR(50000, E_Mt, zb);
+  const windspeedAt50_km = peakWindSpeed(overpressureAt50_km)
 
 
   const results: Damage_Results = {
@@ -682,8 +687,8 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
     radius_M_ge_7_5_m: radius_m,
     airblast_radius_building_collapse_m: r_building,
     airblast_radius_glass_shatter_m: r_glass,
-    airblast_peak_overpressure: peakoverpressure,
-    top_wind_speed: topWindSpeed
+    overpressure_at_50_km: overpressureAt50_km,
+    wind_speed_at_50_km: windspeedAt50_km
   };
 
   return results;
