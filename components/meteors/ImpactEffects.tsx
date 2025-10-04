@@ -74,6 +74,7 @@ interface ImpactEffectsProps {
     earth_effect: 'destroyed' | 'strongly_disturbed' | 'negligible_disturbed';
     Magnitude: number | null;
     radius_M_ge_7_5_m: number | null;
+    earthquake_description?: string | undefined;
     airblast_radius_building_collapse_m: number | null;
     airblast_radius_glass_shatter_m: number | null;
     overpressure_at_50_km: number | null;
@@ -365,6 +366,12 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
               <div className={styles.dataRow}>
                 <span className={styles.label}>Range for widespread building collapse</span>
                 <span className={styles.value}>{formatDistance(effects.radius_M_ge_7_5_m)}</span>
+              </div>
+            )}
+            {effects.earthquake_description && (
+              <div className={styles.dataRow}>
+                <span className={styles.label}>Mega-Earthquake impacts</span>
+                <span className={styles.description_value}>{effects.earthquake_description}</span>
               </div>
             )}
             <Link href="/meteors/formulas?category=seismic" className={styles.scienceButton}>

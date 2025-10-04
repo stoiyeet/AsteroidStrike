@@ -40,6 +40,7 @@ export type Damage_Results = {
   earth_effect: 'destroyed' | 'strongly_disturbed' | 'negligible_disturbed';
   Magnitude: number | null;
   radius_M_ge_7_5_m: number | null;
+  earthquake_description: string | undefined;
   airblast_radius_building_collapse_m: number | null; // p=42600 Pa
   airblast_radius_glass_shatter_m: number | null; // p=6900 Pa
   overpressure_at_50_km: number | null;
@@ -207,6 +208,16 @@ export function craterVolumeAndEffect(Dtc_m: number) {
   return { Vtc_km3, ratio, effect };
 }
 
+const massive_Earthquake_milestones = {
+  12: "Very large regional catastrophe. Cities destroyed across hundreds of kilometers. Surface ruptures tens of meters deep. Major tsunamis if offshore.",
+  12.8: "Over 1 yottajoule (1 septillion joules) of energy. Continental-scale disruption. Massive atmospheric dust/aerosol injection. Years-scale crop failures and global transport breakdown.",
+  13.5: "Extreme continental catastrophe. Ruptures propagate across multiple major faults. Multi-kilometre vertical offsets and regional collapse of mountain belts. Widespread permanent changes to coastlines and drainage. Very large tsunamis for offshore events.",
+  14.2: "Global mechanical crisis. Cascading ruptures trigger major volcanic systems and widespread crustal failure. Kilometer-scale fissuring in multiple regions. Prolonged, planet-wide seismic shaking.",
+  15: "Over 64% of the energy needed to vaporize all oceans. Global ocean surface superheating and massive steam injection to the atmosphere.",
+  15.13: "Beyond the rough theoretical threshold to vaporize Earth’s oceans. Energy deposited globally would boil oceans completely",
+  16.2: "Planet-scale resurfacing and mantle upheaval. Global crustal meltdown. Planet effectively sterilized"
+}
+
 // 10) seismic magnitude and radius for Meff >= 7.5
 export function seismicMagnitudeAndRadius(E_J: number, threshold = 7.5) {
   const M = 0.67 * Math.log10(E_J) - 5.87;
@@ -221,8 +232,15 @@ export function seismicMagnitudeAndRadius(E_J: number, threshold = 7.5) {
   // rearrange: log10(r) = (M -6.399 - threshold)/1.66
   const exp3 = Math.pow(10, (M - 6.399 - threshold) / 1.66);
   if (exp3 > 700) return { M, radius_km: exp3, radius_m: exp3 * 1000 };
+
+  const milestones = [12.0, 12.8, 13.5, 14.2, 15.0, 15.13, 16.2]
+
+  const floor = milestones.reduce((prev, curr) => curr - M <= 0  ? curr : prev);
+  const description = massive_Earthquake_milestones[floor as keyof typeof massive_Earthquake_milestones] || "";
+
+
   // none satisfied => no radius where Meff >= threshold
-  return { M, radius_km: null, radius_m: null };
+  return { M, radius_km: null, radius_m: null, description: description };
 }
 
 
@@ -651,10 +669,10 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
   }
 
   // seismic
-  let Magnitude: number | null = null, radius_km: number | null = null, radius_m: number | null = null;
+  let Magnitude: number | null = null, radius_km: number | null = null, radius_m: number | null = null, earthquake_description: string | undefined;
   if (!airburst) {
     const seismic = seismicMagnitudeAndRadius(E_J);
-    Magnitude = seismic.M; radius_km = seismic.radius_km; radius_m = seismic.radius_m;
+    Magnitude = seismic.M; radius_km = seismic.radius_km; radius_m = seismic.radius_m; earthquake_description = seismic.description;
   }
 
   // airblast radii for thresholds
@@ -685,6 +703,7 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
     earth_effect: effect,
     Magnitude,
     radius_M_ge_7_5_m: radius_m,
+    earthquake_description: earthquake_description,
     airblast_radius_building_collapse_m: r_building,
     airblast_radius_glass_shatter_m: r_glass,
     overpressure_at_50_km: overpressureAt50_km,
