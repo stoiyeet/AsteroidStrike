@@ -581,6 +581,90 @@ export default function AsteroidDefensePage() {
               </div>
       );
     }
+
+    // Handle small asteroids with a special scenario (no deflection needed)
+    if (asteroid.size === 'tiny' || asteroid.size === 'small') {
+      return (
+        <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6">
+          <div className="max-w-3xl w-full space-y-6">
+            <div className="text-center space-y-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                <span className="text-4xl">✓</span>
+              </div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                Low Threat Assessment
+              </h1>
+            </div>
+            
+            <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-8 space-y-6">
+              <h2 className="text-2xl font-semibold text-green-300">Asteroid: {asteroid.name}</h2>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-700/50 p-4 rounded-lg">
+                  <div className="text-slate-400 text-sm mb-1">Size</div>
+                  <div className="text-white font-bold capitalize">{asteroid.size}</div>
+                  <div className="text-slate-300 text-sm">{asteroid.diameterM.toFixed(1)}m diameter</div>
+                </div>
+                <div className="bg-slate-700/50 p-4 rounded-lg">
+                  <div className="text-slate-400 text-sm mb-1">Velocity</div>
+                  <div className="text-white font-bold">{asteroid.velocityKmps.toFixed(1)} km/s</div>
+                </div>
+              </div>
+
+              <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-6 space-y-4">
+                <h3 className="text-xl font-semibold text-green-200">Assessment Summary</h3>
+                <div className="text-slate-300 leading-relaxed space-y-3">
+                  <p>
+                    <strong className="text-green-300">Good news!</strong> This {asteroid.size} asteroid ({asteroid.diameterM.toFixed(0)}m diameter) does not require 
+                    expensive deflection missions. Objects of this size typically burn up in Earth&apos;s atmosphere or cause minimal localized damage.
+                  </p>
+                  
+                  {asteroid.size === 'small' ? (
+                    <p>
+                      <strong className="text-yellow-300">Recommended Actions:</strong>
+                      <br />
+                      • Issue public alert to affected region
+                      <br />
+                      • Evacuate immediate impact zone if trajectory is certain
+                      <br />
+                      • Expect airburst effects similar to the Chelyabinsk meteor (2013)
+                    </p>
+                  ) : (
+                    <p>
+                      <strong className="text-blue-300">No Action Required:</strong>
+                      <br />
+                      This object is too small to survive atmospheric entry intact. It will create a brief fireball but pose no threat to ground structures.
+                    </p>
+                  )}
+
+                  <p className="text-sm text-slate-400">
+                    <strong>Educational Note:</strong> NASA&apos;s planetary defense efforts focus on Near-Earth Objects (NEOs) 
+                    larger than 140 meters, which could cause regional or global damage. Smaller objects like this one, 
+                    while interesting to track, don&apos;t require the same level of intervention.
+                  </p>
+                </div>
+              </div>
+
+              {asteroid.educationalBlurb && (
+                <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                  <div className="text-xs text-blue-300 mb-2">NASA Database Information</div>
+                  <div className="text-sm text-slate-300">{asteroid.educationalBlurb}</div>
+                </div>
+              )}
+
+              <div className="flex gap-4">
+                <button
+                  onClick={handleRestart}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold py-4 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg"
+                >
+                  Try Another Scenario
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
             
     const torinoScale = getTorinoScale(asteroid);
     const palermo = getPalermoScale(asteroid);

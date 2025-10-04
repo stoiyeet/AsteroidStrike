@@ -178,7 +178,7 @@ class NASAApiService {
   }
 
   // Convert NASA data to game asteroid format
-  convertNASADataToGameAsteroid(nasaAsteroid: NASAAsteroidData, gameTime: Date) {
+  convertNASADataToGameAsteroid(nasaAsteroid: NASAAsteroidData, gameTime: Date, requireMinSize: boolean = true) {
     const closeApproach = nasaAsteroid.close_approach_data?.[0];
     if (!closeApproach) return null;
 
@@ -203,6 +203,11 @@ class NASAApiService {
     else if (diameter < 20) size = 'small';
     else if (diameter < 140) size = 'medium';
     else size = 'large';
+
+    // Skip tiny and small asteroids if minimum size is required (for deflection scenarios)
+    if (requireMinSize && (size === 'tiny' || size === 'small')) {
+      return null;
+    }
 
     // Calculate impact probability based on miss distance and uncertainty
     // This is for educational purposes - real impact probabilities are much more complex

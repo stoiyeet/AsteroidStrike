@@ -61,13 +61,22 @@ export async function generateAsteroid(currentTime: Date): Promise<Asteroid> {
   if (useNASAData) {
     const nasaAsteroids = await fetchNASAAsteroids();
     if (nasaAsteroids.length > 0) {
-      // Pick a random NASA asteroid and try to convert it
-      const randomNASA = nasaAsteroids[Math.floor(Math.random() * nasaAsteroids.length)];
-      const convertedAsteroid = nasaApi.convertNASADataToGameAsteroid(randomNASA, currentTime);
+      // Try multiple times to find a medium or large asteroid suitable for deflection scenarios
+      const maxAttempts = Math.min(10, nasaAsteroids.length);
+      const shuffled = [...nasaAsteroids].sort(() => Math.random() - 0.5);
       
-      if (convertedAsteroid) {
-        return convertedAsteroid as Asteroid;
+      for (let i = 0; i < maxAttempts; i++) {
+        const randomNASA = shuffled[i];
+        // requireMinSize = true filters out tiny/small asteroids
+        const convertedAsteroid = nasaApi.convertNASADataToGameAsteroid(randomNASA, currentTime, true);
+        
+        if (convertedAsteroid) {
+          return convertedAsteroid as Asteroid;
+        }
       }
+      
+      // If all attempts failed to find a suitable NASA asteroid, log it
+      console.log('No suitable medium/large NASA asteroids found, using generated asteroid');
     }
   }
 
@@ -105,12 +114,12 @@ export async function generateAsteroid(currentTime: Date): Promise<Asteroid> {
     else if (diameterMForSizing < 140) size = 'medium';
     else size = 'large';
   } else {
-    // Randomly select size category (better distribution for gameplay)
+    // Randomly select size category (favor medium/large for better deflection scenarios)
     const sizeRoll = Math.random();
-    if (sizeRoll < 0.35) size = 'tiny';        // 35% tiny (reduced from 60%)
-    else if (sizeRoll < 0.70) size = 'small';  // 35% small (increased from 25%)
-    else if (sizeRoll < 0.92) size = 'medium'; // 22% medium (increased from 13%)
-    else size = 'large';                       // 8% large (increased from 2%)
+    if (sizeRoll < 0.10) size = 'tiny';        // 10% tiny (reduced for better gameplay)
+    else if (sizeRoll < 0.25) size = 'small';  // 15% small
+    else if (sizeRoll < 0.70) size = 'medium'; // 45% medium (increased for more interesting scenarios)
+    else size = 'large';                       // 30% large (increased for challenging scenarios)
   }
   
   const config = ASTEROID_SIZE_CONFIGS[size];
