@@ -79,6 +79,7 @@ interface ImpactEffectsProps {
     airblast_radius_glass_shatter_m: number | null;
     overpressure_at_50_km: number | null;
     wind_speed_at_50_km: number | null;
+    ionization_radius: number;
   };
   mortality: {
     deathCount: number | undefined;
@@ -251,14 +252,28 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
             <div className={styles.sectionInfo}>
               The wave blast creates a sudden pressure increase that can damage structures and cause injuries.
             </div>
+            {effects.wind_speed_at_50_km && effects.wind_speed_at_50_km < 5000 && (
                 <div className={styles.dataRow}>
                     <span className={styles.label}>Overpressure At 50km away</span>
                     <span className={styles.value}>{formatOverPressure(effects.overpressure_at_50_km)}</span>
               </div>
-            <div className={styles.dataRow}>
-              <span className={styles.label}>Top Wind Speed at 50km away</span>
-              <span className={styles.value}>{formatSpeed(effects.wind_speed_at_50_km)}</span>
-            </div>
+             )}
+
+            {effects.wind_speed_at_50_km && effects.wind_speed_at_50_km < 5000 && (
+              <div className={styles.dataRow}>
+                <span className={styles.label}>Top Wind Speed at 50km away</span>
+                <span className={styles.value}>{formatSpeed(effects.wind_speed_at_50_km)}</span>
+              </div>
+            )}
+
+            {effects.wind_speed_at_50_km && effects.wind_speed_at_50_km > 5000 && (
+              <div className={styles.dataRow}>
+                <span className={styles.label}>Approx radius at which air is shock-heated into plasma</span>
+                <span className={styles.value}>{formatDistance(effects.ionization_radius)}</span>
+              </div>
+            )}
+
+   
             <div className={styles.distanceGrid}>
               {effects.airblast_radius_building_collapse_m && (
                 <div className={styles.distanceCard}>

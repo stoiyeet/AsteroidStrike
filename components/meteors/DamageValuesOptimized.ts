@@ -45,6 +45,7 @@ export type Damage_Results = {
   airblast_radius_glass_shatter_m: number | null; // p=6900 Pa
   overpressure_at_50_km: number | null;
   wind_speed_at_50_km: number | null;
+  ionization_radius: number;
 };
 
 // Constants
@@ -680,6 +681,7 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
   const r_glass = findRadiusForOverpressure(6900, E_Mt, zb, Rf_m);
   const overpressureAt50_km =  peakOverpressureAtR(50000, E_Mt, zb);
   const windspeedAt50_km = peakWindSpeed(overpressureAt50_km)
+  const r_ionization = findRadiusForOverpressure(75750000, E_Mt, zb, 50000);
 
 
   const results: Damage_Results = {
@@ -707,7 +709,8 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
     airblast_radius_building_collapse_m: r_building,
     airblast_radius_glass_shatter_m: r_glass,
     overpressure_at_50_km: overpressureAt50_km,
-    wind_speed_at_50_km: windspeedAt50_km
+    wind_speed_at_50_km: windspeedAt50_km,
+    ionization_radius: r_ionization
   };
 
   return results;
