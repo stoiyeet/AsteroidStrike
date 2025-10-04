@@ -17,7 +17,7 @@ export default function BottomNav() {
   }
 
   return (
-    <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-auto">
+    <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-9 pointer-events-auto">
       <div
         className={`flex items-center justify-center transition-all duration-500 ease-in-out bg-white/10 backdrop-blur-md border border-white/20 rounded-full
           ${isNavExpanded ? "space-x-2 px-3 py-1" : "space-x-0 px-1 py-0"} md:px-1 md:py-0`}
