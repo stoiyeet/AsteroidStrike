@@ -238,7 +238,7 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
             )}
             {effects.Rf_m && effects.r_2nd_burn_m >= 1500000 && (
               <div className={styles.dataRow}>
-                <span className={styles.label} style={{ color: '#d34646ff' }}>Due to the curvature of the earth, the fireball cannot exceed a max of about 1500km in radius at sea level*</span>
+                <span className={styles.label} style={{ color: '#d34646ff' }}>Due to the curvature of the earth, the heat effects cannot exceed a max of about 1500km in radius at sea level*</span>
               </div>
             )}
             <Link href="/meteors/formulas?category=thermal" className={styles.scienceButton}>
@@ -268,7 +268,7 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
 
             {effects.wind_speed_at_50_km && effects.wind_speed_at_50_km > 5000 && (
               <div className={styles.dataRow}>
-                <span className={styles.label}>Approx radius at which air is shock-heated into plasma</span>
+                <span className={styles.label}>Approx distance at which air is shock-heated into plasma</span>
                 <span className={styles.value}>{formatDistance(effects.ionization_radius)}</span>
               </div>
             )}

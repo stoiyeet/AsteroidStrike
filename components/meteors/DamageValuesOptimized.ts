@@ -3,6 +3,7 @@
 // Functions extracted from study at https://impact.ese.ic.ac.uk/ImpactEarth/ImpactEffects/effects.pdf
 import { number } from "framer-motion";
 import { fromUrl, GeoTIFF, GeoTIFFImage } from "geotiff";
+import { EARTH_R_M } from "./EarthImpact";
 
 export type Damage_Inputs = {
   mass: number; // kg
@@ -54,6 +55,7 @@ const G = 9.81;
 const VE_KM3 = 1.083e12; // Earth's volume km^3 for comparison
 const GLOBAL_POP = 8_250_000_000;
 const GLOBAL_AVERAGE_DENSITY = 50;
+const HALF_CIRCUMFERENCE_M = 20037508.34;
 const EARTH_DIAMETER = 12756e3; // in meters
 
 
@@ -140,7 +142,7 @@ export function pancakeAirburstAltitude(Lo: number, rho_i: number, theta_rad: nu
 // fireball radius
 export function fireballRadius(E_J: number) {
   // Rf = 0.002 * E^(1/3) with E in joules
-  return Math.min(EARTH_DIAMETER, 0.002 * Math.pow(E_J, 1 / 3));
+  return Math.min(EARTH_R_M, 0.002 * Math.pow(E_J, 1 / 3));
 }
 
 // 7) burn radii (clothing, 2nd, 3rd) with horizon cap
@@ -312,7 +314,7 @@ export function findRadiusForOverpressure(
   E_Mt: number,
   zb_m: number,
   r_min: number,
-  r_max = 1.2756e7 // 12,756 km
+  r_max = HALF_CIRCUMFERENCE_M // 12,756 km
 ): number {
   if (zb_m > 0) r_min = 0;
   if (!isFinite(targetP) || targetP <= 0) return NaN;
