@@ -46,6 +46,12 @@ function formatYears(years: number): string {
   return `${years.toFixed(1)} Years`;
 }
 
+function formatSpeed(speed: number | null): string {
+  if (speed === null) return 'N/A';
+  if (speed >= 1000) return `${(speed / 1000).toFixed(2)} km/s`;
+  return `${speed.toFixed(2)} m/s`;
+}
+
 interface ImpactEffectsProps {
   effects: {
     E_J: number;
@@ -68,9 +74,11 @@ interface ImpactEffectsProps {
     earth_effect: 'destroyed' | 'strongly_disturbed' | 'negligible_disturbed';
     Magnitude: number | null;
     radius_M_ge_7_5_m: number | null;
+    earthquake_description?: string | undefined;
     airblast_radius_building_collapse_m: number | null;
     airblast_radius_glass_shatter_m: number | null;
-    airblast_peak_overpressure: number | null;
+    overpressure_at_50_km: number | null;
+    wind_speed_at_50_km: number | null;
   };
   mortality: {
     deathCount: number | undefined;
@@ -244,9 +252,13 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
               The wave blast creates a sudden pressure increase that can damage structures and cause injuries.
             </div>
                 <div className={styles.dataRow}>
-                    <span className={styles.label}>Peak Overpressure</span>
-                    <span className={styles.value}>{formatOverPressure(effects.airblast_peak_overpressure)}</span>
+                    <span className={styles.label}>Overpressure At 50km away</span>
+                    <span className={styles.value}>{formatOverPressure(effects.overpressure_at_50_km)}</span>
               </div>
+            <div className={styles.dataRow}>
+              <span className={styles.label}>Top Wind Speed at 50km away</span>
+              <span className={styles.value}>{formatSpeed(effects.wind_speed_at_50_km)}</span>
+            </div>
             <div className={styles.distanceGrid}>
               {effects.airblast_radius_building_collapse_m && (
                 <div className={styles.distanceCard}>
@@ -254,7 +266,7 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
                     {formatDistance(effects.airblast_radius_building_collapse_m)}
                   </div>
                   <div className={styles.distanceLabel}>Building Collapse</div>
-                  <div className={styles.distanceDesc}>Complete destruction of buildings</div>
+                  <div className={styles.distanceDesc}>Complete destruction of steel-reinforced skyscrapers</div>
                 </div>
               )}
               {effects.airblast_radius_glass_shatter_m && (
@@ -354,6 +366,12 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
               <div className={styles.dataRow}>
                 <span className={styles.label}>Range for widespread building collapse</span>
                 <span className={styles.value}>{formatDistance(effects.radius_M_ge_7_5_m)}</span>
+              </div>
+            )}
+            {effects.earthquake_description && (
+              <div className={styles.dataRow}>
+                <span className={styles.label}>Mega-Earthquake impacts</span>
+                <span className={styles.description_value}>{effects.earthquake_description}</span>
               </div>
             )}
             <Link href="/meteors/formulas?category=seismic" className={styles.scienceButton}>

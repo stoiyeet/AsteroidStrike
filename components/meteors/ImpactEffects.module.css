@@ -159,6 +159,18 @@
   color: #fff;
 }
 
+.description_value {
+  font-weight: 500;
+  color: #d84f34;
+  font:"Garamond";
+  line-height: 1.4;
+  word-break: break-word;
+  white-space: normal;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+
 .warning {
   color: #ff3300;
 }
