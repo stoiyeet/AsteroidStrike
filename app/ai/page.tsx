@@ -70,7 +70,7 @@ const Page: React.FC = () => {
     <div className="fixed inset-0 bg-black text-white overflow-hidden">
       <div className="flex h-full flex-col md:flex-row">
         {/* LEFT: 3D Scene */}
-        <div className={`relative transition-all duration-300 ${chatExpanded ? "w-full md:w-2/3 h-1/2 md:h-full" : "w-full h-full"} h-full`}>
+        <div className={`relative transition-all duration-300 ${chatExpanded ? "w-full md:w-2/3 h-1/2 md:h-full" : "w-full h-full"}`}>
           <div className="w-full h-full">
             <SpaceScene
               effects={effects}
@@ -84,13 +84,13 @@ const Page: React.FC = () => {
           </div>
 
           {/* HUD */}
-          <div className="absolute top-4 left-4 z-10 bg-black/70 backdrop-blur-md rounded-xl p-3 text-white max-w-[calc(100%-2rem)]">
-            <div className="font-bold">🌍 Earth Defense</div>
-            <div className="text-sm opacity-90">
+          <div className="absolute top-16 md:top-4 left-2 md:left-4 right-2 md:right-auto z-10 bg-black/70 backdrop-blur-md rounded-xl p-2 md:p-3 text-white max-w-[calc(100%-1rem)] md:max-w-xs">
+            <div className="font-bold text-sm md:text-base">🌍 Earth Defense</div>
+            <div className="text-xs md:text-sm opacity-90">
               {effectsActiveCount > 0 ? `${effectsActiveCount} strategy active` : "Chat to deploy defense"}
             </div>
             {effectsActiveCount > 0 && (
-              <div className="text-xs opacity-70 mt-1">
+              <div className="text-xs opacity-70 mt-1 truncate">
                 {Object.entries(effects)
                   .filter(([_, active]) => active)
                   .map(([key, _]) => EFFECTS_CONFIG[key as EffectKey]?.label)
@@ -100,13 +100,13 @@ const Page: React.FC = () => {
           </div>
 
           {/* Manual Mitigation Controls (single-effect) */}
-          <div className="absolute bottom-4 left-4 z-20">
-            <details className="bg-gray-900/80 backdrop-blur-md rounded-xl border border-gray-700 w-56 max-w-[calc(100vw-2rem)]">
-              <summary className="cursor-pointer px-3 py-2 text-sm font-semibold flex items-center justify-between">
+          <div className="absolute bottom-4 left-2 md:left-4 z-20 max-w-[calc(100vw-1rem)] md:max-w-none">
+            <details className="bg-gray-900/80 backdrop-blur-md rounded-xl border border-gray-700 w-full md:w-64">
+              <summary className="cursor-pointer px-3 py-2 text-sm font-semibold flex items-center justify-between min-h-[44px]">
                 <span>⚙️ Manual Mitigation</span>
                 <ChevronUp size={14} />
               </summary>
-              <div className="max-h-64 overflow-y-auto p-2 space-y-3 text-sm">
+              <div className="max-h-[50vh] md:max-h-64 overflow-y-auto p-2 space-y-3 text-sm">
                 {[
                   { key: "kineticImpactor", label: "Kinetic Impactor", icon: "🚀", description: "Launch a high-speed probe to crash into and alter the asteroid's trajectory" },
                   { key: "nuclearDetonation", label: "Nuclear Option", icon: "☢️", description: "Detonate near the asteroid to deflect with explosive force" },
@@ -135,7 +135,7 @@ const Page: React.FC = () => {
                     <p className="text-xs text-gray-300">{description}</p>
                     <button
                       onClick={() => setSingleEffect(key as EffectKey)}
-                      className={`text-xs px-3 py-1 rounded-md self-start transition-colors ${
+                      className={`text-xs px-3 py-2 rounded-md self-start transition-colors min-h-[44px] ${
                         effects[key as EffectKey] 
                           ? "bg-green-600 hover:bg-green-700" 
                           : "bg-blue-600 hover:bg-blue-700"
@@ -149,7 +149,7 @@ const Page: React.FC = () => {
                 {/* Complete/clear button */}
                 <button
                   onClick={clearAllEffects}
-                  className="w-full mt-2 bg-gray-700 hover:bg-gray-600 text-xs px-3 py-2 rounded-md transition-colors"
+                  className="w-full mt-2 bg-gray-700 hover:bg-gray-600 text-xs px-3 py-2 rounded-md transition-colors min-h-[44px]"
                 >
                   Complete Mission
                 </button>
@@ -161,7 +161,7 @@ const Page: React.FC = () => {
           {effectsActiveCount > 0 && (
             <button
               onClick={clearAllEffects}
-              className="absolute top-20 left-4 z-10 bg-red-600/80 backdrop-blur-md px-3 py-1 rounded-lg border border-red-400/50 text-white text-sm hover:bg-red-700 transition-colors"
+              className="absolute top-32 md:top-20 left-2 md:left-4 z-10 bg-red-600/80 backdrop-blur-md px-3 py-2 rounded-lg border border-red-400/50 text-white text-sm hover:bg-red-700 transition-colors min-h-[44px]"
             >
               🛑 Clear Strategies
             </button>
@@ -186,10 +186,11 @@ const Page: React.FC = () => {
         <div className="fixed bottom-4 right-4 z-50">
           <button
             onClick={toggleChatExpansion}
-            className="bg-blue-600 hover:bg-blue-700 p-3 rounded-full shadow-lg transition-colors flex items-center gap-2 text-white"
+            className="bg-blue-600 hover:bg-blue-700 p-3 rounded-full shadow-lg transition-colors flex items-center gap-2 text-white min-h-[56px] min-w-[56px] justify-center"
+            aria-label="Open chat"
           >
-            <MessageSquare size={20} />
-            <ChevronUp size={16} />
+            <MessageSquare size={24} />
+            <ChevronUp size={20} className="hidden sm:block" />
           </button>
         </div>
       )}

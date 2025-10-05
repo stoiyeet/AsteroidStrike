@@ -17,20 +17,20 @@ export default function BottomNav() {
   }
 
   return (
-    <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-9 pointer-events-auto">
+    <nav className="fixed top-4 md:top-4 bottom-auto md:bottom-auto left-1/2 -translate-x-1/2 z-[100] pointer-events-auto">
       <div
         className={`flex items-center justify-center transition-all duration-500 ease-in-out bg-white/10 backdrop-blur-md border border-white/20 rounded-full
-          ${isNavExpanded ? "space-x-2 px-3 py-1" : "space-x-0 px-1 py-0"} md:px-1 md:py-0`}
+          ${isNavExpanded ? "space-x-2 px-3 py-1" : "space-x-0 px-1 py-0"}`}
       >
         {/* Toggle Button */}
         <button
           onClick={toggleNav}
-          className="flex flex-col items-center justify-center p-1 md:p-3 rounded-full hover:bg-white/20 transition-all duration-300 group relative z-10"
+          className="flex flex-col items-center justify-center p-2 md:p-3 rounded-full hover:bg-white/20 transition-all duration-300 group relative z-10 min-h-[44px] min-w-[44px]"
           aria-label={isNavExpanded ? "Minimize navigation" : "Expand navigation"}
         >
           <svg
-            className={`w-4 h-4 mb-0.5 text-white/80 group-hover:text-white transition-all duration-500 ${isNavExpanded ? "rotate-0" : "rotate-180"
-              } md:w-5 md:h-5 md:mb-1`}
+            className={`w-5 h-5 mb-0.5 text-white/80 group-hover:text-white transition-all duration-500 ${isNavExpanded ? "rotate-0" : "rotate-180"
+              }`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -58,7 +58,7 @@ export default function BottomNav() {
           {/* Home */}
           <Link
             href="/"
-            className="flex flex-col items-center justify-center p-3 rounded-full hover:bg-white/20 transition-all duration-300 group whitespace-nowrap"
+            className="flex flex-col items-center justify-center p-2 md:p-3 rounded-full hover:bg-white/20 transition-all duration-300 group whitespace-nowrap min-h-[44px] min-w-[44px]"
           >
             <svg
               className="w-5 h-5 mb-1 text-white/80 group-hover:text-white transition-colors duration-300"
@@ -73,7 +73,7 @@ export default function BottomNav() {
                 d="m3 12 2-2m0 0 7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
               />
             </svg>
-            <span className="text-xs text-white/80 group-hover:text-white transition-colors duration-300 font-light">
+            <span className="text-xs text-white/80 group-hover:text-white transition-colors duration-300 font-light hidden md:block">
               Home
             </span>
           </Link>
@@ -81,7 +81,7 @@ export default function BottomNav() {
           {/* Impact */}
           <Link
             href="/meteors"
-            className="flex flex-col items-center justify-center p-3 rounded-full hover:bg-white/20 transition-all duration-300 group whitespace-nowrap"
+            className="flex flex-col items-center justify-center p-2 md:p-3 rounded-full hover:bg-white/20 transition-all duration-300 group whitespace-nowrap min-h-[44px] min-w-[44px]"
           >
             <svg
               className="w-5 h-5 mb-1 text-white/80 group-hover:text-white transition-colors duration-300"
@@ -92,7 +92,7 @@ export default function BottomNav() {
               <circle cx="12" cy="12" r="10" strokeWidth={2} />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m8 12 2 2 4-4" />
             </svg>
-            <span id="nav-impact" className="text-xs text-white/80 group-hover:text-white transition-colors duration-300 font-light">
+            <span id="nav-impact" className="text-xs text-white/80 group-hover:text-white transition-colors duration-300 font-light hidden md:block">
               Impact
             </span>
           </Link>
@@ -100,7 +100,7 @@ export default function BottomNav() {
           {/* Defense */}
           <Link
             href="/ai"
-            className="flex flex-col items-center justify-center p-3 rounded-full hover:bg-white/20 transition-all duration-300 group whitespace-nowrap"
+            className="flex flex-col items-center justify-center p-2 md:p-3 rounded-full hover:bg-white/20 transition-all duration-300 group whitespace-nowrap min-h-[44px] min-w-[44px]"
           >
             <svg
               className="w-5 h-5 mb-1 text-white/80 group-hover:text-white transition-colors duration-300"
@@ -110,7 +110,7 @@ export default function BottomNav() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
-            <span id="nav-mitigation" className="text-xs text-white/80 group-hover:text-white transition-colors duration-300 font-light">
+            <span id="nav-mitigation" className="text-xs text-white/80 group-hover:text-white transition-colors duration-300 font-light hidden md:block">
               Mitigation
             </span>
           </Link>
@@ -118,7 +118,7 @@ export default function BottomNav() {
           {/* Scenario */}
           <Link
             href="/scenario"
-            className="flex flex-col items-center justify-center p-3 rounded-full hover:bg-white/20 transition-all duration-300 group whitespace-nowrap"
+            className="flex flex-col items-center justify-center p-2 md:p-3 rounded-full hover:bg-white/20 transition-all duration-300 group whitespace-nowrap min-h-[44px] min-w-[44px]"
           >
             <svg
               className="w-5 h-5 mb-1 text-white/80 group-hover:text-white transition-colors duration-300"
@@ -129,7 +129,7 @@ export default function BottomNav() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2" />
               <circle cx="12" cy="12" r="10" strokeWidth={2} />
             </svg>
-            <span id="nav-scenario" className="text-xs text-white/80 group-hover:text-white transition-colors duration-300 font-light">
+            <span id="nav-scenario" className="text-xs text-white/80 group-hover:text-white transition-colors duration-300 font-light hidden md:block">
               Scenario
             </span>
           </Link>

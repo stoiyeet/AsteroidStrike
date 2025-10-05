@@ -89,7 +89,7 @@ export default function Home(): React.ReactElement {
       </motion.div>
 
       {/* Overlay Content */}
-      <section className="absolute inset-0 z-1 flex items-center justify-center px-4 md:px-16 pointer-events-none">
+      <section className="absolute inset-0 z-1 flex items-center justify-center px-4 md:px-16 pointer-events-none pt-20 md:pt-0">
         <AnimatePresence mode="wait">
           {currentPhase === "loading" && (
             <motion.div
@@ -110,7 +110,7 @@ export default function Home(): React.ReactElement {
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 1, ease: "easeOut" }}
-              className="absolute inset-0 flex flex-col items-start justify-center max-w-2xl ml-auto mr-4 md:mr-10 pointer-events-auto"
+              className="absolute inset-0 flex flex-col items-start md:items-start justify-center max-w-2xl w-full md:ml-auto md:mr-10 px-4 md:px-0 pointer-events-auto"
             >
               {/* Subtitle */}
               <motion.p
@@ -124,7 +124,7 @@ export default function Home(): React.ReactElement {
 
               {/* Title */}
               <motion.h1
-                className="text-5xl md:text-8xl font-extrabold tracking-tight mb-4 leading-none"
+                className="text-4xl sm:text-5xl md:text-8xl font-extrabold tracking-tight mb-4 leading-none"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.41 }}
@@ -141,7 +141,7 @@ export default function Home(): React.ReactElement {
 
               {/* Description */}
               <motion.p
-                className="text-gray-300 text-base md:text-lg leading-relaxed mb-6"
+                className="text-gray-300 text-sm sm:text-base md:text-lg leading-relaxed mb-6 max-w-xl"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.9, duration: 0.6 }}
@@ -154,25 +154,25 @@ export default function Home(): React.ReactElement {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.2, duration: 0.6 }}
-                className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto"
+                className="flex flex-col gap-3 w-full max-w-md"
               >
                 <button
                   id="nav-impact"
-                  className="px-6 py-3 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all text-cyan-400 font-medium rounded-lg backdrop-blur-sm pointer-events-auto"
+                  className="px-6 py-4 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all text-cyan-400 font-medium rounded-lg backdrop-blur-sm pointer-events-auto text-sm sm:text-base min-h-[44px]"
                   onClick={() => window.location.href = '/meteors'}
                 >
                   Impact Assessment
                 </button>
                 <button
                   id="nav-mitigation"
-                  className="px-6 py-3 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all text-cyan-400 font-medium rounded-lg backdrop-blur-sm pointer-events-auto"
+                  className="px-6 py-4 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all text-cyan-400 font-medium rounded-lg backdrop-blur-sm pointer-events-auto text-sm sm:text-base min-h-[44px]"
                   onClick={() => window.location.href = '/ai'}
                 >
                   Mitigation Strategies
                 </button>
                 <button
                   id="nav-scenario"
-                  className="px-6 py-3 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all text-cyan-400 font-medium rounded-lg backdrop-blur-sm pointer-events-auto"
+                  className="px-6 py-4 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all text-cyan-400 font-medium rounded-lg backdrop-blur-sm pointer-events-auto text-sm sm:text-base min-h-[44px]"
                   onClick={() => window.location.href = '/scenario'}
                 >
                   Defense Scenario

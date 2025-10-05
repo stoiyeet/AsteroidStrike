@@ -704,30 +704,30 @@ export default function AsteroidDefensePage() {
     const palermo = getPalermoScale(asteroid);
             
     return (
-      <div className="min-h-screen h-screen bg-slate-900 text-white flex flex-col overflow-hidden pt-24">
-        <header className="bg-gradient-to-r from-slate-800 via-slate-850 to-slate-900 border-b border-slate-700/50 p-6 flex-shrink-0 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="relative w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg border border-blue-400/30">
+      <div className="min-h-screen h-screen bg-slate-900 text-white flex flex-col overflow-hidden pt-16 md:pt-24">
+        <header className="bg-gradient-to-r from-slate-800 via-slate-850 to-slate-900 border-b border-slate-700/50 p-3 md:p-6 flex-shrink-0 shadow-lg">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center space-x-2 md:space-x-4">
+              <div className="relative w-10 h-10 md:w-14 md:h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg border border-blue-400/30">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-xl" />
-                <div className="w-7 h-7 bg-white rounded-sm shadow-md"></div>
+                <div className="w-5 h-5 md:w-7 md:h-7 bg-white rounded-sm shadow-md"></div>
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">Threat Assessment</h1>
-                <div className="text-sm text-slate-400 font-medium">Planetary Defense Coordination Office</div>
+                <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">Threat Assessment</h1>
+                <div className="text-xs md:text-sm text-slate-400 font-medium hidden sm:block">Planetary Defense Coordination Office</div>
               </div>
             </div>
-            <div className="text-sm px-4 py-2 bg-slate-900/50 rounded-lg border border-slate-700/50 backdrop-blur-sm">
+            <div className="text-xs md:text-sm px-2 md:px-4 py-1 md:py-2 bg-slate-900/50 rounded-lg border border-slate-700/50 backdrop-blur-sm">
               <span className="text-blue-300 font-semibold">NASA JPL</span>
-              <span className="text-slate-500 mx-2">•</span>
-              <span className="text-slate-400">Near-Earth Object Studies</span>
+              <span className="text-slate-500 mx-1 md:mx-2 hidden sm:inline">•</span>
+              <span className="text-slate-400 hidden sm:inline">Near-Earth Object Studies</span>
             </div>
           </div>
         </header>
 
-        <div className="flex flex-1 min-h-0">
-          {/* Left side - Earth Visualization */}
-          <div className="flex-1 bg-black relative">
+        <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
+          {/* Left side - Earth Visualization (hidden on mobile) */}
+          <div className="hidden md:flex flex-1 bg-black relative">
             <EarthVisualization 
               asteroids={[asteroid]}
               selectedAsteroid={asteroid.id}
@@ -737,11 +737,11 @@ export default function AsteroidDefensePage() {
               </div>
 
           {/* Right side - Asteroid Details */}
-          <div className="w-1/2 max-w-2xl bg-slate-800 p-8 overflow-y-auto flex-shrink-0">
-            <div className="space-y-6">
+          <div className="w-full md:w-1/2 max-w-full md:max-w-2xl bg-slate-800 p-4 md:p-8 overflow-y-auto flex-1 md:flex-shrink-0">
+            <div className="space-y-4 md:space-y-6">
               <div>
                 <div className="text-xs uppercase text-slate-400 mb-2">Object Designation</div>
-                <h2 className="text-3xl font-bold text-white">{asteroid.name}</h2>
+                <h2 className="text-2xl md:text-3xl font-bold text-white">{asteroid.name}</h2>
                 {asteroid.isPotentiallyHazardous && (
                   <div className="mt-2 inline-block bg-red-900/30 border border-red-500/50 px-3 py-1 rounded text-red-300 text-sm">
                     Potentially Hazardous Asteroid (PHA)
@@ -767,27 +767,27 @@ export default function AsteroidDefensePage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gradient-to-br from-slate-700/70 to-slate-800/70 rounded-xl p-4 border border-slate-600/50 hover:border-blue-500/40 transition-all duration-200 shadow-lg">
-                  <div className="text-xs text-slate-400 mb-2 uppercase tracking-wider">Estimated Diameter</div>
-                  <div className="text-2xl font-bold text-white">{asteroid.diameterM.toFixed(0)}m</div>
+              <div className="grid grid-cols-2 gap-2 md:gap-3">
+                <div className="bg-gradient-to-br from-slate-700/70 to-slate-800/70 rounded-xl p-3 md:p-4 border border-slate-600/50 hover:border-blue-500/40 transition-all duration-200 shadow-lg">
+                  <div className="text-xs text-slate-400 mb-1 md:mb-2 uppercase tracking-wider">Estimated Diameter</div>
+                  <div className="text-xl md:text-2xl font-bold text-white">{asteroid.diameterM.toFixed(0)}m</div>
                   {asteroid.nasaJplUrl ? (
                     <div className="text-xs text-slate-500 mt-1">Mean of NASA range</div>
                   ) : (
                     <div className="text-xs text-slate-500 mt-1">Estimated from brightness</div>
                   )}
                 </div>
-                <div className="bg-gradient-to-br from-slate-700/70 to-slate-800/70 rounded-xl p-4 border border-slate-600/50 hover:border-blue-500/40 transition-all duration-200 shadow-lg">
-                  <div className="text-xs text-slate-400 mb-2 uppercase tracking-wider">Mass</div>
-                  <div className="text-2xl font-bold text-white">{formatMass(asteroid.massKg)}</div>
+                <div className="bg-gradient-to-br from-slate-700/70 to-slate-800/70 rounded-xl p-3 md:p-4 border border-slate-600/50 hover:border-blue-500/40 transition-all duration-200 shadow-lg">
+                  <div className="text-xs text-slate-400 mb-1 md:mb-2 uppercase tracking-wider">Mass</div>
+                  <div className="text-xl md:text-2xl font-bold text-white break-words">{formatMass(asteroid.massKg)}</div>
                 </div>
-                <div className="bg-gradient-to-br from-slate-700/70 to-slate-800/70 rounded-xl p-4 border border-slate-600/50 hover:border-blue-500/40 transition-all duration-200 shadow-lg">
-                  <div className="text-xs text-slate-400 mb-2 uppercase tracking-wider">Velocity</div>
-                  <div className="text-2xl font-bold text-white">{asteroid.velocityKmps.toFixed(1)} km/s</div>
+                <div className="bg-gradient-to-br from-slate-700/70 to-slate-800/70 rounded-xl p-3 md:p-4 border border-slate-600/50 hover:border-blue-500/40 transition-all duration-200 shadow-lg">
+                  <div className="text-xs text-slate-400 mb-1 md:mb-2 uppercase tracking-wider">Velocity</div>
+                  <div className="text-xl md:text-2xl font-bold text-white">{asteroid.velocityKmps.toFixed(1)} km/s</div>
                 </div>
-                <div className="bg-gradient-to-br from-slate-700/70 to-slate-800/70 rounded-xl p-4 border border-slate-600/50 hover:border-red-500/40 transition-all duration-200 shadow-lg">
-                  <div className="text-xs text-slate-400 mb-2 uppercase tracking-wider">Torino Scale</div>
-                  <div className={`text-2xl font-bold ${
+                <div className="bg-gradient-to-br from-slate-700/70 to-slate-800/70 rounded-xl p-3 md:p-4 border border-slate-600/50 hover:border-red-500/40 transition-all duration-200 shadow-lg">
+                  <div className="text-xs text-slate-400 mb-1 md:mb-2 uppercase tracking-wider">Torino Scale</div>
+                  <div className={`text-xl md:text-2xl font-bold ${
                     torinoScale >= 8 ? 'text-red-400' :
                     torinoScale >= 5 ? 'text-orange-400' :
                     torinoScale >= 2 ? 'text-yellow-400' :
@@ -796,15 +796,15 @@ export default function AsteroidDefensePage() {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-slate-700/70 to-slate-800/70 rounded-xl p-5 border border-slate-600/50 hover:border-purple-500/40 transition-all duration-200 shadow-lg">
+              <div className="bg-gradient-to-br from-slate-700/70 to-slate-800/70 rounded-xl p-3 md:p-5 border border-slate-600/50 hover:border-purple-500/40 transition-all duration-200 shadow-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-xs text-slate-400 mb-2 uppercase tracking-wider">Palermo Scale</div>
-                    <div className={`text-2xl font-bold ${palermo < 0 ? 'text-slate-300' : palermo < 1 ? 'text-yellow-300' : 'text-red-300'}`}>{palermo.toFixed(2)}</div>
+                    <div className="text-xs text-slate-400 mb-1 md:mb-2 uppercase tracking-wider">Palermo Scale</div>
+                    <div className={`text-xl md:text-2xl font-bold ${palermo < 0 ? 'text-slate-300' : palermo < 1 ? 'text-yellow-300' : 'text-red-300'}`}>{palermo.toFixed(2)}</div>
                   </div>
                   <button
                     onClick={() => setShowRiskScales(!showRiskScales)}
-                    className="text-xs px-3 py-1 rounded bg-slate-700 hover:bg-slate-600 border border-slate-600"
+                    className="text-xs px-3 py-2 rounded bg-slate-700 hover:bg-slate-600 border border-slate-600 min-h-[44px]"
                   >{showRiskScales ? 'Hide' : 'Explain'}</button>
                 </div>
                 {showRiskScales && (
@@ -840,9 +840,9 @@ export default function AsteroidDefensePage() {
               )}
 
               {/* Scientific Metrics */}
-              <div className="bg-slate-700/30 rounded-lg p-4 space-y-3">
+              <div className="bg-slate-700/30 rounded-lg p-3 md:p-4 space-y-2 md:space-y-3">
                 <div className="text-sm font-semibold text-slate-200 mb-2">Impact Threat Assessment</div>
-                <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-xs">
                   <div>
                     <span className="text-slate-400">Kinetic Energy:</span>
                     <span className="text-white font-mono ml-2">
@@ -1020,34 +1020,34 @@ export default function AsteroidDefensePage() {
     const ratio = requiredDeltaVms > 0 ? deliveredDeltaVms / requiredDeltaVms : 0;
 
     return (
-      <div className="fixed inset-0 bg-slate-900 text-white flex flex-col pt-24">
-        <header className="bg-gradient-to-r from-slate-800 via-slate-850 to-slate-900 border-b border-slate-700/50 p-6 flex-shrink-0 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="relative w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg border border-blue-400/30">
+      <div className="fixed inset-0 bg-slate-900 text-white flex flex-col pt-16 md:pt-24">
+        <header className="bg-gradient-to-r from-slate-800 via-slate-850 to-slate-900 border-b border-slate-700/50 p-3 md:p-6 flex-shrink-0 shadow-lg">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center space-x-2 md:space-x-4">
+              <div className="relative w-10 h-10 md:w-14 md:h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg border border-blue-400/30">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-xl" />
-                <div className="w-7 h-7 bg-white rounded-sm shadow-md"></div>
+                <div className="w-5 h-5 md:w-7 md:h-7 bg-white rounded-sm shadow-md"></div>
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">Mission Planning</h1>
-                <div className="text-sm text-slate-400 font-medium">Target: {asteroid.name}</div>
+                <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">Mission Planning</h1>
+                <div className="text-xs md:text-sm text-slate-400 font-medium">Target: {asteroid.name}</div>
               </div>
             </div>
             <button
               onClick={() => setPhase('briefing')}
-              className="text-slate-300 hover:text-white text-sm px-5 py-2.5 rounded-lg hover:bg-slate-700 transition-all duration-200 border border-slate-700 hover:border-slate-600 font-medium"
+              className="text-slate-300 hover:text-white text-sm px-5 py-3 rounded-lg hover:bg-slate-700 transition-all duration-200 border border-slate-700 hover:border-slate-600 font-medium min-h-[44px]"
             >
               ← Back to Assessment
             </button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto pt-8">
-          <div className="max-w-5xl mx-auto px-8 pb-20 space-y-8">
+        <div className="flex-1 overflow-y-auto pt-4 md:pt-8">
+          <div className="max-w-5xl mx-auto px-4 md:px-8 pb-20 space-y-6 md:space-y-8">
           {/* Scenario Data & Recommendations */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-            <h2 className="text-xl font-semibold mb-4">Scenario Data & Recommendations</h2>
-            <div className="grid md:grid-cols-3 gap-4 text-sm">
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 md:p-6">
+            <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">Scenario Data & Recommendations</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 text-sm">
               <div className="bg-slate-700/30 rounded-lg p-4">
                 <div className="text-slate-400 text-xs mb-1">Asteroid Size</div>
                 <div className="text-white font-semibold capitalize">{asteroid.size}</div>
@@ -1069,7 +1069,7 @@ export default function AsteroidDefensePage() {
               const recMethod = getRecommendedMethod(diff, selectedYears, asteroid.size);
               const suggested = findSuggestedTimeframe(recMethod, asteroid, safetyRadii);
               return (
-                <div className="mt-4 grid md:grid-cols-3 gap-4 text-sm">
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 text-sm">
                   <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
                     <div className="text-blue-200 text-xs mb-1">Difficulty</div>
                     <div className="text-white font-semibold">{diff.toUpperCase()}</div>
@@ -1086,16 +1086,16 @@ export default function AsteroidDefensePage() {
               );
             })()}
           </div>
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-            <h2 className="text-xl font-semibold mb-4">Step 1: Select Mission Timeframe</h2>
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 md:p-6">
+            <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">Step 1: Select Mission Timeframe</h2>
             <div className="text-sm text-slate-400 mb-4">
               Choose how many years before potential impact to deploy the deflection mission. 
               Earlier deployment increases success probability but may have logistical challenges.
                         </div>
             {/* Timeframe Guidance */}
-            <div className="mb-4 bg-slate-900/40 border border-slate-700 rounded-lg p-4 text-xs text-slate-300">
+            <div className="mb-4 bg-slate-900/40 border border-slate-700 rounded-lg p-3 md:p-4 text-xs text-slate-300">
               <div className="font-semibold text-slate-200 mb-2">Timeframe Guidance</div>
-              <div className="grid md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <div className="text-slate-400">Required <InlineMath math="\\Delta v" /></div>
                   <div className="text-white font-mono">{(requiredDeltaVms * 100).toFixed(3)} cm/s</div>
@@ -1149,7 +1149,7 @@ export default function AsteroidDefensePage() {
                   <div className="mt-3">
                     <button
                       onClick={() => setSelectedYears(suggested)}
-                      className="text-xs px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white border border-blue-500/50"
+                      className="text-xs px-3 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white border border-blue-500/50 min-h-[44px]"
                     >Set to suggested timeframe</button>
                     <span className="ml-2 text-slate-400">Adjusts to when {METHOD_INFO[recMethod].name} typically meets the requirement.</span>
                   </div>
@@ -1175,19 +1175,19 @@ export default function AsteroidDefensePage() {
                 className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
               />
               <div className="text-center">
-                <div className="text-4xl font-bold text-blue-400">{selectedYears} Years</div>
-                <div className="text-sm text-slate-400">before potential impact</div>
+                <div className="text-3xl md:text-4xl font-bold text-blue-400">{selectedYears} Years</div>
+                <div className="text-xs md:text-sm text-slate-400">before potential impact</div>
                     </div>
                   </div>
                 </div>
 
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-            <h2 className="text-xl font-semibold mb-4">Step 2: Select Deflection Method</h2>
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 md:p-6">
+            <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">Step 2: Select Deflection Method</h2>
             <div className="text-sm text-slate-400 mb-4">
               Choose the deflection technique for this mission. Consider cost, effectiveness, and time constraints.
             </div>
             
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {(Object.keys(METHOD_INFO) as MitigationMethod[]).map((method) => {
                 const info = METHOD_INFO[method];
                 const cost = getMethodCost(method);
@@ -1480,7 +1480,7 @@ export default function AsteroidDefensePage() {
                   const suggested = findSuggestedTimeframe(rec, asteroid!, safetyRadii);
                   if (suggested && suggested > selectedYears) setSelectedYears(suggested);
                 }}
-                className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
+                className="px-4 py-3 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold min-h-[44px]"
               >Use recommended settings</button>
             </div>
           </div>
@@ -1739,7 +1739,7 @@ export default function AsteroidDefensePage() {
                 href={asteroid.nasaJplUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-lg"
+                className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-lg min-h-[44px]"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />

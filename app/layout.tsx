@@ -26,10 +26,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="overflow-hidden">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white overflow-hidden min-h-screen`}
       >
-        <div className="w-full min-h-screen overflow-hidden pb-20 md:pb-0">
+        <div className="w-full min-h-screen overflow-hidden pb-0">
           {children}
         </div>
 
