@@ -12,7 +12,6 @@ import {
   Filter,
   Info,
   BookOpen,
-  Scale,
   Timer,
   Link as LinkIcon,
   Table2,

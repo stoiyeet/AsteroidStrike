@@ -281,9 +281,7 @@ export function peakOverpressureAtR(
     const Z_CRITICAL = 550; // m
 
     // Determine if Mach Reflection Region applies
-    let r_m1: number; // Limit of Mach region
-
-    r_m1 = (Z_CRITICAL * zb_m) / (1.2 * (Z_CRITICAL - zb_m));
+    const r_m1 = (Z_CRITICAL * zb_m) / (1.2 * (Z_CRITICAL - zb_m));
 
     // Check if within Mach Region (or if zb_m is high)
     if (zb_m >= Z_CRITICAL || r_1 > r_m1) {

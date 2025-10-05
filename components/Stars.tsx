@@ -8,7 +8,7 @@ const Stars: React.FC = () => {
   const materialRef = useRef<THREE.PointsMaterial>(null);
 
   // Generate star field with varying sizes and colors
-  const { geometry, colors } = useMemo(() => {
+  const { geometry } = useMemo(() => {
     const starCount = 4000;
     const positions = new Float32Array(starCount * 3);
     const colors = new Float32Array(starCount * 3);

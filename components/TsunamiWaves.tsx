@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import { surfacemToChordUnits, EARTH_R_M, ringRotation } from '@/components/meteors/EarthImpact';
 
 // Vertex shader
