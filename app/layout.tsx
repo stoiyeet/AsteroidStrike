@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Project NEO",
+  title: "Project Impact",
   description: "Simulating asteroid impact and mitigation strategies.",
 };
 

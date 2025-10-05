@@ -588,7 +588,7 @@ export default function AsteroidDefensePage() {
           </div>
           
           {/* Begin Mission Button at Bottom */}
-          <div className="max-w-3xl w-full mx-auto mt-8 pb-8">
+          <div className="max-w-3xl w-full mx-auto mt-8 pb-32">
             <div className="flex justify-center">
               <button
                 onClick={() => setPhase('briefing')}
@@ -704,7 +704,7 @@ export default function AsteroidDefensePage() {
     const palermo = getPalermoScale(asteroid);
             
     return (
-      <div className="min-h-screen h-screen bg-slate-900 text-white flex flex-col overflow-hidden pt-16 md:pt-24">
+      <div className="min-h-screen h-screen bg-slate-900 text-white flex flex-col overflow-hidden pt-20 md:pt-24">
         <header className="bg-gradient-to-r from-slate-800 via-slate-850 to-slate-900 border-b border-slate-700/50 p-3 md:p-6 flex-shrink-0 shadow-lg">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center space-x-2 md:space-x-4">
@@ -738,7 +738,7 @@ export default function AsteroidDefensePage() {
 
           {/* Right side - Asteroid Details */}
           <div className="w-full md:w-1/2 max-w-full md:max-w-2xl bg-slate-800 p-4 md:p-8 overflow-y-auto flex-1 md:flex-shrink-0">
-            <div className="space-y-4 md:space-y-6">
+            <div className="space-y-4 md:space-y-6 pb-32">
               <div>
                 <div className="text-xs uppercase text-slate-400 mb-2">Object Designation</div>
                 <h2 className="text-2xl md:text-3xl font-bold text-white">{asteroid.name}</h2>
@@ -1020,7 +1020,7 @@ export default function AsteroidDefensePage() {
     const ratio = requiredDeltaVms > 0 ? deliveredDeltaVms / requiredDeltaVms : 0;
 
     return (
-      <div className="fixed inset-0 bg-slate-900 text-white flex flex-col pt-16 md:pt-24">
+      <div className="fixed inset-0 bg-slate-900 text-white flex flex-col pt-20 md:pt-24">
         <header className="bg-gradient-to-r from-slate-800 via-slate-850 to-slate-900 border-b border-slate-700/50 p-3 md:p-6 flex-shrink-0 shadow-lg">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center space-x-2 md:space-x-4">
@@ -1043,7 +1043,7 @@ export default function AsteroidDefensePage() {
         </header>
 
         <div className="flex-1 overflow-y-auto pt-4 md:pt-8">
-          <div className="max-w-5xl mx-auto px-4 md:px-8 pb-20 space-y-6 md:space-y-8">
+          <div className="max-w-5xl mx-auto px-4 md:px-8 pb-40 space-y-6 md:space-y-8">
           {/* Scenario Data & Recommendations */}
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 md:p-6">
             <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">Scenario Data & Recommendations</h2>
@@ -1521,7 +1521,7 @@ export default function AsteroidDefensePage() {
         </header>
 
         <div ref={resultScrollRef} className="flex-1 overflow-y-auto pt-8">
-          <div className="max-w-4xl mx-auto px-8 pb-20 space-y-8">
+          <div className="max-w-4xl mx-auto px-8 pb-32 space-y-8">
           {/* Success/Failure Banner */
           }
           <div className={`rounded-xl p-8 text-center ${
