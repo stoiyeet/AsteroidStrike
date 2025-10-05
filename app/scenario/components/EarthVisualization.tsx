@@ -19,13 +19,10 @@ export default function EarthVisualization({
   onSelectAsteroid
 }: EarthVisualizationProps) {
   const [showOrbits, setShowOrbits] = useState(true);
-  const [showImpactZones, setShowImpactZones] = useState(true);
   const [showCorridor, setShowCorridor] = useState(true);
-  const [autoFit, setAutoFit] = useState(true);
-  const [zoom, setZoom] = useState(1);
 
-  // Compute auto-fit scale so farthest object stays within the view
-  const { distancesRaw, baseDistance, autoScale } = useMemo(() => {
+  // Compute distances and scale for asteroids
+  const { distancesRaw, autoScale } = useMemo(() => {
     const base = 180;
     const raw = asteroids.map(a => {
       const distanceMultiplier = Math.max(0.2, a.timeToImpactHours / (24 * 7));
@@ -34,10 +31,10 @@ export default function EarthVisualization({
     const maxRaw = raw.length ? Math.max(...raw) : base;
     const maxViewRadius = 180; // keep within the gravity sphere (~200px) with small margin
     const scale = maxRaw > 0 ? Math.min(1, maxViewRadius / (maxRaw + 20)) : 1;
-    return { distancesRaw: raw, baseDistance: base, autoScale: scale };
+    return { distancesRaw: raw, autoScale: scale };
   }, [asteroids]);
 
-  const viewScale = (autoFit ? autoScale : 1) * zoom;
+  const viewScale = autoScale;
   
   return (
     <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 via-40% to-indigo-950 to-90%">
@@ -229,20 +226,6 @@ export default function EarthVisualization({
                 )}
               </div>
               
-              {/* Impact zone preview on Earth's surface */}
-              {showImpactZones && asteroid.impactProbability > 0.1 && asteroid.impactZoneRadiusKm && asteroid.impactZoneRadiusKm > 0 && (
-                <div
-                  className="absolute rounded-full border-2 border-red-500 bg-red-500/10 animate-pulse"
-                  style={{
-                    width: `${Math.min(asteroid.impactZoneRadiusKm / 5, 80)}px`,
-                    height: `${Math.min(asteroid.impactZoneRadiusKm / 5, 80)}px`,
-                    left: '50%',
-                    top: '50%',
-                    transform: `translate(calc(-50% + ${-x}px), calc(-50% + ${-y}px))`,
-                  }}
-                />
-              )}
-
               {/* Mission indicators */}
               {asteroid.deflectionMissions.length > 0 && (
                 <div className="absolute -top-2 -right-2">
@@ -309,17 +292,6 @@ export default function EarthVisualization({
           {showOrbits ? 'Hide' : 'Show'} Orbits
         </button>
         <button
-          onClick={() => setShowImpactZones(!showImpactZones)}
-          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-            showImpactZones 
-              ? 'bg-red-600 hover:bg-red-700 text-white' 
-              : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-          }`}
-          title="Show/hide approximate ground footprint at predicted impact location"
-        >
-          {showImpactZones ? 'Hide' : 'Show'} Impact Zones
-        </button>
-        <button
           onClick={() => setShowCorridor(!showCorridor)}
           className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
             showCorridor 
@@ -330,28 +302,6 @@ export default function EarthVisualization({
         >
           {showCorridor ? 'Hide' : 'Show'} Corridor
         </button>
-        <button
-          onClick={() => setAutoFit(!autoFit)}
-          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-            autoFit 
-              ? 'bg-indigo-600 hover:bg-indigo-700 text-white' 
-              : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-          }`}
-        >
-          {autoFit ? 'Auto-fit: On' : 'Auto-fit: Off'}
-        </button>
-        <div className="bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300">
-          <div className="mb-1">Zoom</div>
-          <input
-            type="range"
-            min="0.5"
-            max="2"
-            step="0.1"
-            value={zoom}
-            onChange={(e) => setZoom(Number(e.target.value))}
-            className="w-40 accent-indigo-500"
-          />
-        </div>
       </div>
       
       {/* Legend - Compact Design */}
@@ -403,12 +353,6 @@ export default function EarthVisualization({
                 <div className="w-2 h-2 bg-green-500/60 border border-green-400 flex-shrink-0 mt-0.5" />
                 <div className="text-slate-300 text-[10px] leading-tight">
                   <span className="font-semibold text-green-300">Corridor (3σ):</span> impact path uncertainty band
-                </div>
-              </div>
-              <div className="flex items-start gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-red-500/40 border border-red-400 flex-shrink-0 mt-0.5" />
-                <div className="text-slate-300 text-[10px] leading-tight">
-                  <span className="font-semibold text-red-300">Impact zone:</span> surface footprint preview
                 </div>
               </div>
             </div>
