@@ -9,7 +9,7 @@ GOOGLE_API_KEY="gemini_api_key"
 IS_WATER_API_KEY="https://isitwater.com/ api key"
 ```
 
-Then, run the development server:
+Then, run the development server :
 
 ```bash
 npm run dev
