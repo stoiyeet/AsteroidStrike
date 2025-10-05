@@ -11,10 +11,12 @@ function formatDistance(meters: number | null): string {
 
 // Helper function to format energy
 function formatEnergy(joules: number): string {
+  if (joules > 1.368e30) return `${(joules / 1.368e30).toFixed(2)} Hours of Sun Output`;
+  if (joules > 1e24) return `${(joules / 1e24).toFixed(2)} Yottajoules`;
   const mt = joules / 4.184e15; // Convert to megatons
-  if (mt >= 1000) return `${(mt / 1000).toFixed(1)} Gigatons`;
-  if (mt >= 1) return `${mt.toFixed(1)} Megatons`;
-  return `${(mt * 1000).toFixed(1)} Kilotons`;
+  if (mt >= 1000) return `${(mt / 1000).toFixed(1)} Gigatons of TNT`;
+  if (mt >= 1) return `${mt.toFixed(1)} Megatons of TNT`;
+  return `${(mt * 1000).toFixed(1)} Kilotons of TNT`;
 }
 
 function formatOverPressure(pascals: number | null): string {
@@ -181,7 +183,7 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
             </div>
             <div className={styles.dataRow}>
               <span className={styles.label}>Energy</span>
-              <span className={styles.value}>{formatEnergy(effects.E_J)} of TNT</span>
+              <span className={styles.value}>{formatEnergy(effects.E_J)}</span>
             </div>
             <div className={styles.dataRow}>
               <span className={styles.label}>Recurrence Period</span>
