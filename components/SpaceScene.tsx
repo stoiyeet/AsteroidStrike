@@ -15,7 +15,6 @@ import KineticImpactor from "@/components/KineticImpactor";
 import LaserDefense from "@/components/LaserDefense";
 import NuclearDetonation from "@/components/NuclearDetonation";
 import GravityTractor from "@/components/GravityTractor";
-import AsteroidAnalyzer from "@/components/AsteroidAnalyzer";
 import IonBeamShepherd from "@/components/ionBeamShepherd";
 
 // === Types ===
@@ -26,14 +25,12 @@ type EffectKey =
   | "gravityTractor"
   | "laserAblation"
   | "ionBeamShepherd"
-  | "analyze";
 
 type SpaceSceneProps = {
   effects: Record<EffectKey, boolean>;
   followingAsteroid: boolean;
   asteroidClicked: boolean;
   onAsteroidClick: () => void;
-  onAnalysisComplete?: () => void;
 };
 
 // === Stationary Asteroid (with deflection offset) ===
@@ -157,9 +154,6 @@ const SceneContent: React.FC<{
   // Ion beam shepherd state
   const [ionBeamActive, setIonBeamActive] = useState(false);
 
-  // Analysis state
-  const [analysisActive, setAnalysisActive] = useState(false);
-
   // Kinetic impactor state
   const [kineticImpactorActive, setKineticImpactorActive] = useState(false);
 
@@ -245,15 +239,6 @@ const SceneContent: React.FC<{
     }
   }, [effects.ionBeamShepherd, ionBeamActive, asteroidVisible]);
 
-  // Handle analysis
-  React.useEffect(() => {
-    if (effects.analyze && !analysisActive) {
-      setAnalysisActive(true);
-    } else if (!effects.analyze && analysisActive) {
-      setAnalysisActive(false);
-    }
-  }, [effects.analyze, analysisActive]);
-
   const handleNuclearComplete = useCallback(() => {
     setNuclearActive(false);
     setTimeout(() => {
@@ -283,9 +268,6 @@ const SceneContent: React.FC<{
     }, 2000);
   }, []);
 
-  const handleAnalysisComplete = useCallback(() => {
-    setAnalysisActive(false);
-  }, []);
 
   const handleEarthDoubleClick = useCallback(() => {
     console.log("Earth double-clicked");
@@ -383,7 +365,6 @@ const SpaceScene: React.FC<SpaceSceneProps> = ({
   followingAsteroid,
   asteroidClicked,
   onAsteroidClick,
-  onAnalysisComplete,
 }) => {
   return (
     <>
@@ -397,13 +378,6 @@ const SpaceScene: React.FC<SpaceSceneProps> = ({
           />
         </Suspense>
       </Canvas>
-
-      {/* ✅ Only Analyzer overlay here */}
-      <AsteroidAnalyzer
-        isActive={effects.analyze}
-        asteroidPosition={new THREE.Vector3(50, 0, 0)} // replace with live position if needed
-        onComplete={onAnalysisComplete ?? (() => console.log("Analysis complete"))}
-      />
     </>
   );
 };
