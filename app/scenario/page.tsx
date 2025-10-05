@@ -769,8 +769,13 @@ export default function AsteroidDefensePage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-gradient-to-br from-slate-700/70 to-slate-800/70 rounded-xl p-4 border border-slate-600/50 hover:border-blue-500/40 transition-all duration-200 shadow-lg">
-                  <div className="text-xs text-slate-400 mb-2 uppercase tracking-wider">Diameter</div>
+                  <div className="text-xs text-slate-400 mb-2 uppercase tracking-wider">Estimated Diameter</div>
                   <div className="text-2xl font-bold text-white">{asteroid.diameterM.toFixed(0)}m</div>
+                  {asteroid.nasaJplUrl ? (
+                    <div className="text-xs text-slate-500 mt-1">Mean of NASA range</div>
+                  ) : (
+                    <div className="text-xs text-slate-500 mt-1">Based on brightness & albedo</div>
+                  )}
                 </div>
                 <div className="bg-gradient-to-br from-slate-700/70 to-slate-800/70 rounded-xl p-4 border border-slate-600/50 hover:border-blue-500/40 transition-all duration-200 shadow-lg">
                   <div className="text-xs text-slate-400 mb-2 uppercase tracking-wider">Mass</div>
@@ -841,7 +846,7 @@ export default function AsteroidDefensePage() {
                   <div>
                     <span className="text-slate-400">Kinetic Energy:</span>
                     <span className="text-white font-mono ml-2">
-                      {((0.5 * asteroid.massKg * Math.pow(asteroid.velocityKmps * 1000, 2)) / 4.184e15).toFixed(2)} MT
+                      {((0.5 * asteroid.massKg * Math.pow(asteroid.velocityKmps * 1000, 2)) / 4.184e15).toFixed(2)} MT of TNT
                     </span>
                   </div>
                   <div>
@@ -851,14 +856,16 @@ export default function AsteroidDefensePage() {
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400">Impact Zone:</span>
+                    <span className="text-slate-400">Impact Zone Radius:</span>
                     <span className="text-white font-mono ml-2">
-                      {asteroid.impactZoneRadiusKm ? `~${asteroid.impactZoneRadiusKm} km radius` : 'Minimal'}
+                      {asteroid.impactZoneRadiusKm ? `~${asteroid.impactZoneRadiusKm} km` : 'Minimal'}
                     </span>
+                    <div className="text-slate-500 mt-0.5">Area of direct damage</div>
                   </div>
                   <div>
                     <span className="text-slate-400">Position Uncertainty:</span>
                     <span className="text-white font-mono ml-2">±{asteroid.uncertaintyKm.toFixed(0)} km</span>
+                    <div className="text-slate-500 mt-0.5">Error in predicted impact location</div>
                   </div>
                 </div>
                 <div className="text-xs text-slate-400 mt-2">
