@@ -217,7 +217,7 @@ const massive_Earthquake_milestones = {
   13.5: "Extreme continental catastrophe. Ruptures propagate across multiple major faults. Multi-kilometre vertical offsets and regional collapse of mountain belts. Widespread permanent changes to coastlines and drainage. Very large tsunamis for offshore events.",
   14.2: "Global mechanical crisis. Cascading ruptures trigger major volcanic systems and widespread crustal failure. Kilometer-scale fissuring in multiple regions. Prolonged, planet-wide seismic shaking.",
   15: "Over 64% of the energy needed to vaporize all oceans. Global ocean surface superheating and massive steam injection to the atmosphere.",
-  15.13: "Beyond the rough theoretical threshold to vaporize Earth’s oceans. Energy deposited globally would boil oceans completely",
+  15.13: "Beyond the theoretical threshold to vaporize Earth’s oceans. Energy deposited globally would boil oceans completely",
   16.2: "Planet-scale resurfacing and mantle upheaval. Global crustal meltdown. Planet effectively sterilized"
 }
 
