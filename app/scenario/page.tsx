@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Asteroid } from './types';
 import { generateAsteroid, getTorinoScale, getPalermoScale } from './gameUtils';
 import EarthVisualization from './components/EarthVisualization';
@@ -290,6 +290,7 @@ export default function AsteroidDefensePage() {
   const [showRiskScales, setShowRiskScales] = useState<boolean>(false);
   const [showMath, setShowMath] = useState<boolean>(false);
   const [showTimeframeInfo, setShowTimeframeInfo] = useState<boolean>(false);
+  const resultScrollRef = useRef<HTMLDivElement | null>(null);
 
   const [safetyRadii] = useState<number>(2.5);
 
@@ -304,13 +305,51 @@ export default function AsteroidDefensePage() {
     setMounted(true);
   }, []);
 
+  // Scroll to top when we enter the result phase
+  useEffect(() => {
+    if (phase === 'result') {
+      const el = resultScrollRef.current;
+      // Try on next frame to ensure layout is ready
+      requestAnimationFrame(() => {
+        if (el) {
+          el.scrollTop = 0;
+          try { el.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) { /* noop */ }
+        } else if (typeof window !== 'undefined') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+      // Fallback after a short delay
+      setTimeout(() => {
+        if (resultScrollRef.current) {
+          resultScrollRef.current.scrollTop = 0;
+        } else if (typeof window !== 'undefined') {
+          window.scrollTo(0, 0);
+        }
+      }, 100);
+    }
+  }, [phase]);
+
   // Generate asteroid when entering briefing phase
   useEffect(() => {
     if (phase === 'briefing' && !asteroid) {
       const loadAsteroid = async () => {
-        const newAsteroid = await generateAsteroid(new Date());
-        newAsteroid.isDetected = true;
-        setAsteroid(newAsteroid);
+        // Auto-refetch to avoid tiny/small objects so users always have interactive scenarios
+        const now = new Date();
+        let attempts = 0;
+        const maxAttempts = 5;
+        while (attempts < maxAttempts) {
+          const candidate = await generateAsteroid(now);
+          candidate.isDetected = true;
+          if (candidate.size === 'medium' || candidate.size === 'large') {
+            setAsteroid(candidate);
+            return;
+          }
+          attempts += 1;
+        }
+        // Fallback: if all attempts were tiny/small, accept the last one to avoid infinite loop
+        const fallback = await generateAsteroid(now);
+        fallback.isDetected = true;
+        setAsteroid(fallback);
       };
       loadAsteroid();
     }
@@ -385,7 +424,11 @@ export default function AsteroidDefensePage() {
         feedback.push(`Gravity tractor (1000 kg spacecraft at 50 m) applied ${tractorForce.toExponential(2)} N continuous force over ${(selectedYears * 0.7).toFixed(1)} years, accumulating impulse gradually.`);
       }
     } else {
-      feedback.push(`Mission Failed: Delivered Δv ${(deliveredDeltaVms * 100).toFixed(3)} cm/s fell short of the required ${(requiredDeltaVms * 100).toFixed(3)} cm/s to achieve a safe miss distance.`);
+      if (deliveredDeltaVms < requiredDeltaVms) {
+        feedback.push(`Mission Failed: Delivered Δv ${(deliveredDeltaVms * 100).toFixed(3)} cm/s fell short of the required ${(requiredDeltaVms * 100).toFixed(3)} cm/s to achieve a safe miss distance.`);
+      } else {
+        feedback.push(`Mission Failed: Although delivered Δv ${(deliveredDeltaVms * 100).toFixed(3)} cm/s met or exceeded the ${(requiredDeltaVms * 100).toFixed(3)} cm/s requirement, the estimated success probability was ${(successProbability * 100).toFixed(0)}% due to scenario difficulty and operational constraints.`);
+      }
       
       // Specific failure reasons
       if (selectedYears < 5 && (selectedMethod === 'gravity_tractor' || selectedMethod === 'ion_beam')) {
@@ -396,7 +439,11 @@ export default function AsteroidDefensePage() {
         feedback.push(`Reason: Insufficient warning time. At ${selectedYears} year(s), design and travel time (~${travelTime.toFixed(1)} years) left minimal deflection window. With <2 years warning, most methods have very low success probability.`);
       } else {
         const momentumNeeded = asteroid.massKg * requiredDeltaVms;
-        feedback.push(`Deflection physics: For a ${asteroid.diameterM.toFixed(0)} m asteroid at ${asteroid.velocityKmps.toFixed(1)} km/s, required momentum change was ${momentumNeeded.toExponential(2)} kg·m/s. The method could not provide sufficient impulse.`);
+        if (deliveredDeltaVms < requiredDeltaVms) {
+          feedback.push(`Deflection physics: For a ${asteroid.diameterM.toFixed(0)} m asteroid at ${asteroid.velocityKmps.toFixed(1)} km/s, required momentum change was ${momentumNeeded.toExponential(2)} kg·m/s. The method could not provide sufficient impulse.`);
+        } else {
+          feedback.push(`Deflection assessment: Required momentum change was ${momentumNeeded.toExponential(2)} kg·m/s. While the Δv threshold was met, modeled risk factors (e.g., short lead time, operational complexity, or high scenario difficulty) lowered success probability below 50%.`);
+        }
       }
     }
     
@@ -482,69 +529,74 @@ export default function AsteroidDefensePage() {
   // Onboarding Screen
   if (phase === 'onboarding') {
     return (
-      <div className="fixed inset-0 bg-gradient-to-b from-slate-900 via-slate-800 to-black text-white overflow-y-auto">
-        <div className="min-h-screen flex items-center justify-center p-6">
-          <div className="max-w-3xl w-full space-y-8">
-          <div className="text-center space-y-4">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center mx-auto">
-              <div className="w-10 h-10 bg-white rounded-sm"></div>
+      <div className="fixed inset-0 bg-gradient-to-b from-slate-900 via-slate-800 to-black text-white overflow-y-auto pt-24">
+        <div className="min-h-screen flex flex-col p-6">
+          <div className="max-w-3xl w-full mx-auto space-y-8 flex-1">
+            <div className="text-center space-y-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center mx-auto">
+                <div className="w-10 h-10 bg-white rounded-sm"></div>
               </div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Planetary Defense Command
-            </h1>
-            <p className="text-xl text-slate-300">NASA Near-Earth Object Studies</p>
+              <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                Planetary Defense Command
+              </h1>
+              <p className="text-xl text-slate-300">NASA Near-Earth Object Studies</p>
             </div>
             
-          <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-8 space-y-6">
-            <h2 className="text-2xl font-semibold text-blue-300">Mission Briefing</h2>
-            
-            <div className="space-y-4 text-slate-300 leading-relaxed">
-              <p>
-                Welcome to the Planetary Defense Coordination Office. You have been appointed as the lead decision-maker 
-                for a critical asteroid deflection scenario.
-              </p>
+            <div id="mission-briefing" className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-8 space-y-6">
+              <h2 className="text-2xl font-semibold text-blue-300">Mission Briefing</h2>
               
-              <p>
-                We have detected a Near-Earth Object (NEO) on a potential collision course with Earth. Your mission is to 
-                assess the threat and select an appropriate mitigation strategy.
-              </p>
-              
-              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-blue-200 mb-2">Your Responsibilities:</h3>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-start">
-                    <span className="text-blue-400 mr-2">1.</span>
-                    <span>Review the asteroid&apos;s physical characteristics and trajectory data</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-400 mr-2">2.</span>
-                    <span>Select a timeframe for mission deployment (1-25 years)</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-400 mr-2">3.</span>
-                    <span>Choose the most effective deflection method</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-400 mr-2">4.</span>
-                    <span>Balance mission success probability with cost efficiency</span>
-                  </li>
-                </ul>
-            </div>
-            
-              <p className="text-sm text-slate-400">
-                This simulation uses real NASA data and scientifically accurate deflection techniques. Your decisions 
-                will be evaluated based on mission success probability, cost-effectiveness, and adherence to best practices 
-                in planetary defense.
-              </p>
+              <div className="space-y-4 text-slate-300 leading-relaxed">
+                <p>
+                  Welcome to the Planetary Defense Coordination Office. You have been appointed as the lead decision-maker 
+                  for a critical asteroid deflection scenario.
+                </p>
+                
+                <p>
+                  We have detected a Near-Earth Object (NEO) on a potential collision course with Earth. Your mission is to 
+                  assess the threat and select an appropriate mitigation strategy.
+                </p>
+                
+                <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-blue-200 mb-2">Your Responsibilities:</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-start">
+                      <span className="text-blue-400 mr-2">1.</span>
+                      <span>Review the asteroid&apos;s physical characteristics and trajectory data</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-blue-400 mr-2">2.</span>
+                      <span>Select a timeframe for mission deployment (1-25 years)</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-blue-400 mr-2">3.</span>
+                      <span>Choose the most effective deflection method</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-blue-400 mr-2">4.</span>
+                      <span>Balance mission success probability with cost efficiency</span>
+                    </li>
+                  </ul>
+                </div>
+                
+                <p className="text-sm text-slate-400">
+                  This simulation uses real NASA data and scientifically accurate deflection techniques. Your decisions 
+                  will be evaluated based on mission success probability, cost-effectiveness, and adherence to best practices 
+                  in planetary defense.
+                </p>
               </div>
             </div>
-            
-          <button
-            onClick={() => setPhase('briefing')}
-            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold py-4 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg"
-          >
-            Begin Mission
-          </button>
+          </div>
+          
+          {/* Begin Mission Button at Bottom */}
+          <div className="max-w-3xl w-full mx-auto mt-8 pb-8">
+            <div className="flex justify-center">
+              <button
+                onClick={() => setPhase('briefing')}
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold py-4 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg text-lg"
+              >
+                Begin Mission
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -652,7 +704,7 @@ export default function AsteroidDefensePage() {
     const palermo = getPalermoScale(asteroid);
             
     return (
-      <div className="min-h-screen h-screen bg-slate-900 text-white flex flex-col overflow-hidden">
+      <div className="min-h-screen h-screen bg-slate-900 text-white flex flex-col overflow-hidden pt-24">
         <header className="bg-gradient-to-r from-slate-800 via-slate-850 to-slate-900 border-b border-slate-700/50 p-6 flex-shrink-0 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -936,7 +988,7 @@ export default function AsteroidDefensePage() {
     const ratio = requiredDeltaVms > 0 ? deliveredDeltaVms / requiredDeltaVms : 0;
 
     return (
-      <div className="fixed inset-0 bg-slate-900 text-white flex flex-col">
+      <div className="fixed inset-0 bg-slate-900 text-white flex flex-col pt-24">
         <header className="bg-gradient-to-r from-slate-800 via-slate-850 to-slate-900 border-b border-slate-700/50 p-6 flex-shrink-0 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -958,8 +1010,8 @@ export default function AsteroidDefensePage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-5xl mx-auto p-8 space-y-8 pb-20">
+        <div className="flex-1 overflow-y-auto pt-8">
+          <div className="max-w-5xl mx-auto px-8 pb-20 space-y-8">
           {/* Scenario Data & Recommendations */}
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
             <h2 className="text-xl font-semibold mb-4">Scenario Data & Recommendations</h2>
@@ -1160,7 +1212,10 @@ export default function AsteroidDefensePage() {
                 <div className="w-full h-2 bg-slate-700 rounded overflow-hidden">
                   <div className={`h-2 ${ratio >= 1 ? 'bg-green-500' : 'bg-yellow-500'}`} style={{ width: `${Math.min(100, Math.max(0, ratio * 100))}%` }}></div>
                 </div>
-                <div className="text-xs text-slate-400">Coverage: {(Math.min(1, Math.max(0, ratio)) * 100).toFixed(0)}% of requirement</div>
+              <div className="text-xs text-slate-400">Coverage: {(Math.min(1, Math.max(0, ratio)) * 100).toFixed(0)}% of requirement</div>
+              <div className="text-xs text-slate-400">
+                Difficulty reflects asteroid mass/size and available years. Operational constraints reflect how well the chosen method fits the lead time (low-thrust methods need long durations; complex missions add risk). Meeting <InlineMath math="\\Delta v" /> is necessary but not always sufficient if these factors lower overall probability.
+              </div>
               </div>
             </div>
 
@@ -1418,7 +1473,7 @@ export default function AsteroidDefensePage() {
   // Result Screen
   if (phase === 'result' && result && asteroid) {
     return (
-      <div className="fixed inset-0 bg-slate-900 text-white flex flex-col">
+      <div className="fixed inset-0 bg-slate-900 text-white flex flex-col pt-24">
         <header className="bg-slate-800 border-b border-slate-700 p-6 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -1433,8 +1488,8 @@ export default function AsteroidDefensePage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto p-8 space-y-8 pb-20">
+        <div ref={resultScrollRef} className="flex-1 overflow-y-auto pt-8">
+          <div className="max-w-4xl mx-auto px-8 pb-20 space-y-8">
           {/* Success/Failure Banner */
           }
           <div className={`rounded-xl p-8 text-center ${
@@ -1458,6 +1513,9 @@ export default function AsteroidDefensePage() {
                 <div className="h-2 bg-blue-500" style={{ width: `${Math.round(result.successProbability * 100)}%` }}></div>
               </div>
               <div className="text-sm mt-1 text-slate-300">{(result.successProbability * 100).toFixed(0)}%</div>
+              <div className="text-xs text-slate-400 mt-2">
+                How this is calculated: We compare delivered <InlineMath math="\\Delta v" /> to required <InlineMath math="\\Delta v" />. Meeting the requirement pushes probability up; falling short pulls it down. We then adjust for scenario difficulty (asteroid size/mass, available years) and operational constraints (method fit to lead time and complexity). Values ≥ 50% are considered success.
+              </div>
             </div>
               </div>
               

@@ -16,7 +16,7 @@ export default function EarthVisualization({
   asteroids, 
   selectedAsteroid, 
   gameTime, 
-  onSelectAsteroid 
+  onSelectAsteroid
 }: EarthVisualizationProps) {
   const [showOrbits, setShowOrbits] = useState(true);
   const [showImpactZones, setShowImpactZones] = useState(true);
@@ -416,14 +416,7 @@ export default function EarthVisualization({
         </div>
       </div>
       
-      {/* Time display */}
-      <div className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-sm rounded-lg p-4 text-sm border border-slate-600">
-        <div className="font-semibold text-green-400 mb-1">Mission Time</div>
-        <div className="font-mono text-slate-300">{gameTime.toISOString().replace('T', ' ').slice(0, 19)} UTC</div>
-        <div className="text-xs text-slate-400 mt-2">
-          {asteroids.length} objects tracked
-        </div>
-      </div>
+      {/* Time overlay removed per UX simplification */}
     </div>
   );
 }
