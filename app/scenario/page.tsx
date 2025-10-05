@@ -774,7 +774,7 @@ export default function AsteroidDefensePage() {
                   {asteroid.nasaJplUrl ? (
                     <div className="text-xs text-slate-500 mt-1">Mean of NASA range</div>
                   ) : (
-                    <div className="text-xs text-slate-500 mt-1">Based on brightness & albedo</div>
+                    <div className="text-xs text-slate-500 mt-1">Estimated from brightness</div>
                   )}
                 </div>
                 <div className="bg-gradient-to-br from-slate-700/70 to-slate-800/70 rounded-xl p-4 border border-slate-600/50 hover:border-blue-500/40 transition-all duration-200 shadow-lg">
@@ -872,6 +872,31 @@ export default function AsteroidDefensePage() {
                   Reference: <InlineMath math="1\text{ MT} = 4.184 \times 10^{15}\text{ J}" /> | Tunguska <InlineMath math="\approx 10\text{ MT}" /> | Chelyabinsk <InlineMath math="\approx 0.5\text{ MT}" />
                 </div>
               </div>
+
+              {/* Size Estimate Details */}
+              {asteroid.nasaJplUrl && (
+                <div className="bg-slate-700/30 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-semibold text-slate-200">Size Estimate Details</div>
+                    <div className="text-xs text-slate-400">From NASA NEO data</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-slate-400">Range:</span>
+                      <span className="text-white font-mono ml-2">
+                        {asteroid.nasaDiameterMinM?.toFixed(0)}–{asteroid.nasaDiameterMaxM?.toFixed(0)} m
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">Mean used:</span>
+                      <span className="text-white font-mono ml-2">{asteroid.diameterM.toFixed(0)} m</span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    NASA derives diameter from brightness (absolute magnitude H) using assumed reflectivity (albedo). Radar or spacecraft measurements refine these estimates.
+                  </div>
+                </div>
+              )}
 
               {/* See the math (Δv educational toggle) */}
               <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">

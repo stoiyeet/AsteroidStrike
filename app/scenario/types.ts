@@ -5,6 +5,8 @@ export interface Asteroid {
   name: string;
   size: AsteroidSize;
   diameterM: number;
+  nasaDiameterMinM?: number;
+  nasaDiameterMaxM?: number;
   massKg: number;
   velocityKmps: number;
   
