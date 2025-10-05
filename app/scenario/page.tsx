@@ -291,9 +291,7 @@ export default function AsteroidDefensePage() {
   const [showMath, setShowMath] = useState<boolean>(false);
   const [showTimeframeInfo, setShowTimeframeInfo] = useState<boolean>(false);
 
-  type KnowledgeLevel = 'novice' | 'intermediate' | 'expert';
-  const [knowledgeLevel, setKnowledgeLevel] = useState<KnowledgeLevel>('novice');
-  const [safetyRadii, setSafetyRadii] = useState<number>(2.5);
+  const [safetyRadii] = useState<number>(2.5);
 
   // Method parameter states (educational defaults)
   const [kineticParams, setKineticParams] = useState<KineticParams>({ impactorMassKg: 600, impactVelocityKmps: 6.6, ejectaBeta: 3.0 });
@@ -318,22 +316,6 @@ export default function AsteroidDefensePage() {
     }
   }, [phase, asteroid]);
 
-  // Adapt explanation depth by knowledge level
-  useEffect(() => {
-    if (knowledgeLevel === 'novice') {
-      setShowMath(false);
-      setShowRiskScales(true);
-      setSafetyRadii(1.5);
-    } else if (knowledgeLevel === 'intermediate') {
-      setShowMath(true);
-      setShowRiskScales(true);
-      setSafetyRadii(2.0);
-    } else {
-      setShowMath(true);
-      setShowRiskScales(true);
-      setSafetyRadii(2.5);
-    }
-  }, [knowledgeLevel]);
 
   const handleSubmitPlan = () => {
     if (!asteroid || !selectedMethod) return;
@@ -1163,16 +1145,8 @@ export default function AsteroidDefensePage() {
           {/* Method parameters and Δv gauge */}
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
             <h2 className="text-xl font-semibold mb-4">Step 3: Tune Method Parameters</h2>
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4">
               <div className="text-xs text-slate-400">Safety margin for miss distance: <InlineMath math={`${safetyRadii.toFixed(1)} \\times R_E`} /></div>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-400">Explainability:</span>
-                <select value={knowledgeLevel} onChange={(e) => setKnowledgeLevel(e.target.value as 'novice' | 'intermediate' | 'expert')} className="bg-slate-900 border border-slate-700 rounded px-2 py-1">
-                  <option value="novice">Novice</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="expert">Expert</option>
-                </select>
-              </div>
             </div>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-3">
@@ -1213,31 +1187,64 @@ export default function AsteroidDefensePage() {
               {selectedMethod === 'kinetic' && (
                 <div className="space-y-2">
                   <div><InlineMath math={"\\Delta v \\approx \\dfrac{\\beta \\cdot m_i \\cdot v_i}{m_a}"} /></div>
-                  <div>Increase impactor mass <InlineMath math={"m_i"} />, impact speed <InlineMath math={"v_i"} />, or ejecta factor <InlineMath math={"\\beta"} />. Heavier asteroids (<InlineMath math={"m_a"} />) require more.</div>
+                  <div className="text-slate-400">Where:</div>
+                  <ul className="space-y-1 ml-4">
+                    <li><InlineMath math={"m_i"} /> = impactor mass (kg) - the mass of your spacecraft hitting the asteroid</li>
+                    <li><InlineMath math={"v_i"} /> = impact velocity (m/s) - how fast the impactor hits</li>
+                    <li><InlineMath math={"\\beta"} /> = ejecta momentum factor - multiplier from material ejected off the asteroid (typically 2-5)</li>
+                    <li><InlineMath math={"m_a"} /> = asteroid mass (kg) - heavier asteroids need more momentum transfer</li>
+                  </ul>
                 </div>
               )}
               {selectedMethod === 'nuclear' && (
                 <div className="space-y-2">
                   <div><InlineMath math={"\\Delta v \\approx \\dfrac{2 \\cdot k \\cdot E}{v_e \\cdot m_a}"} /></div>
-                  <div>Increase yield <InlineMath math={"E"} /> or coupling <InlineMath math={"k"} />; higher exhaust velocity <InlineMath math={"v_e"} /> reduces required energy for same <InlineMath math={"\\Delta v"} />.</div>
+                  <div className="text-slate-400">Where:</div>
+                  <ul className="space-y-1 ml-4">
+                    <li><InlineMath math={"E"} /> = yield (Joules) - total energy released by the nuclear device</li>
+                    <li><InlineMath math={"k"} /> = coupling coefficient - fraction of energy that vaporizes asteroid material (typically 0.5-2%)</li>
+                    <li><InlineMath math={"v_e"} /> = exhaust velocity (m/s) - speed at which vaporized material is ejected</li>
+                    <li><InlineMath math={"m_a"} /> = asteroid mass (kg)</li>
+                  </ul>
                 </div>
               )}
               {selectedMethod === 'gravity_tractor' && (
                 <div className="space-y-2">
                   <div><InlineMath math={"a \\approx \\dfrac{G \\cdot m_{sc}}{r^2},\\quad \\Delta v \\approx a \\cdot t_{eff}"} /></div>
-                  <div>Increase spacecraft mass <InlineMath math={"m_{sc}"} />, decrease standoff distance <InlineMath math={"r"} /> (with care), and maximize duty cycle and operation time <InlineMath math={"t_{eff}"} />.</div>
+                  <div className="text-slate-400">Where:</div>
+                  <ul className="space-y-1 ml-4">
+                    <li><InlineMath math={"G"} /> = gravitational constant (6.674×10⁻¹¹ m³/kg·s²)</li>
+                    <li><InlineMath math={"m_{sc}"} /> = spacecraft mass (kg) - heavier spacecraft exerts stronger gravitational pull</li>
+                    <li><InlineMath math={"r"} /> = standoff distance (m) - how far the spacecraft hovers from the asteroid (closer = stronger pull but riskier)</li>
+                    <li><InlineMath math={"a"} /> = acceleration (m/s²) produced by gravity</li>
+                    <li><InlineMath math={"t_{eff}"} /> = effective operation time (s) = lead time × operation fraction × duty cycle</li>
+                    <li>Duty cycle = % of time actively tugging (e.g., 0.8 = 80% of time, allowing breaks for station-keeping)</li>
+                    <li>Operation fraction = what fraction of lead time is spent deflecting (remainder is travel/setup time)</li>
+                  </ul>
                 </div>
               )}
               {selectedMethod === 'ion_beam' && (
                 <div className="space-y-2">
                   <div><InlineMath math={"\\Delta v \\approx \\dfrac{T}{m_a} \\cdot t_{eff}"} /></div>
-                  <div>Increase thrust <InlineMath math={"T"} /> and operate for a larger fraction of the lead time <InlineMath math={"t_{eff}"} />.</div>
+                  <div className="text-slate-400">Where:</div>
+                  <ul className="space-y-1 ml-4">
+                    <li><InlineMath math={"T"} /> = thrust (Newtons) - continuous force applied by the ion beam</li>
+                    <li><InlineMath math={"m_a"} /> = asteroid mass (kg)</li>
+                    <li><InlineMath math={"t_{eff}"} /> = effective operation time (s) = lead time × operation fraction</li>
+                    <li>Operation fraction = what fraction of lead time is spent actively beaming (remainder is travel/setup time)</li>
+                  </ul>
                 </div>
               )}
               {selectedMethod === 'laser' && (
                 <div className="space-y-2">
                   <div><InlineMath math={"\\Delta v \\approx \\dfrac{T}{m_a} \\cdot t_{eff}"} /></div>
-                  <div>Increase effective thrust and maximize operation time; similar scaling to ion beam.</div>
+                  <div className="text-slate-400">Where:</div>
+                  <ul className="space-y-1 ml-4">
+                    <li><InlineMath math={"T"} /> = effective thrust (Newtons) - force from vaporized surface material (ablation)</li>
+                    <li><InlineMath math={"m_a"} /> = asteroid mass (kg)</li>
+                    <li><InlineMath math={"t_{eff}"} /> = effective operation time (s) = lead time × operation fraction</li>
+                    <li>Operation fraction = what fraction of lead time is spent actively ablating (remainder is travel/setup time)</li>
+                  </ul>
                 </div>
               )}
             </div>
