@@ -8,7 +8,6 @@ export type EffectKey =
   | "gravityTractor"
   | "laserAblation"
   | "ionBeamShepherd"
-  | "analyze"
   | "asteroidApproach"
   | "impact"
   | "explosion"

@@ -11,8 +11,7 @@ type EffectKey =
   | "nuclearDetonation"
   | "gravityTractor"
   | "laserAblation"
-  | "ionBeamShepherd"
-  | "analyze";
+  | "ionBeamShepherd";
 
 /* ----------------------- Effect config ----------------------- */
 const EFFECTS_CONFIG = {
@@ -21,7 +20,6 @@ const EFFECTS_CONFIG = {
   gravityTractor: { icon: "🛸", label: "Gravity Tractor" },
   laserAblation: { icon: "🔦", label: "Laser Ablation" },
   ionBeamShepherd: { icon: "⚡", label: "Ion Beam Shepherd" },
-  analyze: { icon: "🔍", label: "Analyze Target" },
 } as const;
 
 /* Single-effect setter */
@@ -142,7 +140,7 @@ const Page: React.FC = () => {
                       }`}
                       disabled={effects[key as EffectKey]}
                     >
-                      {effects[key as EffectKey] ? "Running..." : (key === "analyze" ? "Scan" : "Launch")}
+                      {effects[key as EffectKey] ? "Running..." : (key ===  "Launch")}
                     </button>
                   </div>
                 ))}

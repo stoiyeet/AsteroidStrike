@@ -12,8 +12,7 @@ type EffectKey =
   | "nuclearDetonation"
   | "gravityTractor"
   | "laserAblation"
-  | "ionBeamShepherd"
-  | "analyze";
+  | "ionBeamShepherd";
 
 interface ChatMessage {
   id: string;
@@ -29,7 +28,6 @@ const EFFECTS_CONFIG = {
   gravityTractor: { icon: "🛸", label: "Gravity Tractor" },
   laserAblation: { icon: "🔦", label: "Laser Ablation" },
   ionBeamShepherd: { icon: "⚡", label: "Ion Beam Shepherd" },
-  analyze: { icon: "🔍", label: "Analyze Target" },
 } as const;
 
 /* ------------------------- Helpers ------------------------- */
@@ -41,7 +39,6 @@ function normalizeEffectNameToKey(raw: string): EffectKey | "complete" | null {
   if (["gravity", "gravity tractor", "tractor"].includes(s)) return "gravityTractor";
   if (["laser", "laser ablation", "ablation"].includes(s)) return "laserAblation";
   if (["ion", "ion beam", "ion beam shepherd", "shepherd"].includes(s)) return "ionBeamShepherd";
-  if (["analyze", "scan", "analysis"].includes(s)) return "analyze";
   return null;
 }
 
@@ -52,7 +49,6 @@ function sniffEffectFromFreeText(t: string): EffectKey | null {
   if (/(gravity tractor|gravitational tug|space tug)/.test(L)) return "gravityTractor";
   if (/(laser|ablation|vaporize)/.test(L)) return "laserAblation";
   if (/(ion beam|shepherd|plasma thruster)/.test(L)) return "ionBeamShepherd";
-  if (/(analy[sz]e|scan|examine|assess|investigate|evaluate)/.test(L)) return "analyze";
   return null;
 }
 
@@ -162,7 +158,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
             ...messages.map((m) => ({ role: m.role, content: m.content })),
             { 
               role: "user", 
-              content: `Please reply with the format \`-- effect -- message\`. Valid effects: kinetic, nuclear, gravity, laser, ion, analyze, complete. Then your explanation.\n\n${userRaw}` 
+              content: `Please reply with the format \`-- effect -- message\`. Valid effects: kinetic, nuclear, gravity, laser, ion, complete. Then your explanation.\n\n${userRaw}` 
             },
           ],
         }),
