@@ -110,11 +110,11 @@ export default function Home(): React.ReactElement {
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 1, ease: "easeOut" }}
-              className="absolute inset-0 flex flex-col items-start justify-center max-w-2xl ml-auto mr-10 pointer-events-auto"
+              className="absolute inset-0 flex flex-col items-start justify-center max-w-2xl ml-auto mr-4 md:mr-10 pointer-events-auto"
             >
               {/* Subtitle */}
               <motion.p
-                className="text-base md:text-lg mb-3 text-gray-400 tracking-wide uppercase"
+                className="text-sm md:text-base mb-2 text-gray-400 tracking-wide uppercase"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.6 }}
@@ -124,7 +124,7 @@ export default function Home(): React.ReactElement {
 
               {/* Title */}
               <motion.h1
-                className="text-6xl md:text-8xl font-extrabold tracking-tight mb-6 leading-none"
+                className="text-5xl md:text-8xl font-extrabold tracking-tight mb-4 leading-none"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.41 }}
@@ -141,28 +141,43 @@ export default function Home(): React.ReactElement {
 
               {/* Description */}
               <motion.p
-                className="text-gray-300 text-lg md:text-xl leading-relaxed mb-8"
+                className="text-gray-300 text-base md:text-lg leading-relaxed mb-6"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.9, duration: 0.6 }}
               >
-                Project Impact is a real-time simulator that visualizes asteroids in 3D.  
-                Explore how they move, interact, and what can be done to keep our planet safe.
+                Real-time asteroid simulator. Explore impacts, mitigation strategies, and test your defense skills.
               </motion.p>
 
-              {/* CTA */}
-              <motion.button
+              {/* Navigation Buttons */}
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.2, duration: 0.6 }}
-                className="px-8 py-3 bg-gradient-to-r from-cyan-400 to-cyan-600 hover:shadow-xl hover:scale-105 transition-transform text-black font-semibold rounded-lg shadow-lg pointer-events-auto"
-                onClick={() => {
-                  setRunTour(false);
-                  setTimeout(() => setRunTour(true), 0); // next tick
-                }}
+                className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto"
               >
-                Explore the Data
-              </motion.button>
+                <button
+                  id="nav-impact"
+                  className="px-6 py-3 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all text-cyan-400 font-medium rounded-lg backdrop-blur-sm pointer-events-auto"
+                  onClick={() => window.location.href = '/meteors'}
+                >
+                  Impact Assessment
+                </button>
+                <button
+                  id="nav-mitigation"
+                  className="px-6 py-3 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all text-cyan-400 font-medium rounded-lg backdrop-blur-sm pointer-events-auto"
+                  onClick={() => window.location.href = '/ai'}
+                >
+                  Mitigation Strategies
+                </button>
+                <button
+                  id="nav-scenario"
+                  className="px-6 py-3 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all text-cyan-400 font-medium rounded-lg backdrop-blur-sm pointer-events-auto"
+                  onClick={() => window.location.href = '/scenario'}
+                >
+                  Defense Scenario
+                </button>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
