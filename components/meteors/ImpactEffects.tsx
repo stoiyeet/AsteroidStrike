@@ -106,7 +106,7 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
   // Get descriptive text for earth effect
   const earthEffectText = {
     destroyed: 'Earth Forms a new asteroid belt orbiting the sun',
-    strongly_disturbed: 'Earth\'s orbit is shifted substantially. Life as we know it is wiped out.',
+    strongly_disturbed: 'Earth\'s orbit is shifted substantially.',
     negligible_disturbed: 'Earth Loses Negligible Mass'
   }[effects.earth_effect];
 

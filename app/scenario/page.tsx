@@ -5,6 +5,7 @@ import { Asteroid } from './types';
 import { generateAsteroid, getTorinoScale, getPalermoScale } from './gameUtils';
 import EarthVisualization from './components/EarthVisualization';
 import 'katex/dist/katex.min.css';
+
 import { BlockMath, InlineMath } from 'react-katex';
 
 type GamePhase = 'onboarding' | 'briefing' | 'selection' | 'result';
@@ -114,6 +115,91 @@ function findSuggestedTimeframe(
     if (delivered >= required) return years;
   }
   return null;
+}
+
+function findBufferedRecommendation(
+  method: MitigationMethod,
+  asteroid: Asteroid,
+  safetyRadii: number,
+  options?: { ratioMargin?: number; minProbability?: number; minYears?: number; maxYears?: number }
+): number | null {
+  const ratioMargin = options?.ratioMargin ?? 1.1;
+  const minProbability = options?.minProbability ?? 0.6;
+  const minYears = options?.minYears ?? 1;
+  const maxYears = options?.maxYears ?? 25;
+
+  for (let years = minYears; years <= maxYears; years += 1) {
+    const diffY = assessDeflectionDifficulty(asteroid, years);
+    const params = getRecommendedParams(method, diffY);
+    const delivered = computeDeliveredDeltaV(method, asteroid, years, params);
+    const required = requiredDeltaVAlongTrack(years, safetyRadii);
+    const prob = calculateSuccessProbability(method, diffY, years, asteroid, delivered, required);
+    if (delivered >= required * ratioMargin && prob >= minProbability) {
+      return years;
+    }
+  }
+  return null;
+}
+
+function findBestRecommendation(
+  asteroid: Asteroid,
+  safetyRadii: number,
+  options?: { ratioMargin?: number; minProbability?: number; minYears?: number; maxYears?: number }
+): { method: MitigationMethod; years: number; probability: number } | null {
+  const methods: MitigationMethod[] = ['nuclear', 'kinetic', 'gravity_tractor', 'ion_beam', 'laser'];
+  const ratioMargin = options?.ratioMargin ?? 1.1;
+  const minProbability = options?.minProbability ?? 0.6;
+  const minYears = options?.minYears ?? 1;
+  const maxYears = options?.maxYears ?? 25;
+
+  type Cand = { method: MitigationMethod; years: number; probability: number };
+  const buffered: Cand[] = [];
+  for (const m of methods) {
+    const y = findBufferedRecommendation(m, asteroid, safetyRadii, { ratioMargin, minProbability, minYears, maxYears });
+    if (y) {
+      const diffY = assessDeflectionDifficulty(asteroid, y);
+      const params = getRecommendedParams(m, diffY);
+      const delivered = computeDeliveredDeltaV(m, asteroid, y, params);
+      const required = requiredDeltaVAlongTrack(y, safetyRadii);
+      const prob = calculateSuccessProbability(m, diffY, y, asteroid, delivered, required);
+      buffered.push({ method: m, years: y, probability: prob });
+    }
+  }
+  if (buffered.length > 0) {
+    buffered.sort((a, b) => (a.years - b.years) || (b.probability - a.probability));
+    return buffered[0];
+  }
+
+  const suggested: Cand[] = [];
+  for (const m of methods) {
+    const y = findSuggestedTimeframe(m, asteroid, safetyRadii);
+    if (y) {
+      const diffY = assessDeflectionDifficulty(asteroid, y);
+      const params = getRecommendedParams(m, diffY);
+      const delivered = computeDeliveredDeltaV(m, asteroid, y, params);
+      const required = requiredDeltaVAlongTrack(y, safetyRadii);
+      const prob = calculateSuccessProbability(m, diffY, y, asteroid, delivered, required);
+      suggested.push({ method: m, years: y, probability: prob });
+    }
+  }
+  if (suggested.length > 0) {
+    suggested.sort((a, b) => (a.years - b.years) || (b.probability - a.probability));
+    return suggested[0];
+  }
+
+  // Fallback: choose highest probability at maxYears
+  let best: Cand | null = null;
+  for (const m of methods) {
+    const y = maxYears;
+    const diffY = assessDeflectionDifficulty(asteroid, y);
+    const params = getRecommendedParams(m, diffY);
+    const delivered = computeDeliveredDeltaV(m, asteroid, y, params);
+    const required = requiredDeltaVAlongTrack(y, safetyRadii);
+    const prob = calculateSuccessProbability(m, diffY, y, asteroid, delivered, required);
+    const cand: Cand = { method: m, years: y, probability: prob };
+    if (!best || cand.probability > best.probability) best = cand;
+  }
+  return best;
 }
 
 function computeDeliveredDeltaV(
@@ -361,8 +447,9 @@ export default function AsteroidDefensePage() {
     if (!asteroid || !selectedMethod) return;
 
     const difficulty = assessDeflectionDifficulty(asteroid, selectedYears);
-    const recommendedMethod = getRecommendedMethod(difficulty, selectedYears, asteroid.size);
-    const recommendedTimeframe = difficulty === 'extreme' ? 1 : difficulty === 'difficult' ? 3 : difficulty === 'moderate' ? 10 : 15;
+    const best = findBestRecommendation(asteroid, safetyRadii);
+    const recommendedMethod = best?.method ?? getRecommendedMethod(difficulty, selectedYears, asteroid.size);
+    const recommendedTimeframe = best?.years ?? (difficulty === 'extreme' ? 1 : difficulty === 'difficult' ? 3 : difficulty === 'moderate' ? 10 : 15);
 
     const actualCost = getMethodCost(selectedMethod);
     const optimalCost = getMethodCost(recommendedMethod);
@@ -856,7 +943,7 @@ export default function AsteroidDefensePage() {
                   <div>
                     <span className="text-slate-400">Momentum:</span>
                     <span className="text-white ml-2">
-                      <InlineMath math={`${(asteroid.massKg * asteroid.velocityKmps / 1e9).toExponential(2)} \\times 10^9 \\text{ kg}\\cdot\\text{m/s}`} />
+                      <InlineMath math={`${(asteroid.massKg * asteroid.velocityKmps).toPrecision(3)} \\text{ kg}\\cdot\\text{m/s}`} />
                     </span>
                   </div>
                   <div>
@@ -981,7 +1068,7 @@ export default function AsteroidDefensePage() {
               <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4">
                 <div className="text-yellow-200 font-semibold mb-2">Scientist Briefing:</div>
                 <div className="text-sm text-slate-300 leading-relaxed">
-                  &ldquo;Based on our tracking data, this {asteroid.size} asteroid (mass: <InlineMath math={`${(asteroid.massKg / 1e12).toFixed(2)} \\times 10^{12}\\text{ kg}`} />) has been classified as a potential threat.
+                  &ldquo;Based on our tracking data, this {asteroid.size} asteroid (mass: <InlineMath math={`${(asteroid.massKg / 1e3).toFixed(2)} \\text{ metric tons}`} />) has been classified as a potential threat.
                   The object&apos;s trajectory at <InlineMath math={`${asteroid.velocityKmps.toFixed(1)}\\text{ km/s}`} /> brings it dangerously close to Earth&apos;s orbit.
                   If undeflected, impact would release <InlineMath math={`${((0.5 * asteroid.massKg * Math.pow(asteroid.velocityKmps * 1000, 2)) / 4.184e15).toFixed(2)}\\text{ MT}`} /> of energy.
                   We recommend immediate consideration of deflection strategies. Time is of the essence - with early action, we only need to alter the velocity by a few <InlineMath math="\text{cm/s}" /> to ensure a safe miss distance.&rdquo;
@@ -1070,8 +1157,9 @@ export default function AsteroidDefensePage() {
               </div>
               {(() => {
                 const diff = assessDeflectionDifficulty(asteroid, selectedYears);
-                const recMethod = getRecommendedMethod(diff, selectedYears, asteroid.size);
-                const suggested = findSuggestedTimeframe(recMethod, asteroid, safetyRadii);
+                const best = findBestRecommendation(asteroid, safetyRadii);
+                const recMethod = best?.method ?? getRecommendedMethod(diff, selectedYears, asteroid.size);
+                const suggested = best?.years ?? findSuggestedTimeframe(recMethod, asteroid, safetyRadii);
                 return (
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 text-sm">
                     <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
@@ -1084,7 +1172,13 @@ export default function AsteroidDefensePage() {
                     </div>
                     <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
                       <div className="text-blue-200 text-xs mb-1">Suggested Timeframe</div>
-                      <div className="text-white font-semibold">{suggested ? `${suggested}+ years` : '—'}</div>
+                      {(() => {
+                        const buffered = findBufferedRecommendation(recMethod, asteroid, safetyRadii);
+                        const sug = buffered ?? findSuggestedTimeframe(recMethod, asteroid, safetyRadii);
+                        return (
+                          <div className="text-white font-semibold">{sug ? `${sug}+ years` : '—'}</div>
+                        );
+                      })()}
                     </div>
                   </div>
                 );
@@ -1101,9 +1195,9 @@ export default function AsteroidDefensePage() {
                 <div className="font-semibold text-slate-200 mb-2">Timeframe Guidance</div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <div className="text-slate-400">Required <InlineMath math="\\Delta v" /></div>
+                    <div className="text-slate-400">Required <InlineMath math="\Delta v" /></div>
                     <div className="text-white font-mono">{(requiredDeltaVms * 100).toFixed(3)} cm/s</div>
-                    <div className="text-slate-400">Shorter time ⇒ larger required <InlineMath math="\\Delta v" /></div>
+                    <div className="text-slate-400">Shorter time ⇒ larger required <InlineMath math="\Delta v" /></div>
                   </div>
                   <div>
                     {(() => {
@@ -1164,7 +1258,7 @@ export default function AsteroidDefensePage() {
                 <button onClick={() => setShowTimeframeInfo(!showTimeframeInfo)} className="underline hover:text-slate-300">What does timeframe mean?</button>
                 {showTimeframeInfo && (
                   <div className="mt-2 text-slate-300">
-                    It is the lead time from now until potential impact that is available for mission planning, launch, cruise, and performing the deflection. More time allows smaller <InlineMath math="\\Delta v" /> to accumulate and increases mission options.
+                    It is the lead time from now until potential impact that is available for mission planning, launch, cruise, and performing the deflection. More time allows smaller <InlineMath math="\Delta v" /> to accumulate and increases mission options.
                   </div>
                 )}
               </div>
@@ -1249,7 +1343,7 @@ export default function AsteroidDefensePage() {
                   </div>
                   <div className="text-xs text-slate-400">Coverage: {(Math.min(1, Math.max(0, ratio)) * 100).toFixed(0)}% of requirement</div>
                   <div className="text-xs text-slate-400">
-                    Difficulty reflects asteroid mass/size and available years. Operational constraints reflect how well the chosen method fits the lead time (low-thrust methods need long durations; complex missions add risk). Meeting <InlineMath math="\\Delta v" /> is necessary but not always sufficient if these factors lower overall probability.
+                    Difficulty reflects asteroid mass/size and available years. Operational constraints reflect how well the chosen method fits the lead time (low-thrust methods need long durations; complex missions add risk). Meeting <InlineMath math="\Delta v" /> is necessary but not always sufficient if these factors lower overall probability.
                   </div>
                 </div>
               </div>
@@ -1270,7 +1364,7 @@ export default function AsteroidDefensePage() {
 
               {/* Method formula guidance */}
               <div className="mt-6 bg-slate-900/40 border border-slate-700 rounded-lg p-4 text-xs text-slate-300">
-                <div className="font-semibold text-slate-200 mb-2">How tuning affects <InlineMath math="\\Delta v" /></div>
+                <div className="font-semibold text-slate-200 mb-2">How tuning affects <InlineMath math="\Delta v" /></div>
                 {!selectedMethod && (
                   <div>Select a deflection method to see specific guidance.</div>
                 )}
@@ -1471,8 +1565,9 @@ export default function AsteroidDefensePage() {
                 <div className="text-xs text-slate-400">Not sure where to start? We can prefill recommended settings and timeframe for this scenario.</div>
                 <button
                   onClick={() => {
+                    const best = findBestRecommendation(asteroid!, safetyRadii);
                     const diff = assessDeflectionDifficulty(asteroid!, selectedYears);
-                    const rec = getRecommendedMethod(diff, selectedYears, asteroid!.size);
+                    const rec = best?.method ?? getRecommendedMethod(diff, selectedYears, asteroid!.size);
                     setSelectedMethod(rec);
                     const recParams = getRecommendedParams(rec, diff);
                     if (rec === 'kinetic') setKineticParams(recParams as KineticParams);
@@ -1480,7 +1575,7 @@ export default function AsteroidDefensePage() {
                     if (rec === 'gravity_tractor') setGravityParams(recParams as GravityTractorParams);
                     if (rec === 'ion_beam') setIonParams(recParams as IonBeamParams);
                     if (rec === 'laser') setLaserParams(recParams as LaserParams);
-                    const suggested = findSuggestedTimeframe(rec, asteroid!, safetyRadii);
+                    const suggested = best?.years ?? findSuggestedTimeframe(rec, asteroid!, safetyRadii);
                     if (suggested && suggested > selectedYears) setSelectedYears(suggested);
                   }}
                   className="px-4 py-3 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold min-h-[44px]"
@@ -1547,7 +1642,7 @@ export default function AsteroidDefensePage() {
                 </div>
                 <div className="text-sm mt-1 text-slate-300">{(result.successProbability * 100).toFixed(0)}%</div>
                 <div className="text-xs text-slate-400 mt-2">
-                  How this is calculated: We compare delivered <InlineMath math="\\Delta v" /> to required <InlineMath math="\\Delta v" />. Meeting the requirement pushes probability up; falling short pulls it down. We then adjust for scenario difficulty (asteroid size/mass, available years) and operational constraints (method fit to lead time and complexity). Values ≥ 50% are considered success.
+                  How this is calculated: We compare delivered <InlineMath math="\Delta v" /> to required <InlineMath math="\Delta v" />. Meeting the requirement pushes probability up; falling short pulls it down. We then adjust for scenario difficulty (asteroid size/mass, available years) and operational constraints (method fit to lead time and complexity). Values ≥ 50% are considered success.
                 </div>
               </div>
             </div>
@@ -1651,7 +1746,7 @@ export default function AsteroidDefensePage() {
                 <div className="bg-slate-700/30 rounded-lg p-4">
                   <div className="text-slate-400 text-xs mb-1">Deflection Window</div>
                   <div className="text-white font-semibold">{(result.details.deflectionWindowYears ?? Math.max(0, selectedYears - Math.min(selectedYears * 0.3, 2))).toFixed(1)} years</div>
-                  <div className="text-slate-300 text-xs mt-1">Time available to accumulate <InlineMath math="\\Delta v" /></div>
+                  <div className="text-slate-300 text-xs mt-1">Time available to accumulate <InlineMath math="\Delta v" /></div>
                 </div>
                 <div className="bg-slate-700/30 rounded-lg p-4">
                   <div className="text-slate-400 text-xs mb-1">Along-Track Separation at Intercept</div>
