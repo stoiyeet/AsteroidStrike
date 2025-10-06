@@ -278,28 +278,8 @@ export function peakOverpressureAtR(
   // B. Airburst (zb_m > 0)
   else {
     // Crossover altitude for mach region determination
-    const Z_CRITICAL = 550; // m
-
-    // Determine if Mach Reflection Region applies
-    const r_m1 = (Z_CRITICAL * zb_m) / (1.2 * (Z_CRITICAL - zb_m));
-
-    // Check if within Mach Region (or if zb_m is high)
-    if (zb_m >= Z_CRITICAL || r_1 > r_m1) {
-      // ii. Outside Mach Reflection Region -> Use Exponential Decay (Eq 55)
-      // p = p_0 * e^(-beta * r_1)
-
-      // p_0 = 3.14 * 10^11 * zb_m^(-2.6)
-      const p_0 = 3.14e11 * Math.pow(zb_m, -2.6);
-
-      // beta = 34.87 * zb_m
-      const beta = 34.87 * Math.pow(zb_m, -1.73);
-
-      peak_overpressure = p_0 * Math.exp(-beta * r_1);
-    } else {
-      // i. Within Mach Reflection Region (or High Altitude) -> Use Eq 54 with modified r_x
-      const r_x_airburst = 289 + 0.65 * zb_m;
-      peak_overpressure = calculateOverpressureEq54(r_x_airburst, r_1);
-    }
+    const r_x_airburst =289 + 0.65 * zb_m/50;
+    peak_overpressure = calculateOverpressureEq54(r_x_airburst, r_1);
   }
 
   return peak_overpressure;
@@ -314,7 +294,7 @@ export function findRadiusForOverpressure(
   r_min: number,
   r_max = HALF_CIRCUMFERENCE_M // 12,756 km
 ): number {
-  if (zb_m > 0) r_min = 0;
+  if (zb_m > 0) r_min = 10;
   if (!isFinite(targetP) || targetP <= 0) return NaN;
   if (r_min <= 0) r_min = 1e-6;
 
