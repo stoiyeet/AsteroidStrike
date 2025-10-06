@@ -1016,9 +1016,9 @@ export default function AsteroidDefensePage() {
         selectedYears,
         selectedMethod === 'kinetic' ? kineticParams
           : selectedMethod === 'nuclear' ? nuclearParams
-            : selectedMethod === 'gravity_tractor' ? gravityParams
-              : selectedMethod === 'ion_beam' ? ionParams
-                : laserParams
+          : selectedMethod === 'gravity_tractor' ? gravityParams
+          : selectedMethod === 'ion_beam' ? ionParams
+          : laserParams
       )
       : 0;
     const ratio = requiredDeltaVms > 0 ? deliveredDeltaVms / requiredDeltaVms : 0;
