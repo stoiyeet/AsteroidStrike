@@ -215,7 +215,7 @@ export default function FormulasPageInner() {
                     title: "Mortality and Injury Heuristic",
                     equation: "mortality = \\max(R_{clothes}, R_{crater}) \\cdot density + 0.8 \\cdot R_{2nd\\ degree} - 0.8 \\cdot R_{certain}, \\quad injury = \\mathbf{1}_{M \\ge 7.5} \\cdot density",
                     image: "",
-                    description: "Mortality is estimated using the maximum radius of the clothes ignition area and transient crater area, plus 0.8 times the area affected by second-degree burns, minus 0.8 times the certain death area to avoid double counting. Injury is approximated as density multiplied by an indicator for earthquakes with magnitude ≥ 7.5.",
+                    description: "Mortality is estimated using the population within the radius of the clothes ignition area plus 0.8 times the area affected by second-degree burns, minus 0.8 times the certain death area to avoid double counting. Injury is approximated as density multiplied by an indicator for earthquakes with magnitude ≥ 7.5.",
                     priority: "PRIMARY"
                 }
             ]
