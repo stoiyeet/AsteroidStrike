@@ -14,10 +14,27 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
+export const metadata = {
   title: "Project Impact",
   description: "Simulating asteroid impact and mitigation strategies.",
+  openGraph: {
+    title: "AsteroidStrike — Impact Energy Visualizer",
+    description: "Estimate asteroid impact energy, blast radius, and more.",
+    url: "https://asteroidstrike.earth",
+    images: [
+      {
+        url: "https://asteroidstrike.earth/appHeader/promotion.png",
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
+
+
 
 export default function RootLayout({
   children,
