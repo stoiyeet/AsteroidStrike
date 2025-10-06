@@ -294,6 +294,59 @@ function getMethodCost(method: MitigationMethod): number {
   return costs[method];
 }
 
+function estimateMethodCostBillionUSD(
+  method: MitigationMethod,
+  yearsUntilImpact: number,
+  params: KineticParams | NuclearParams | GravityTractorParams | IonBeamParams | LaserParams
+): number {
+  // Baseline cost anchors approximate public domain figures/concepts
+  const baseline = getMethodCost(method);
+  const years = Math.max(1, yearsUntilImpact);
+
+  if (method === 'kinetic') {
+    const p = params as KineticParams;
+    // Assume launch cost scales with impactor mass; add tech factor for high beta or high velocity
+    const massFactor = p.impactorMassKg / 600; // normalize to DART-class ~600 kg
+    const techFactor = 1 + Math.max(0, (p.ejectaBeta - 3) * 0.1) + Math.max(0, (p.impactVelocityKmps - 6.6) * 0.02);
+    return +(baseline * Math.min(5, massFactor * techFactor)).toFixed(2);
+  }
+
+  if (method === 'nuclear') {
+    const p = params as NuclearParams;
+    // Scale with yield and safety/engineering factor via coupling; exhaust velocity higher may imply more complex systems
+    const yieldFactor = Math.max(1, p.yieldMt / 10); // baseline ~10 Mt concept
+    const safetyFactor = 1 + Math.max(0, (p.coupling - 0.01) * 5);
+    const systemFactor = 1 + Math.max(0, (p.exhaustVelocityKms - 3) * 0.2);
+    return +(baseline * Math.min(6, yieldFactor * safetyFactor * systemFactor)).toFixed(2);
+  }
+
+  if (method === 'gravity_tractor') {
+    const p = params as GravityTractorParams;
+    // Cost grows with spacecraft mass and operations duration; close standoff increases operations/risk costs
+    const opsYears = years * Math.max(0.3, Math.min(1, p.operationYearsFraction)) * Math.max(0.2, Math.min(1, p.dutyCycle));
+    const massFactor = Math.max(0.5, p.spacecraftMassKg / 2000);
+    const proximityFactor = 1 + Math.max(0, (50 - Math.min(50, p.standoffDistanceM)) * 0.01);
+    const opsFactor = 1 + opsYears * 0.15; // 15% per effective year of operations
+    return +(baseline * Math.min(6, massFactor * proximityFactor * opsFactor)).toFixed(2);
+  }
+
+  if (method === 'ion_beam') {
+    const p = params as IonBeamParams;
+    // Cost scales with thrust capability and ops duration
+    const opsYears = years * Math.max(0.3, Math.min(1, p.operationYearsFraction));
+    const thrustFactor = Math.max(0.5, p.thrustN / 0.2); // baseline ~0.2 N
+    const opsFactor = 1 + opsYears * 0.12;
+    return +(baseline * Math.min(6, thrustFactor * opsFactor)).toFixed(2);
+  }
+
+  // laser
+  const p = params as LaserParams;
+  const opsYears = years * Math.max(0.3, Math.min(1, p.operationYearsFraction));
+  const thrustFactor = Math.max(0.5, p.thrustN / 0.05); // baseline ~0.05 N
+  const opsFactor = 1 + opsYears * 0.10;
+  return +(baseline * Math.min(6, thrustFactor * opsFactor)).toFixed(2);
+}
+
 // Deprecated RNG success in favor of deterministic probability shown to the user
 
 function getMethodExplanation(method: MitigationMethod): string {
@@ -377,6 +430,7 @@ export default function AsteroidDefensePage() {
   const [showRiskScales, setShowRiskScales] = useState<boolean>(false);
   const [showMath, setShowMath] = useState<boolean>(false);
   const [showTimeframeInfo, setShowTimeframeInfo] = useState<boolean>(false);
+  const [showCostInfo, setShowCostInfo] = useState<boolean>(false);
   const resultScrollRef = useRef<HTMLDivElement | null>(null);
 
   const [safetyRadii] = useState<number>(2.5);
@@ -391,6 +445,13 @@ export default function AsteroidDefensePage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Auto-open cost details once a method is selected so users see the formula without extra clicks
+  useEffect(() => {
+    if (selectedMethod) {
+      setShowCostInfo(true);
+    }
+  }, [selectedMethod]);
 
   // Scroll to top when we enter the result phase
   useEffect(() => {
@@ -451,8 +512,14 @@ export default function AsteroidDefensePage() {
     const recommendedMethod = best?.method ?? getRecommendedMethod(difficulty, selectedYears, asteroid.size);
     const recommendedTimeframe = best?.years ?? (difficulty === 'extreme' ? 1 : difficulty === 'difficult' ? 3 : difficulty === 'moderate' ? 10 : 15);
 
-    const actualCost = getMethodCost(selectedMethod);
-    const optimalCost = getMethodCost(recommendedMethod);
+    const actualParams = selectedMethod === 'kinetic' ? kineticParams
+      : selectedMethod === 'nuclear' ? nuclearParams
+      : selectedMethod === 'gravity_tractor' ? gravityParams
+      : selectedMethod === 'ion_beam' ? ionParams
+      : laserParams;
+    const recParams = getRecommendedParams(recommendedMethod, difficulty);
+    const actualCost = estimateMethodCostBillionUSD(selectedMethod, selectedYears, actualParams);
+    const optimalCost = estimateMethodCostBillionUSD(recommendedMethod, Math.max(recommendedTimeframe, 1), recParams);
     const costEfficient = actualCost <= optimalCost * 1.2; // Within 20% of optimal
 
     // Determine method parameters to compute delivered Δv (m/s)
@@ -561,7 +628,6 @@ export default function AsteroidDefensePage() {
     }
 
     // Compute recommended method numbers to show explicitly
-    const recParams = getRecommendedParams(recommendedMethod, difficulty);
     const recDelivered = computeDeliveredDeltaV(
       recommendedMethod,
       asteroid,
@@ -734,6 +800,73 @@ export default function AsteroidDefensePage() {
                 <div className="bg-slate-700/50 p-4 rounded-lg">
                   <div className="text-slate-400 text-sm mb-1">Velocity</div>
                   <div className="text-white font-bold">{asteroid.velocityKmps.toFixed(1)} km/s</div>
+                </div>
+              </div>
+
+              {/* Live Estimated Cost */}
+              <div className="mt-6 grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <div className="text-sm text-slate-400">Estimated Cost</div>
+                  {(() => {
+                    if (!selectedMethod) return <div className="text-slate-500 text-sm">Select a method to estimate cost.</div>;
+                    const p = selectedMethod === 'kinetic' ? kineticParams
+                      : selectedMethod === 'nuclear' ? nuclearParams
+                      : selectedMethod === 'gravity_tractor' ? gravityParams
+                      : selectedMethod === 'ion_beam' ? ionParams
+                      : laserParams;
+                    const est = estimateMethodCostBillionUSD(selectedMethod, selectedYears, p);
+                    const baseline = getMethodCost(selectedMethod);
+                    return (
+                      <div>
+                        <div className="text-3xl font-bold">${'{'}est.toFixed(2){'}'}B</div>
+                        <div className="text-xs text-slate-400">Baseline: ${'{'}baseline.toFixed(1){'}'}B</div>
+                      </div>
+                    );
+                  })()}
+                </div>
+                <div className="space-y-2">
+                  <div className="text-sm text-slate-400">Cost model</div>
+                  <div className="text-xs text-slate-400">This estimate scales baseline cost by method-specific parameters and effective operation time.</div>
+                  <button onClick={() => setShowCostInfo(!showCostInfo)} className="text-xs underline text-slate-300 hover:text-white">{showCostInfo ? 'Hide details' : 'How we estimate cost'}</button>
+                  {showCostInfo && (
+                    <div className="text-xs text-slate-300 space-y-3 bg-slate-900/40 border border-slate-700 rounded p-3">
+                      {selectedMethod === 'kinetic' && (
+                        <div className="space-y-1">
+                          <div className="text-slate-200">Kinetic Impactor</div>
+                          <div><BlockMath math={"C \\approx C_0 \\cdot \\min\\Big(5,\\; \\rac{m_i}{600} \\ig[1+\\max(0,0.1(\\beta-3))+\\max(0,0.02(v_i-6.6))\\big]\\Big)"} /></div>
+                          <div className="text-slate-400">C in B$, C<sub>0</sub> = baseline, m<sub>i</sub> in kg, v<sub>i</sub> in km/s.</div>
+                        </div>
+                      )}
+                      {selectedMethod === 'nuclear' && (
+                        <div className="space-y-1">
+                          <div className="text-slate-200">Nuclear Deflection</div>
+                          <div><BlockMath math={"C \\approx C_0 \\cdot \\min\\Big(6,\\; \\max(1, \\tfrac{Y}{10}) \\[1+\\max(0,5(k-0.01))] \\[1+\\max(0,0.2(v_e-3))]\\Big)"} /></div>
+                          <div className="text-slate-400">Y in MT, k is coupling (0–1), v<sub>e</sub> in km/s.</div>
+                        </div>
+                      )}
+                      {selectedMethod === 'gravity_tractor' && (
+                        <div className="space-y-1">
+                          <div className="text-slate-200">Gravity Tractor</div>
+                          <div><BlockMath math={"C \\approx C_0 \\cdot \\min\\Big(6,\\; \\max(0.5, \\tfrac{m_{sc}}{2000}) \\[1+\\max(0,0.01(50-\\min(50,r_s)))] \\[1+0.15\\, y\\, \\phi \\delta]\\Big)"} /></div>
+                          <div className="text-slate-400">m<sub>sc</sub> in kg, r<sub>s</sub> standoff (m), y years, φ operation fraction, δ duty cycle.</div>
+                        </div>
+                      )}
+                      {selectedMethod === 'ion_beam' && (
+                        <div className="space-y-1">
+                          <div className="text-slate-200">Ion Beam Shepherd</div>
+                          <div><BlockMath math={"C \\approx C_0 \\cdot \\min\\Big(6,\\; \\max(0.5, \\tfrac{T}{0.2}) \\[1+0.12\\, y\\, \\phi]\\Big)"} /></div>
+                          <div className="text-slate-400">T in N, y years, φ operation fraction.</div>
+                        </div>
+                      )}
+                      {selectedMethod === 'laser' && (
+                        <div className="space-y-1">
+                          <div className="text-slate-200">Laser Ablation</div>
+                          <div><BlockMath math={"C \\approx C_0 \\cdot \\min\\Big(6,\\; \\max(0.5, \\tfrac{T}{0.05}) \\[1+0.10\\, y\\, \\phi]\\Big)"} /></div>
+                          <div className="text-slate-400">T in N, y years, φ operation fraction.</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1110,6 +1243,20 @@ export default function AsteroidDefensePage() {
       : 0;
     const ratio = requiredDeltaVms > 0 ? deliveredDeltaVms / requiredDeltaVms : 0;
 
+    // Calculate current cost based on selected method and parameters
+    const currentCost = selectedMethod
+      ? estimateMethodCostBillionUSD(
+          selectedMethod,
+          selectedYears,
+          selectedMethod === 'kinetic' ? kineticParams
+            : selectedMethod === 'nuclear' ? nuclearParams
+            : selectedMethod === 'gravity_tractor' ? gravityParams
+            : selectedMethod === 'ion_beam' ? ionParams
+            : laserParams
+        )
+      : null;
+    const baselineCost = selectedMethod ? getMethodCost(selectedMethod) : null;
+
     return (
       <div className="fixed inset-0 bg-slate-900 text-white flex flex-col pt-20 md:pt-24">
         <header className="bg-gradient-to-r from-slate-800 via-slate-850 to-slate-900 border-b border-slate-700/50 p-3 md:p-6 flex-shrink-0 shadow-lg">
@@ -1305,7 +1452,7 @@ export default function AsteroidDefensePage() {
                           <div className="w-8 h-8 rounded bg-slate-700 border border-slate-500 flex items-center justify-center text-xs font-semibold text-slate-200">{METHOD_BADGE[method]}</div>
                           <div>
                             <div className="font-semibold text-white">{info.name}</div>
-                            <div className="text-xs text-slate-400">Cost: ${cost.toFixed(1)}B</div>
+                            <div className="text-xs text-slate-400">Baseline: ${cost.toFixed(1)}B</div>
                           </div>
                         </div>
                         {isSelected && (
@@ -1345,6 +1492,65 @@ export default function AsteroidDefensePage() {
                   <div className="text-xs text-slate-400">
                     Difficulty reflects asteroid mass/size and available years. Operational constraints reflect how well the chosen method fits the lead time (low-thrust methods need long durations; complex missions add risk). Meeting <InlineMath math="\Delta v" /> is necessary but not always sufficient if these factors lower overall probability.
                   </div>
+                </div>
+              </div>
+
+              {/* Live Estimated Cost */}
+              <div className="mt-6 grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <div className="text-sm text-slate-400">Estimated Cost</div>
+                  {!selectedMethod ? (
+                    <div className="text-slate-500 text-sm">Select a method to estimate cost.</div>
+                  ) : (
+                    <div>
+                      <div className="text-3xl font-bold">${currentCost!.toFixed(2)}B</div>
+                      <div className="text-xs text-slate-400">Baseline: ${baselineCost!.toFixed(1)}B</div>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <div className="text-sm text-slate-400">Cost model</div>
+                  <div className="text-xs text-slate-400">This estimate scales baseline cost by method-specific parameters and effective operation time.</div>
+                  <button onClick={() => setShowCostInfo(!showCostInfo)} className="text-xs underline text-slate-300 hover:text-white">{showCostInfo ? 'Hide details' : 'How we estimate cost'}</button>
+                  {showCostInfo && (
+                    <div className="text-xs text-slate-300 space-y-3 bg-slate-900/40 border border-slate-700 rounded p-3">
+                      {selectedMethod === 'kinetic' && (
+                        <div className="space-y-1">
+                          <div className="text-slate-200">Kinetic Impactor</div>
+                          <div className="overflow-x-auto"><div className="inline-block min-w-full text-sm sm:text-base"><BlockMath math={"C \\approx C_0 \\cdot \\min\\Big(5,\\; \\frac{m_i}{600} \\big[1+\\max(0,0.1(\\beta-3))+\\max(0,0.02(v_i-6.6))\\big]\\Big)"} /></div></div>
+                          <div className="text-slate-400">C in B$, C<sub>0</sub> = baseline, m<sub>i</sub> in kg, v<sub>i</sub> in km/s.</div>
+                        </div>
+                      )}
+                      {selectedMethod === 'nuclear' && (
+                        <div className="space-y-1">
+                          <div className="text-slate-200">Nuclear Deflection</div>
+                          <div className="overflow-x-auto"><div className="inline-block min-w-full text-sm sm:text-base"><BlockMath math={"C \\approx C_0 \\cdot \\min\\Big(6,\\; \\max(1, \\tfrac{Y}{10}) \\big[1+\\max(0,5(k-0.01))\\big] \\big[1+\\max(0,0.2(v_e-3))\\big]\\Big)"} /></div></div>
+                          <div className="text-slate-400">Y in MT, k is coupling (0–1), v<sub>e</sub> in km/s.</div>
+                        </div>
+                      )}
+                      {selectedMethod === 'gravity_tractor' && (
+                        <div className="space-y-1">
+                          <div className="text-slate-200">Gravity Tractor</div>
+                          <div className="overflow-x-auto"><div className="inline-block min-w-full text-sm sm:text-base"><BlockMath math={"C \\approx C_0 \\cdot \\min\\Big(6,\\; \\max(0.5, \\tfrac{m_{sc}}{2000}) \\big[1+\\max(0,0.01(50-\\min(50,r_s)))\\big] \\big[1+0.15\\, y\\, \\phi \\delta\\big]\\Big)"} /></div></div>
+                          <div className="text-slate-400">m<sub>sc</sub> in kg, r<sub>s</sub> standoff (m), y years, φ operation fraction, δ duty cycle.</div>
+                        </div>
+                      )}
+                      {selectedMethod === 'ion_beam' && (
+                        <div className="space-y-1">
+                          <div className="text-slate-200">Ion Beam Shepherd</div>
+                          <div className="overflow-x-auto"><div className="inline-block min-w-full text-sm sm:text-base"><BlockMath math={"C \\approx C_0 \\cdot \\min\\Big(6,\\; \\max(0.5, \\tfrac{T}{0.2}) \\big[1+0.12\\, y\\, \\phi\\big]\\Big)"} /></div></div>
+                          <div className="text-slate-400">T in N, y years, φ operation fraction.</div>
+                        </div>
+                      )}
+                      {selectedMethod === 'laser' && (
+                        <div className="space-y-1">
+                          <div className="text-slate-200">Laser Ablation</div>
+                          <div className="overflow-x-auto"><div className="inline-block min-w-full text-sm sm:text-base"><BlockMath math={"C \\approx C_0 \\cdot \\min\\Big(6,\\; \\max(0.5, \\tfrac{T}{0.05}) \\big[1+0.10\\, y\\, \\phi\\big]\\Big)"} /></div></div>
+                          <div className="text-slate-400">T in N, y years, φ operation fraction.</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1480,7 +1686,7 @@ export default function AsteroidDefensePage() {
                       </div>
                       <div>
                         <div className="text-xs text-slate-400 mb-1">Exhaust velocity (km/s)
-                          <span className="ml-2 text-slate-500">Faster ejecta → greater <InlineMath math="\Delta v" /></span>
+                          <span className="ml-2 text-slate-500">Energy-limited: higher <InlineMath math="v_e" /> → lower <InlineMath math="\Delta v" /></span>
                         </div>
                         <input type="range" min={1} max={10} step={0.1} value={nuclearParams.exhaustVelocityKms} onChange={(e) => setNuclearParams({ ...nuclearParams, exhaustVelocityKms: Number(e.target.value) })} className="w-full" />
                         <div className="text-sm">{nuclearParams.exhaustVelocityKms.toFixed(1)} km/s</div>
@@ -1525,7 +1731,7 @@ export default function AsteroidDefensePage() {
                     <div className="space-y-4">
                       <div>
                         <div className="text-xs text-slate-400 mb-1">Thrust (N)
-                          <span className="ml-2 text-slate-500">Higher thrust → more <InlineMath math="\Delta v" /></span>
+                          <span className="ml-2 text-slate-500">More thrust → faster delivery; doesn&apos;t change required <InlineMath math="\Delta v" /></span>
                         </div>
                         <input type="range" min={0.01} max={1} step={0.01} value={ionParams.thrustN} onChange={(e) => setIonParams({ ...ionParams, thrustN: Number(e.target.value) })} className="w-full" />
                         <div className="text-sm">{ionParams.thrustN.toFixed(2)} N</div>
@@ -1544,7 +1750,7 @@ export default function AsteroidDefensePage() {
                     <div className="space-y-4">
                       <div>
                         <div className="text-xs text-slate-400 mb-1">Effective thrust (N)
-                          <span className="ml-2 text-slate-500">Higher thrust → more <InlineMath math="\Delta v" /></span>
+                          <span className="ml-2 text-slate-500">More thrust → faster delivery; doesn&apos;t change required <InlineMath math="\Delta v" /></span>
                         </div>
                         <input type="range" min={0.01} max={0.5} step={0.01} value={laserParams.thrustN} onChange={(e) => setLaserParams({ ...laserParams, thrustN: Number(e.target.value) })} className="w-full" />
                         <div className="text-sm">{laserParams.thrustN.toFixed(2)} N</div>
