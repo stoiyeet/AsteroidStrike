@@ -23,7 +23,7 @@ export const metadata = {
     url: "https://asteroidstrike.earth",
     images: [
       {
-        url: "https://asteroidstrike.earth/appHeader/promotion.png",
+        url: "https://asteroidstrike.earth/appHeader/clickbait.png",
         width: 1200,
         height: 630,
       },
