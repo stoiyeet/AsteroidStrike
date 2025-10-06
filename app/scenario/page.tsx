@@ -1517,35 +1517,35 @@ export default function AsteroidDefensePage() {
                       {selectedMethod === 'kinetic' && (
                         <div className="space-y-1">
                           <div className="text-slate-200">Kinetic Impactor</div>
-                          <div className="overflow-x-auto"><div className="inline-block min-w-full text-sm sm:text-base"><BlockMath math={"C \\approx C_0 \\cdot \\min\\Big(5,\\; \\frac{m_i}{600} \\big[1+\\max(0,0.1(\\beta-3))+\\max(0,0.02(v_i-6.6))\\big]\\Big)"} /></div></div>
+                          <div className="w-full overflow-x-auto text-sm"><BlockMath math={"\\begin{aligned} C &\\approx C_0 \\cdot \\min\\Big(5,\\; \\frac{m_i}{600} \\\\ &\\quad \\big[1+\\max(0,0.1(\\beta-3)) \\\\ &\\quad +\\max(0,0.02(v_i-6.6))\\big]\\Big) \\end{aligned}"} /></div>
                           <div className="text-slate-400">C in B$, C<sub>0</sub> = baseline, m<sub>i</sub> in kg, v<sub>i</sub> in km/s.</div>
                         </div>
                       )}
                       {selectedMethod === 'nuclear' && (
                         <div className="space-y-1">
                           <div className="text-slate-200">Nuclear Deflection</div>
-                          <div className="overflow-x-auto"><div className="inline-block min-w-full text-sm sm:text-base"><BlockMath math={"C \\approx C_0 \\cdot \\min\\Big(6,\\; \\max(1, \\tfrac{Y}{10}) \\big[1+\\max(0,5(k-0.01))\\big] \\big[1+\\max(0,0.2(v_e-3))\\big]\\Big)"} /></div></div>
+                          <div className="w-full overflow-x-auto text-sm"><BlockMath math={"\\begin{aligned} C &\\approx C_0 \\cdot \\min\\Big(6,\\; \\max(1, \\tfrac{Y}{10}) \\\\ &\\quad \\big[1+\\max(0,5(k-0.01))\\big] \\\\ &\\quad \\big[1+\\max(0,0.2(v_e-3))\\big]\\Big) \\end{aligned}"} /></div>
                           <div className="text-slate-400">Y in MT, k is coupling (0–1), v<sub>e</sub> in km/s.</div>
                         </div>
                       )}
                       {selectedMethod === 'gravity_tractor' && (
                         <div className="space-y-1">
                           <div className="text-slate-200">Gravity Tractor</div>
-                          <div className="overflow-x-auto"><div className="inline-block min-w-full text-sm sm:text-base"><BlockMath math={"C \\approx C_0 \\cdot \\min\\Big(6,\\; \\max(0.5, \\tfrac{m_{sc}}{2000}) \\big[1+\\max(0,0.01(50-\\min(50,r_s)))\\big] \\big[1+0.15\\, y\\, \\phi \\delta\\big]\\Big)"} /></div></div>
+                          <div className="w-full overflow-x-auto text-sm"><BlockMath math={"\\begin{aligned} C &\\approx C_0 \\cdot \\min\\Big(6,\\; \\max(0.5, \\tfrac{m_{sc}}{2000}) \\\\ &\\quad \\big[1+\\max(0,0.01(50-\\min(50,r_s)))\\big] \\\\ &\\quad \\big[1+0.15\\, y\\, \\phi \\delta\\big]\\Big) \\end{aligned}"} /></div>
                           <div className="text-slate-400">m<sub>sc</sub> in kg, r<sub>s</sub> standoff (m), y years, φ operation fraction, δ duty cycle.</div>
                         </div>
                       )}
                       {selectedMethod === 'ion_beam' && (
                         <div className="space-y-1">
                           <div className="text-slate-200">Ion Beam Shepherd</div>
-                          <div className="overflow-x-auto"><div className="inline-block min-w-full text-sm sm:text-base"><BlockMath math={"C \\approx C_0 \\cdot \\min\\Big(6,\\; \\max(0.5, \\tfrac{T}{0.2}) \\big[1+0.12\\, y\\, \\phi\\big]\\Big)"} /></div></div>
+                          <div className="w-full overflow-x-auto text-sm"><BlockMath math={"\\begin{aligned} C &\\approx C_0 \\cdot \\min\\Big(6,\\; \\max(0.5, \\tfrac{T}{0.2}) \\\\ &\\quad \\big[1+0.12\\, y\\, \\phi\\big]\\Big) \\end{aligned}"} /></div>
                           <div className="text-slate-400">T in N, y years, φ operation fraction.</div>
                         </div>
                       )}
                       {selectedMethod === 'laser' && (
                         <div className="space-y-1">
                           <div className="text-slate-200">Laser Ablation</div>
-                          <div className="overflow-x-auto"><div className="inline-block min-w-full text-sm sm:text-base"><BlockMath math={"C \\approx C_0 \\cdot \\min\\Big(6,\\; \\max(0.5, \\tfrac{T}{0.05}) \\big[1+0.10\\, y\\, \\phi\\big]\\Big)"} /></div></div>
+                          <div className="w-full overflow-x-auto text-sm"><BlockMath math={"\\begin{aligned} C &\\approx C_0 \\cdot \\min\\Big(6,\\; \\max(0.5, \\tfrac{T}{0.05}) \\\\ &\\quad \\big[1+0.10\\, y\\, \\phi\\big]\\Big) \\end{aligned}"} /></div>
                           <div className="text-slate-400">T in N, y years, φ operation fraction.</div>
                         </div>
                       )}
