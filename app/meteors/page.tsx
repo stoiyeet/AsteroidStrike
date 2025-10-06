@@ -153,6 +153,8 @@ const formatName = (name: string) => name.replace("_", " ").replace(/\b\w/g, c =
 
 
 
+
+
 export default function AsteroidViewer() {
   const [selected, setSelected] = useState<string>(asteroids[0]);
   const [lighting, setLighting] = useState<'flood' | 'shadow'>('flood');
@@ -176,6 +178,18 @@ export default function AsteroidViewer() {
     const b = name.substring(name.indexOf('_') + 1);    
     return `/meteors/${b}.glb`;
   };
+
+  // --- Visit counting logic ---
+  useEffect(() => {
+    const hasVisited = document.cookie.split("; ").find(row => row.startsWith("visited="));
+    if (!hasVisited) {
+      // first visit -> increment counter
+      fetch("/api/visits", { method: "POST" });
+      const expires = new Date();
+      expires.setHours(expires.getHours() + 24);
+      document.cookie = `visited=true; path=/; expires=${expires.toUTCString()}`;
+    }
+  }, []);
 
   useEffect(() => {
     if (!mountRef.current) return;

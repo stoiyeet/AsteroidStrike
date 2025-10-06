@@ -30,19 +30,6 @@ export default function Home(): React.ReactElement {
     }
 ]
 
-  useEffect(() => setMounted(true), []);
-
-  // --- Visit counting logic ---
-  useEffect(() => {
-    const hasVisited = document.cookie.split("; ").find(row => row.startsWith("visited="));
-    if (!hasVisited) {
-      // first visit -> increment counter
-      fetch("/api/visits", { method: "POST" });
-      const expires = new Date();
-      expires.setHours(expires.getHours() + 24);
-      document.cookie = `visited=true; path=/; expires=${expires.toUTCString()}`;
-    }
-  }, []);
 
   useEffect(() => {
     const loadingInterval = setInterval(() => {
