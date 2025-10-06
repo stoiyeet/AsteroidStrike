@@ -275,6 +275,18 @@ export function peakOverpressureAtR(
     const r_x_surface = 290; // Standard crossover distance for 1kt surface burst (m)
     peak_overpressure = calculateOverpressureEq54(r_x_surface, r_1);
   }
+  if (zb_m > 10000){
+    // p = p_0 * e^(-beta * r_1)
+
+      // p_0 = 3.14 * 10^11 * zb_m^(-2.6)
+      const p_0 = 3.14e11 * Math.pow(zb_m, -2.6);
+
+      // beta = 34.87 * zb_m
+      const beta = 34.87 * Math.pow(zb_m, -1.73);
+
+      peak_overpressure = p_0 * Math.exp(-beta * r_1);
+
+  }
   // B. Airburst (zb_m > 0)
   else {
     // Crossover altitude for mach region determination
@@ -294,7 +306,7 @@ export function findRadiusForOverpressure(
   r_min: number,
   r_max = HALF_CIRCUMFERENCE_M // 12,756 km
 ): number {
-  if (zb_m > 0) r_min = 10;
+  if (zb_m > 0) r_min = 0;
   if (!isFinite(targetP) || targetP <= 0) return NaN;
   if (r_min <= 0) r_min = 1e-6;
 
