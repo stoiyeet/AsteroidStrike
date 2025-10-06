@@ -17,7 +17,7 @@ export default function BottomNav() {
   }
 
   return (
-    <nav className="fixed top-4 md:top-4 bottom-auto md:bottom-auto left-1/2 -translate-x-1/2 z-[100] pointer-events-auto">
+    <nav className="fixed top-4 md:top-4 bottom-auto md:bottom-auto left-1/2 -translate-x-1/2 z-9 pointer-events-auto">
       <div
         className={`flex items-center justify-center transition-all duration-500 ease-in-out bg-white/10 backdrop-blur-md border border-white/20 rounded-full
           ${isNavExpanded ? "space-x-2 px-3 py-1" : "space-x-0 px-1 py-0"}`}
@@ -25,7 +25,7 @@ export default function BottomNav() {
         {/* Toggle Button */}
         <button
           onClick={toggleNav}
-          className="flex flex-col items-center justify-center p-2 md:p-3 rounded-full hover:bg-white/20 transition-all duration-300 group relative z-10 min-h-[44px] min-w-[44px]"
+          className="flex flex-col items-center justify-center p-2 md:p-3 rounded-full hover:bg-white/20 transition-all duration-300 group relative z-9 min-h-[44px] min-w-[44px]"
           aria-label={isNavExpanded ? "Minimize navigation" : "Expand navigation"}
         >
           <svg

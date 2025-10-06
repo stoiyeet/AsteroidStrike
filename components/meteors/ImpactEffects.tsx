@@ -298,7 +298,7 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
               )}
             </div>
             <div className={styles.sectionInfo}>
-                {effects.airblast_radius_building_collapse_m && effects.airblast_radius_building_collapse_m > 10000000 && (
+                {effects.airblast_radius_building_collapse_m && effects.airblast_radius_building_collapse_m > 1000000 && (
                 <span style={{ color: "#d34646ff" }}>The proposed meteor is too large for conventional wind blast calculations.Though the theoretical ranges are provided, with impacts of this size, global catastrophe is imminent and metrics like &quot;flattened buildings&quot; become irrelevant and calculations break</span>
                 )
                 }
