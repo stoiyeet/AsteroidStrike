@@ -77,7 +77,7 @@ export default function FormulasPageInner() {
                     title: "Ignition Thermal Exposure",
                     equation: "\\Phi_{\\text{ignition}} \\approx T_{\\text{ignition}} \\rho c_{p} \\sqrt{\\kappa \\tau_{t}}",
                     image: "",
-                    description: "Thermal exposure required to ignite a material (J m^{-2}). It equates the radiant energy received per unit area with the heat needed to raise the surface to the ignition temperature T_{ignition}. Here, ρ is density, c_p is heat capacity, κ is thermal diffusivity, and τ_t is the irradiation time.",
+                    description: "Thermal exposure required to ignite a material J/m^2. It equates the radiant energy received per unit area with the heat needed to raise the surface to the ignition temperature. Here, ρ is density, c_p is heat capacity, κ is thermal diffusivity, and τ_t is the irradiation time.",
                     priority: "PRIMARY"
                 }
 
