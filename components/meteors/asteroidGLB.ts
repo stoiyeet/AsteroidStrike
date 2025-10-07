@@ -26,7 +26,6 @@ export function getGlbFile(selectionName: string): string {
   return `/meteors/${afterUnderscore}.glb`;
 }
 
-// Nicely format an asteroid id for display ("101955_bennu" -> "101955 Bennu")
 export function formatAsteroidName(id: string) {
   return id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }

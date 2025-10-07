@@ -124,9 +124,8 @@ import { useRouter } from 'next/navigation'
 import styles from "./AsteroidViewer.module.css";
 
 const asteroids = [
-  '16_psyche', '67p_churyumov_gerasimenko', '99942_apophis', '101955_bennu', '19p_borrelly',
-  '65803_didymos', 'dimorphos', '433_eros', '951_gaspra', '103p_hartley', '25143_itokawa',
-  '162173_ryugu', '9p_tempel_1', '4_vesta', '5535_annefrank', '9969_braille', '152830_dinkinesh',
+  '433_eros', '16_psyche', '67p_churyumov_gerasimenko','65803_didymos', 'dimorphos', '951_gaspra', 
+  '103p_hartley', '25143_itokawa', '9p_tempel_1', '4_vesta', '5535_annefrank', '9969_braille', '152830_dinkinesh',
   '52246_donaldjohanson', '3548_eurybates', '243_ida', '11351_leucus', '21_lutetia', 'menoetius',
   '21900_orus', '617_patroclus', '15094_polymele', '73p_schwassman_wachmann_3', '81p_wild_2'
 ];

@@ -695,5 +695,3 @@ function EnhancedDamageDisk({
     </group>
   );
 }
-
-useGLTF.preload('/meteors/psyche.glb');
