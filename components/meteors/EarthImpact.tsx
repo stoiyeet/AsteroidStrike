@@ -313,14 +313,14 @@ export default function EarthImpact({
 
   // Zones
   const thermalZones = [
-    { radius: clothingIgnition,     color: '#ff1100', label: 'Clothing ignites', opacity: 0.35, borderColor: '#ffffff', delay: 0.0,  priority: 3 },
+    { radius: clothingIgnition,     color: '#ff1100', label: 'Clothing ignites', opacity: 0.35, borderColor: '#ffffff', delay: 0.3,  priority: 3 },
     { radius: third_degree_burn,   color: '#ff4400', label: '3rd Degree Burns', opacity: 0.25, borderColor: '#ffaa00', delay: 0.15, priority: 2 },
-    { radius: second_degree_burn,  color: '#ff8800', label: '2nd Degree Burns', opacity: 0.18, borderColor: '#ffcc00', delay: 0.30, priority: 1 },
+    { radius: second_degree_burn,  color: '#ff8800', label: '2nd Degree Burns', opacity: 0.18, borderColor: '#ffcc00', delay: 0.0, priority: 1 },
   ];
 
   const pressureZones = [
-    { radius: buildingCollapseShockwave, color: '#0066cc', label: 'Building collapse', opacity: 0.28, borderColor: '#00aaff', delay: 0.10, priority: 3 },
-    { radius: glassShatter,              color: '#0099dd', label: 'Glass Shatters', opacity: 0.20, borderColor: '#44ccff', delay: 0.25, priority: 2 },
+    { radius: buildingCollapseShockwave, color: '#0066cc', label: 'Building collapse', opacity: 0.28, borderColor: '#00aaff', delay: 0.25, priority: 3 },
+    { radius: glassShatter,              color: '#0099dd', label: 'Glass Shatters', opacity: 0.20, borderColor: '#44ccff', delay: 0.1, priority: 2 },
   ];
 
   const blastRadius = surfacemToChordUnits(fireball_radius || 0);
