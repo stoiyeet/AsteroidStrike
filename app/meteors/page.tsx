@@ -174,9 +174,9 @@ export default function AsteroidViewer() {
 
 
   const getGlbFile = (name: string) => {
-    if (specialMap[name]) return `/meteors/${specialMap[name]}`;
+    if (specialMap[name]) return `https://glb.asteroidstrike.earth/${specialMap[name]}`;
     const b = name.substring(name.indexOf('_') + 1);    
-    return `/meteors/${b}.glb`;
+    return `https://glb.asteroidstrike.earth/${b}.glb`;
   };
 
   // --- Visit counting logic ---

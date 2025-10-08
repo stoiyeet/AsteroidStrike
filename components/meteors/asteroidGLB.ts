@@ -20,10 +20,10 @@ export const specialMap: Record<string, string> = {
 
 // Build the GLB path used by both the list and impact pages
 export function getGlbFile(selectionName: string): string {
-  if (selectionName.toLowerCase().includes("custom") || !selectionName) return '/meteors/psyche.glb'; // safe fallback
-  if (specialMap[selectionName]) return `/meteors/${specialMap[selectionName]}`;
+  if (selectionName.toLowerCase().includes("custom") || !selectionName) return 'https://glb.asteroidstrike.earth/psyche.glb'; // safe fallback
+  if (specialMap[selectionName]) return `https://glb.asteroidstrike.earth/${specialMap[selectionName]}`;
   const afterUnderscore = selectionName.substring(selectionName.indexOf('_') + 1);
-  return `/meteors/${afterUnderscore}.glb`;
+  return `https://glb.asteroidstrike.earth/${afterUnderscore}.glb`;
 }
 
 // Nicely format an asteroid id for display ("101955_bennu" -> "101955 Bennu")

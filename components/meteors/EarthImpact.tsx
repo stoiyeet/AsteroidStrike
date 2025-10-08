@@ -696,4 +696,4 @@ function EnhancedDamageDisk({
   );
 }
 
-useGLTF.preload('/meteors/psyche.glb');
+useGLTF.preload('https://glb.asteroidstrike.earth/psyche.glb');
