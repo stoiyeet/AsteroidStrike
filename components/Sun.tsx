@@ -31,7 +31,7 @@ const Sun: React.FC<SunProps> = ({ targetRef }) => {
   const sunToEarthDir = useRef(new THREE.Vector3());
   const earthWorldPos = useRef(new THREE.Vector3());
 
-  const sunTexture = useTexture("/textures/Sun.png");
+  const sunTexture = useTexture("https://glb.asteroidstrike.earth/textures/Sun.png");
   useEffect(() => {
     sunTexture.colorSpace = THREE.SRGBColorSpace;
     sunTexture.anisotropy = 8;

@@ -15,7 +15,7 @@ export interface AsteroidProps {
 const Asteroid: React.FC<AsteroidProps> = ({ orbitRadius, orbitSpeed, earthPosition }) => {
   const meshRef = useRef<THREE.Mesh>(null!);
 
-  const map = useLoader(THREE.TextureLoader, "/textures/Asteroid.png");
+  const map = useLoader(THREE.TextureLoader, "https://glb.asteroidstrike.earth/textures/Asteroid.png");
 
   const material = useMemo(
     () =>

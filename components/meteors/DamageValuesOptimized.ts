@@ -342,7 +342,7 @@ let gpwImage: GeoTIFFImage | null = null;
 
 async function initGPW() {
   if (!gpwTiff) {
-    gpwTiff = await fromUrl("/populationData/gpw_v4_population_density_2020_30_min.tif");
+    gpwTiff = await fromUrl("https://glb.asteroidstrike.earth/populationData/gpw_v4_population_density_2020_30_min.tif");
     gpwImage = await gpwTiff.getImage();
   }
 }

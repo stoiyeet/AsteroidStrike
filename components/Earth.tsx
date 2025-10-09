@@ -28,9 +28,9 @@ export default function Earth({
   const meshRef = useRef<THREE.Mesh>(null!);
 
   // Load textures
-  const dayTex = useLoader(TextureLoader, '/textures/earthDay2.png');
-  const normalTex = useLoader(TextureLoader, '/textures/earthNormal.png');
-  const specularTex = useLoader(TextureLoader, '/textures/earthSpecular.png');
+  const dayTex = useLoader(TextureLoader, 'https://glb.asteroidstrike.earth/textures/earthDay2.png');
+  const normalTex = useLoader(TextureLoader, 'https://glb.asteroidstrike.earth/textures/earthNormal.png');
+  const specularTex = useLoader(TextureLoader, 'https://glb.asteroidstrike.earth/textures/earthSpecular.png');
 
   // Texture settings
   dayTex.colorSpace = THREE.SRGBColorSpace;

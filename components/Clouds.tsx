@@ -20,7 +20,7 @@ export default function Clouds({
   explosionStrength?: number;
 }) {
   const cloudRef = useRef<THREE.Group>(null!);
-  const texture = useLoader(TextureLoader, '/textures/earthClouds.png');
+  const texture = useLoader(TextureLoader, 'https://glb.asteroidstrike.earth/textures/earthClouds.png');
 
   // Simple rotation animation
   useFrame(() => {

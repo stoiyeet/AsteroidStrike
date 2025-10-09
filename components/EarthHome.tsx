@@ -7,8 +7,8 @@ import * as THREE from "three";
 const Earth: React.FC = () => {
   const meshRef = useRef<THREE.Mesh>(null!);
 
-  const dayMap = useLoader(THREE.TextureLoader, "/textures/earthDay.png");
-  const nightMap = useLoader(THREE.TextureLoader, "/textures/earthNight.png");
+  const dayMap = useLoader(THREE.TextureLoader, "https://glb.asteroidstrike.earth/textures/earthDay.png");
+  const nightMap = useLoader(THREE.TextureLoader, "https://glb.asteroidstrike.earth/textures/earthNight.png");
 
   // Drag state
   const [isDragging, setIsDragging] = useState(false);
