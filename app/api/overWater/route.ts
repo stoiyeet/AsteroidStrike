@@ -25,20 +25,12 @@ export async function GET(req: Request) {
 
     const options: AxiosRequestConfig = {
         method: "GET",
-        url: "https://isitwater-com.p.rapidapi.com/",
-        params: {
-            latitude: lat,
-            longitude: lon,
-        },
-        headers: {
-            "x-rapidapi-key": process.env.IS_WATER_API_KEY as string,
-            "x-rapidapi-host": "isitwater-com.p.rapidapi.com",
-        },
+        url: `https://is-on-water.balbona.me/api/v1/get/${lat}/${lon}`,
     };
 
     try {
         const response = await axios.request(options);
-        const overWater: boolean = response.data.water;
+        const overWater: boolean = response.data.isWater;
 
         console.log("over water: ", overWater);
 

@@ -2,11 +2,10 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-Create a `.env.local` file in the project root and add your gemini API key for the chatbot and isitwater API key for tsunami calculation.
+Create a `.env.local` file in the project root and add your gemini API key for the chatbot, and public NASA API key for NEAR EARTH OBJECTS
 
 ```bash
 GOOGLE_API_KEY="gemini_api_key"
-IS_WATER_API_KEY="https://isitwater.com/ api key"
 NEXT_PUBLIC_NASA_API_KEY="free api key from "https://api.nasa.gov/"
 ```
 
