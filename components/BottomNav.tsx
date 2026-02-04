@@ -99,7 +99,7 @@ export default function BottomNav() {
 
           {/* Defense */}
           <Link
-            href="/ai"
+            href="/mitigation"
             className="flex flex-col items-center justify-center p-2 md:p-3 rounded-full hover:bg-white/20 transition-all duration-300 group whitespace-nowrap min-h-[44px] min-w-[44px]"
           >
             <svg
@@ -112,25 +112,6 @@ export default function BottomNav() {
             </svg>
             <span id="nav-mitigation" className="text-xs text-white/80 group-hover:text-white transition-colors duration-300 font-light hidden md:block">
               Mitigation
-            </span>
-          </Link>
-
-          {/* Scenario */}
-          <Link
-            href="/scenario"
-            className="flex flex-col items-center justify-center p-2 md:p-3 rounded-full hover:bg-white/20 transition-all duration-300 group whitespace-nowrap min-h-[44px] min-w-[44px]"
-          >
-            <svg
-              className="w-5 h-5 mb-1 text-white/80 group-hover:text-white transition-colors duration-300"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2" />
-              <circle cx="12" cy="12" r="10" strokeWidth={2} />
-            </svg>
-            <span id="nav-scenario" className="text-xs text-white/80 group-hover:text-white transition-colors duration-300 font-light hidden md:block">
-              Scenario
             </span>
           </Link>
         </div>

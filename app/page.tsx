@@ -23,10 +23,6 @@ export default function Home(): React.ReactElement {
     {
       target: "#nav-mitigation",
       content: "Simulate and learn cutting edge techniques to elimiate asteroid impact threats"
-    },
-    {
-       target: "#nav-scenario",
-        content: "Test your knowledge in a realistic asteroid defense scenario with real consequences"
     }
 ]
 
@@ -153,16 +149,9 @@ export default function Home(): React.ReactElement {
                 <button
                   id="nav-mitigation"
                   className="px-6 py-4 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all text-cyan-400 font-medium rounded-lg backdrop-blur-sm pointer-events-auto text-sm sm:text-base min-h-[44px]"
-                  onClick={() => window.location.href = '/ai'}
+                  onClick={() => window.location.href = '/mitigation'}
                 >
                   Mitigation Strategies
-                </button>
-                <button
-                  id="nav-scenario"
-                  className="px-6 py-4 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all text-cyan-400 font-medium rounded-lg backdrop-blur-sm pointer-events-auto text-sm sm:text-base min-h-[44px]"
-                  onClick={() => window.location.href = '/scenario'}
-                >
-                  Defense Scenario
                 </button>
               </motion.div>
             </motion.div>
