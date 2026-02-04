@@ -2,6 +2,8 @@
 
 import { useSearchParams } from 'next/navigation';
 import MeteorImpactPageOptimized from '@/components/meteors/MeteorImpactPageOptimized';
+import * as THREE from 'three';
+import { useGLTF } from '@react-three/drei';
 
 export default function ImpactPageClient() {
     const params = useSearchParams();
@@ -21,3 +23,21 @@ export default function ImpactPageClient() {
 
     return <MeteorImpactPageOptimized meteor={meteor} />;
 }
+
+// Preload heavy asteroid GLBs for instant loading
+useGLTF.preload('https://glb.asteroidstrike.earth/psyche.glb');
+useGLTF.preload('https://glb.asteroidstrike.earth/vesta.glb');
+useGLTF.preload('https://glb.asteroidstrike.earth/ryugu.glb');
+useGLTF.preload('https://glb.asteroidstrike.earth/borrelly.glb');
+useGLTF.preload('https://glb.asteroidstrike.earth/bennu.glb');
+useGLTF.preload('https://glb.asteroidstrike.earth/apophis.glb');
+
+// Preload Earth textures for instant loading
+const preloadTexture = (url: string) => {
+  const loader = new THREE.TextureLoader();
+  loader.load(url, () => {}, () => {}, (error) => console.error('Texture preload failed:', url, error));
+};
+
+preloadTexture('https://glb.asteroidstrike.earth/textures/earthDay2.png');
+preloadTexture('https://glb.asteroidstrike.earth/textures/earthNormal.png');
+preloadTexture('https://glb.asteroidstrike.earth/textures/earthSpecular.png');
