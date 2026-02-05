@@ -2,7 +2,7 @@
 
 import * as THREE from 'three';
 import React, { useMemo, useRef, useState } from 'react';
-import { useFrame, ThreeEvent } from '@react-three/fiber';
+import { useFrame, ThreeEvent, useThree } from '@react-three/fiber';
 import { Html, Line, useGLTF } from '@react-three/drei';
 import { GLTF } from 'three-stdlib';
 
@@ -45,6 +45,7 @@ interface Props {
   onImpactSelect?: (lat: number, lon: number) => void;
   effects: EffectsState;
   tsunamiRadius: number;
+  onShake?: (intensity: number) => void;
 }
 
 const EARTH_R = 1;
@@ -170,7 +171,8 @@ export default function EarthImpact({
   impactTime,
   onImpactSelect,
   effects,
-  tsunamiRadius
+  tsunamiRadius,
+  onShake
 }: Props) {
 
   const height = Math.max(3*damage.zb_breakup/EARTH_R_M, 0.001)
@@ -325,6 +327,64 @@ export default function EarthImpact({
 
   const blastRadius = surfacemToChordUnits(fireball_radius || 0);
   const [isFlashing, setIsFlashing] = useState(false);
+
+  // Camera shake on impact - create context for UI shaking
+  const { camera } = useThree();
+  const cameraBasePos = useRef(camera.position.clone());
+  const lastCameraPos = useRef(camera.position.clone());
+  const isShakingRef = useRef(false);
+
+  useFrame(() => {
+    const SHAKE_DURATION = 2.5; // 2.5 seconds of shaking
+    const HOLD_DURATION = 2.0; // hold intensity for first 2 seconds
+    const FADE_DURATION = 0.5; // rapid fade in last 0.5 seconds
+
+    const inShakePeriod = t >= impactTime && t < impactTime + SHAKE_DURATION;
+
+    if (!inShakePeriod && isShakingRef.current) {
+      // Just exited shake period - update base to current camera position
+      cameraBasePos.current.copy(camera.position);
+      lastCameraPos.current.copy(camera.position);
+      isShakingRef.current = false;
+      if (onShake) onShake(0);
+    } else if (!inShakePeriod) {
+      // Not shaking - continuously update base to allow OrbitControls to work
+      cameraBasePos.current.copy(camera.position);
+      lastCameraPos.current.copy(camera.position);
+    }
+
+    // Apply shake only during shake period
+    if (inShakePeriod) {
+      isShakingRef.current = true;
+      const elapsedShake = t - impactTime;
+      
+      // Hold intensity constant for 2 seconds, then rapid decay in last 0.5s
+      let currentIntensity = 0.08;
+      if (elapsedShake >= HOLD_DURATION) {
+        const fadeProgress = (elapsedShake - HOLD_DURATION) / FADE_DURATION;
+        currentIntensity = 0.08 * (1 - fadeProgress); // linear fade in last 0.5s
+      }
+
+      // Update intensity for UI shaking
+      if (onShake) onShake(currentIntensity);
+
+      // Detect if user moved camera (from OrbitControls) and incorporate that change
+      const userDelta = new THREE.Vector3().subVectors(camera.position, lastCameraPos.current);
+      cameraBasePos.current.add(userDelta);
+
+      // Simple, non-chaotic shake - just two frequencies per axis
+      const shakeX = (Math.sin(t * 15) * 0.6 + Math.sin(t * 25) * 0.4) * currentIntensity;
+      const shakeY = (Math.cos(t * 12) * 0.6 + Math.cos(t * 22) * 0.4) * currentIntensity;
+
+      camera.position.set(
+        cameraBasePos.current.x + shakeX,
+        cameraBasePos.current.y + shakeY,
+        cameraBasePos.current.z
+      );
+
+      lastCameraPos.current.copy(camera.position);
+    }
+  });
 
 
   return (

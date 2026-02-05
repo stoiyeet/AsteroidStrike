@@ -48,6 +48,7 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
   const [impactLat, setImpactLat] = useState(44.60);
   const [impactLon, setImpactLon] = useState(79.47);
   const [isHudCollapsed, setIsHudCollapsed] = useState(false);
+  const [shakeIntensity, setShakeIntensity] = useState(0);
   const [mounted, setMounted] = useState(false);
   const actualLong = - impactLon;  //longitude must be made negative because earth texture is flipped
   const [t, setT] = useState(0);
@@ -232,7 +233,15 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
       <ImpactStyles />
 
       {/* LEFT CONTROL PANEL */}
-      <div className={styles.panel}>
+      <div 
+        className={styles.panel}
+        style={{
+          transform: shakeIntensity > 0 
+            ? `translate(${(Math.sin(Date.now() / 10) * 0.5 * shakeIntensity)}px, ${(Math.cos(Date.now() / 10) * 0.5 * shakeIntensity)}px)`
+            : 'translate(0, 0)',
+          transition: shakeIntensity === 0 ? 'transform 0.1s ease-out' : 'none'
+        }}
+      >
         <h3 className={styles.title}>Impact Controls</h3>
         <p className={styles.description}>
           Double-click the Earth to set impact location. Use timeline controls to navigate the sequence.
@@ -284,7 +293,15 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
       </div>
 
       {/* RIGHT HUD */}
-      <div className={`${styles.hud} ${isHudCollapsed ? styles.collapsed : ''}`}>
+      <div 
+        className={`${styles.hud} ${isHudCollapsed ? styles.collapsed : ''}`}
+        style={{
+          transform: shakeIntensity > 0 
+            ? `translate(${(Math.sin(Date.now() / 10 + 100) * 0.5 * shakeIntensity)}px, ${(Math.cos(Date.now() / 10 + 100) * 0.5 * shakeIntensity)}px)`
+            : 'translate(0, 0)',
+          transition: shakeIntensity === 0 ? 'transform 0.1s ease-out' : 'none'
+        }}
+      >
 
         
         {!isHudCollapsed && (
@@ -349,7 +366,8 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
             onImpactSelect={(la, lo) => { setImpactLat(la); setImpactLon(lo); }}
             effects={effects}
             impactTime={IMPACT_TIME}
-            tsunamiRadius={tsunamiResults.tsunami_radius} //metres
+            tsunamiRadius={tsunamiResults.tsunami_radius}
+            onShake={setShakeIntensity}
           />
         </React.Suspense>
       </Canvas>
