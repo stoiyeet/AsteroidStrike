@@ -338,6 +338,11 @@ export default function EarthImpact({
     const SHAKE_DURATION = 0.5; 
     const PEAK_TIME = 0.2;
     const DECAY_TIME = 0.1
+    let SHAKE_INTENSITY;
+    if (damage.E_J < 10e22) SHAKE_INTENSITY = 0
+    else if (damage.E_J < 10e25) SHAKE_INTENSITY = 0.001 //arbitrary range for shakiness
+    else if (damage.E_J < 10e30) SHAKE_INTENSITY = 0.003
+    else SHAKE_INTENSITY = 0.008
 
 
     const inShakePeriod = t >= impactTime && t < impactTime + SHAKE_DURATION;
@@ -362,11 +367,11 @@ export default function EarthImpact({
       let currentIntensity;
       if (elapsedShake <= PEAK_TIME) {
         const fadeProgress = (elapsedShake) / PEAK_TIME;
-        currentIntensity = 0.003 * Math.exp(fadeProgress);
+        currentIntensity = SHAKE_INTENSITY * Math.exp(fadeProgress);
       }
       else{
         const fadeProgress = Math.max((PEAK_TIME + DECAY_TIME - elapsedShake)/DECAY_TIME, 0);
-        currentIntensity = 0.003 * Math.E *(fadeProgress)
+        currentIntensity = SHAKE_INTENSITY * Math.E *(fadeProgress)
 
       }
 
@@ -385,7 +390,7 @@ export default function EarthImpact({
       camera.position.set(
         cameraBasePos.current.x + shakeX,
         cameraBasePos.current.y,
-        cameraBasePos.current.z + 0.02 + shakeZ
+        cameraBasePos.current.z + currentIntensity + shakeZ
       );
       lastCameraPos.current.copy(camera.position);
     }
