@@ -158,6 +158,16 @@ export default function Home(): React.ReactElement {
           )}
         </AnimatePresence>
       </section>
+      {/* Minimal Attribution (tasteful, unobtrusive) */}
+      <div className="absolute left-4 bottom-4 text-xs text-gray-300/80 pointer-events-auto">
+        <div className="flex gap-3 items-center">
+          <span className="opacity-80">Lead Developer:</span>
+          <a href="https://www.linkedin.com/in/mark-i-kogan/" target="_blank" rel="noopener noreferrer" className="text-gray-200 hover:text-cyan-300 transition-colors">Mark Kogan</a>
+          <span className="text-gray-600">•</span>
+          <span className="opacity-80">Feature Developer:</span>
+          <a href="https://www.linkedin.com/in/omid-latifi-2bb380215/" target="_blank" rel="noopener noreferrer" className="text-gray-200 hover:text-cyan-300 transition-colors">Omid Latifi</a>
+        </div>
+      </div>
     </main>
   );
 }
