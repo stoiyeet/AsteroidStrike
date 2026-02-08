@@ -201,7 +201,7 @@ export default function EarthImpact({
       softExplosionRef.current = audio;
     }
     if (!softFalloutRef.current) {
-      const audio = new Audio('/audio/soft-medium-fallout.wav');
+      const audio = new Audio('/audio/soft-medium-fallout.m4a');
       audio.preload = 'auto';
       softFalloutRef.current = audio;
     }
@@ -424,7 +424,7 @@ export default function EarthImpact({
       }
     }
 
-    if (softAirTravelRef.current && t > 0.45) {
+    if (softAirTravelRef.current && t > 0.42) {
       softAirTravelRef.current.pause();
       softAirTravelRef.current.volume = 1;
     }
