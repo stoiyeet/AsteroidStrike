@@ -335,9 +335,10 @@ export default function EarthImpact({
   const isShakingRef = useRef(false);
 
   useFrame(() => {
-    const SHAKE_DURATION = 2.5; // 2.5 seconds of shaking
-    const HOLD_DURATION = 2.0; // hold intensity for first 2 seconds
-    const FADE_DURATION = 0.5; // rapid fade in last 0.5 seconds
+    const SHAKE_DURATION = 0.5; 
+    const PEAK_TIME = 0.2;
+    const DECAY_TIME = 0.1
+
 
     const inShakePeriod = t >= impactTime && t < impactTime + SHAKE_DURATION;
 
@@ -357,13 +358,18 @@ export default function EarthImpact({
     if (inShakePeriod) {
       isShakingRef.current = true;
       const elapsedShake = t - impactTime;
-      
-      // Hold intensity constant for 2 seconds, then rapid decay in last 0.5s
-      let currentIntensity = 0.08;
-      if (elapsedShake >= HOLD_DURATION) {
-        const fadeProgress = (elapsedShake - HOLD_DURATION) / FADE_DURATION;
-        currentIntensity = 0.08 * (1 - fadeProgress); // linear fade in last 0.5s
+
+      let currentIntensity;
+      if (elapsedShake <= PEAK_TIME) {
+        const fadeProgress = (elapsedShake) / PEAK_TIME;
+        currentIntensity = 0.003 * Math.exp(fadeProgress);
       }
+      else{
+        const fadeProgress = Math.max((PEAK_TIME + DECAY_TIME - elapsedShake)/DECAY_TIME, 0);
+        currentIntensity = 0.003 * Math.E *(fadeProgress)
+
+      }
+
 
       // Update intensity for UI shaking
       if (onShake) onShake(currentIntensity);
@@ -372,16 +378,15 @@ export default function EarthImpact({
       const userDelta = new THREE.Vector3().subVectors(camera.position, lastCameraPos.current);
       cameraBasePos.current.add(userDelta);
 
-      // Simple, non-chaotic shake - just two frequencies per axis
-      const shakeX = (Math.sin(t * 15) * 0.6 + Math.sin(t * 25) * 0.4) * currentIntensity;
-      const shakeY = (Math.cos(t * 12) * 0.6 + Math.cos(t * 22) * 0.4) * currentIntensity;
+      const shakeX = Math.sin(t * 1000)  * currentIntensity;
+      const shakeZ = Math.sin(t * 1000) * currentIntensity;
 
+  
       camera.position.set(
         cameraBasePos.current.x + shakeX,
-        cameraBasePos.current.y + shakeY,
-        cameraBasePos.current.z
+        cameraBasePos.current.y,
+        cameraBasePos.current.z + 0.02 + shakeZ
       );
-
       lastCameraPos.current.copy(camera.position);
     }
   });
