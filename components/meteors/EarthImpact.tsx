@@ -192,18 +192,51 @@ export default function EarthImpact({
 
   // Initialize audio elements once
   useEffect(() => {
+    let AIR_TRAVEL_PICK
+    if (meteor.speed < 35000) AIR_TRAVEL_PICK = "Soft"
+    else if (meteor.speed < 50000) AIR_TRAVEL_PICK = "Fast"
+    else AIR_TRAVEL_PICK = "Very-Fast"
+    console.log(AIR_TRAVEL_PICK)
     if (!softAirTravelRef.current) {
-      const audio = new Audio('/audio/Soft-Air-Travel.wav');
+      const audio = document.createElement("audio");
+
+      audio.innerHTML = `
+      <source src="/audio/pre-impact/${AIR_TRAVEL_PICK}-Air-Travel.m4a" type="audio/mp4">
+      <source src="/audio/pre-impact/${AIR_TRAVEL_PICK}-Air-Travel.mp3" type="audio/mpeg">
+      <source src="/audio/pre-impact/${AIR_TRAVEL_PICK}-Air-Travel.wav" type="audio/wav">
+    `;
       audio.preload = 'auto';
       softAirTravelRef.current = audio;
     }
     if (!softExplosionRef.current) {
-      const audio = new Audio('/audio/Soft-Explosion.mp3');
+      let EXPLODE_PICK
+      if (damage.airburst) EXPLODE_PICK = "Airburst"
+      else if (damage.E_J < 10e22) EXPLODE_PICK = "Very-Soft"
+      else if (damage.E_J < 10e25) EXPLODE_PICK = "Soft"
+      else if (damage.E_J < 10e30) EXPLODE_PICK = "Big"
+      else EXPLODE_PICK = "Massive"
+
+      const audio = document.createElement("audio");
+
+      audio.innerHTML = `
+      <source src="/audio/explosion/${EXPLODE_PICK}-Explosion.mp3" type="audio/mpeg">
+      <source src="/audio/explosion/${EXPLODE_PICK}-Explosion.m4a" type="audio/mp4">
+    `;
+
       audio.preload = 'auto';
       softExplosionRef.current = audio;
     }
     if (!softFalloutRef.current) {
-      const audio = new Audio('/audio/soft-medium-fallout.m4a');
+      let FALLOUT_PICK
+      if (damage.earth_effect !== "destroyed") FALLOUT_PICK = "soft-medium"
+      else FALLOUT_PICK = "destroyed-earth"
+      const audio = document.createElement("audio");
+
+      audio.innerHTML = `
+      <source src="/audio/fallout/${FALLOUT_PICK}-fallout.m4a" type="audio/mp4">
+      <source src="/audio/fallout/${FALLOUT_PICK}-fallout.mp3" type="audio/mpeg">
+      <source src="/audio/fallout/${FALLOUT_PICK}-fallout.wav" type="audio/wav">
+    `;
       audio.preload = 'auto';
       softFalloutRef.current = audio;
     }
@@ -514,7 +547,7 @@ export default function EarthImpact({
     const PEAK_TIME = 0.2;
     const DECAY_TIME = 0.1
     let SHAKE_INTENSITY;
-    if (damage.E_J < 10e22) SHAKE_INTENSITY = 0
+    if (damage.E_J < 10e22 || damage.earth_effect === "destroyed") SHAKE_INTENSITY = 0
     else if (damage.E_J < 10e25) SHAKE_INTENSITY = 0.001 //arbitrary range for shakiness
     else if (damage.E_J < 10e30) SHAKE_INTENSITY = 0.003
     else SHAKE_INTENSITY = 0.008
