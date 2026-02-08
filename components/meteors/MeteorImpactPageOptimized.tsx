@@ -53,6 +53,7 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
   const actualLong = - impactLon;  //longitude must be made negative because earth texture is flipped
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(true);
+  const [muted, setMuted] = useState(false);
   const [mortality, setMortality] = useState<{deathCount: number; injuryCount: number} | null>(null);
   const [mortalityLoading, setMortalityLoading] = useState(false);
   const [overWater, setOverWater] = useState<boolean>(false);
@@ -369,6 +370,7 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
             tsunamiRadius={tsunamiResults.tsunami_radius}
             onShake={setShakeIntensity}
             playing={playing}
+            muted={muted}
           />
         </React.Suspense>
       </Canvas>
@@ -402,6 +404,14 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
             className={`${styles.button} ${styles.restart}`}
           >
             ↻
+          </button>
+
+          <button
+            onClick={() => setMuted((m) => !m)}
+            className={`${styles.muteButton}`}
+            title={muted ? 'Unmute' : 'Mute'}
+          >
+            {muted ? '🔇' : '🔊'}
           </button>
 
           <div className={styles.timelineStatus}>{getTimelineStatus()}</div>

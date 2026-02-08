@@ -161,6 +161,10 @@
   background: #444;
 }
 
+.muteButton {
+  cursor: pointer;
+}
+
 .button.play {
   background: #00aa44;
 }

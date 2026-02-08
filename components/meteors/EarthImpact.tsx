@@ -48,6 +48,7 @@ interface Props {
   tsunamiRadius: number;
   onShake?: (intensity: number) => void;
   playing: boolean;    // whether timeline is playing
+  muted: boolean;      // whether audio is muted
 }
 
 const EARTH_R = 1;
@@ -179,7 +180,8 @@ export default function EarthImpact({
   effects,
   tsunamiRadius,
   onShake,
-  playing
+  playing,
+  muted
 }: Props) {
 
   // Audio refs for Soft-Air-Travel, Explosion, and Fallout
@@ -222,6 +224,19 @@ export default function EarthImpact({
       }
     };
   }, []);
+
+  // Handle muting/unmuting
+  useEffect(() => {
+    if (muted) {
+      if (softAirTravelRef.current) softAirTravelRef.current.volume = 0;
+      if (softExplosionRef.current) softExplosionRef.current.volume = 0;
+      if (softFalloutRef.current) softFalloutRef.current.volume = 0;
+    } else {
+      if (softAirTravelRef.current) softAirTravelRef.current.volume = 1;
+      if (softExplosionRef.current) softExplosionRef.current.volume = 1;
+      if (softFalloutRef.current) softFalloutRef.current.volume = 1;
+    }
+  }, [muted]);
 
   // Track timeline progression to detect playback vs seeking
   const prevTRef = useRef(0);
