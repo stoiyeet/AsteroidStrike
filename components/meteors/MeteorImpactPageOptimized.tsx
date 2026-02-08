@@ -368,6 +368,7 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
             impactTime={IMPACT_TIME}
             tsunamiRadius={tsunamiResults.tsunami_radius}
             onShake={setShakeIntensity}
+            playing={playing}
           />
         </React.Suspense>
       </Canvas>

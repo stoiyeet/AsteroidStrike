@@ -46,6 +46,7 @@ interface Props {
   effects: EffectsState;
   tsunamiRadius: number;
   onShake?: (intensity: number) => void;
+  playing: boolean;    // whether timeline is playing
 }
 
 const EARTH_R = 1;
@@ -172,7 +173,8 @@ export default function EarthImpact({
   onImpactSelect,
   effects,
   tsunamiRadius,
-  onShake
+  onShake,
+  playing
 }: Props) {
 
   // Audio refs for Soft-Air-Travel, Explosion, and Fallout
@@ -198,6 +200,22 @@ export default function EarthImpact({
       audio.preload = 'auto';
       softFalloutRef.current = audio;
     }
+
+    // Cleanup: stop all audio when component unmounts
+    return () => {
+      if (softAirTravelRef.current) {
+        softAirTravelRef.current.pause();
+        softAirTravelRef.current.currentTime = 0;
+      }
+      if (softExplosionRef.current) {
+        softExplosionRef.current.pause();
+        softExplosionRef.current.currentTime = 0;
+      }
+      if (softFalloutRef.current) {
+        softFalloutRef.current.pause();
+        softFalloutRef.current.currentTime = 0;
+      }
+    };
   }, []);
 
   // Track timeline progression to detect playback vs seeking
@@ -324,6 +342,29 @@ export default function EarthImpact({
     }
 
 
+    // Pause audio when timeline is paused
+    if (!playing) {
+      if (softAirTravelRef.current && !softAirTravelRef.current.paused) {
+        softAirTravelRef.current.pause();
+      }
+      if (softExplosionRef.current && !softExplosionRef.current.paused) {
+        softExplosionRef.current.pause();
+      }
+      if (softFalloutRef.current && !softFalloutRef.current.paused) {
+        softFalloutRef.current.pause();
+      }
+    }
+
+    // Resume audio when timeline resumes
+    if (playing && prevT > 0) {
+      if (t < impactTime && soundTriggersRef.current.softAirTravelStarted && softAirTravelRef.current?.paused) {
+        softAirTravelRef.current.play().catch(() => {});
+      }
+      if (t > 0.4 && soundTriggersRef.current.softFalloutTriggered && softFalloutRef.current?.paused) {
+        softFalloutRef.current.play().catch(() => {});
+      }
+    }
+
     // Soft-Air-Travel: Start when t crosses 0 and t < impactTime (before impact)
     if (
       isPlaying &&
@@ -401,7 +442,7 @@ export default function EarthImpact({
     }
 
     prevTRef.current = t;
-  }, [t, impactTime]);
+  }, [t, impactTime, playing]);
 
   // Flight path
   const asteroidPos = useMemo(() => {
