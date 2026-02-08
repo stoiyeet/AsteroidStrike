@@ -192,6 +192,7 @@ export default function EarthImpact({
 
   // Initialize audio elements once
   useEffect(() => {
+    const SOUND_BASE = "https://glb.asteroidstrike.earth/AudioFiles"
     let AIR_TRAVEL_PICK
     if (meteor.speed < 35000) AIR_TRAVEL_PICK = "Soft"
     else if (meteor.speed < 50000) AIR_TRAVEL_PICK = "Fast"
@@ -199,11 +200,10 @@ export default function EarthImpact({
     console.log(AIR_TRAVEL_PICK)
     if (!softAirTravelRef.current) {
       const audio = document.createElement("audio");
-
       audio.innerHTML = `
-      <source src="/audio/pre-impact/${AIR_TRAVEL_PICK}-Air-Travel.m4a" type="audio/mp4">
-      <source src="/audio/pre-impact/${AIR_TRAVEL_PICK}-Air-Travel.mp3" type="audio/mpeg">
-      <source src="/audio/pre-impact/${AIR_TRAVEL_PICK}-Air-Travel.wav" type="audio/wav">
+      <source src="${SOUND_BASE}/flight/${AIR_TRAVEL_PICK}-Air-Travel.m4a" type="audio/mp4">
+      <source src="${SOUND_BASE}/flight/${AIR_TRAVEL_PICK}-Air-Travel.mp3" type="audio/mpeg">
+      <source src="${SOUND_BASE}/flight/${AIR_TRAVEL_PICK}-Air-Travel.wav" type="audio/wav">
     `;
       audio.preload = 'auto';
       softAirTravelRef.current = audio;
@@ -219,8 +219,8 @@ export default function EarthImpact({
       const audio = document.createElement("audio");
 
       audio.innerHTML = `
-      <source src="/audio/explosion/${EXPLODE_PICK}-Explosion.mp3" type="audio/mpeg">
-      <source src="/audio/explosion/${EXPLODE_PICK}-Explosion.m4a" type="audio/mp4">
+      <source src="${SOUND_BASE}/explosion/${EXPLODE_PICK}-Explosion.mp3" type="audio/mpeg">
+      <source src="${SOUND_BASE}/explosion/${EXPLODE_PICK}-Explosion.m4a" type="audio/mp4">
     `;
 
       audio.preload = 'auto';
@@ -233,9 +233,9 @@ export default function EarthImpact({
       const audio = document.createElement("audio");
 
       audio.innerHTML = `
-      <source src="/audio/fallout/${FALLOUT_PICK}-fallout.m4a" type="audio/mp4">
-      <source src="/audio/fallout/${FALLOUT_PICK}-fallout.mp3" type="audio/mpeg">
-      <source src="/audio/fallout/${FALLOUT_PICK}-fallout.wav" type="audio/wav">
+      <source src="${SOUND_BASE}/fallout/${FALLOUT_PICK}-fallout.m4a" type="audio/mp4">
+      <source src="${SOUND_BASE}/fallout/${FALLOUT_PICK}-fallout.mp3" type="audio/mpeg">
+      <source src="${SOUND_BASE}/fallout/${FALLOUT_PICK}-fallout.wav" type="audio/wav">
     `;
       audio.preload = 'auto';
       softFalloutRef.current = audio;
