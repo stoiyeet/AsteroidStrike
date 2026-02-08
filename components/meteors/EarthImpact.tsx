@@ -14,6 +14,7 @@ import { Damage_Results } from './DamageValuesOptimized';
 import { computeWaveRadii } from './utils/waveRadii';
 import TsunamiWaves  from '@/components/TsunamiWaves'
 
+
 type Meteor = {
   name: string;
   mass: number;
@@ -57,6 +58,10 @@ export function surfacemToChordUnits(m: number): number {
   const maxm = Math.min(m, EARTH_R_M * 0.9);
   const theta = maxm / EARTH_R_M;
   return EARTH_R * theta * 0.8;
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // Debris field for destroyed Earth - separate component to avoid re-renders
@@ -221,9 +226,7 @@ export default function EarthImpact({
   // Track timeline progression to detect playback vs seeking
   const prevTRef = useRef(0);
   const soundTriggersRef = useRef({
-    softAirTravelStarted: false,
     softExplosionTriggered: false,
-    softFalloutTriggered: false,
   });
 
   const height = Math.max(3*damage.zb_breakup/EARTH_R_M, 0.001)
@@ -325,15 +328,13 @@ export default function EarthImpact({
 
   // Audio management: track t progression and trigger sounds
   useEffect(() => {
-    const isPlaying = t > prevTRef.current; // t is increasing = playback, not user seeking
+    const tIncreasing = t > prevTRef.current; // t is increasing = playback, not user seeking
     const prevT = prevTRef.current;
 
     // Reset triggers when user seeks backward (t decreases while scene is playing)
     if (t < prevT) {
       soundTriggersRef.current = {
-        softAirTravelStarted: false,
         softExplosionTriggered: false,
-        softFalloutTriggered: false,
       };
       // Stop all audio when seeking backward
       if (softAirTravelRef.current) softAirTravelRef.current.pause();
@@ -357,55 +358,37 @@ export default function EarthImpact({
 
     // Resume audio when timeline resumes
     if (playing && prevT > 0) {
-      if (t < impactTime && soundTriggersRef.current.softAirTravelStarted && softAirTravelRef.current?.paused) {
+      if (t < impactTime && softAirTravelRef.current?.paused) {
         softAirTravelRef.current.play().catch(() => {});
       }
-      if (t > 0.4 && soundTriggersRef.current.softFalloutTriggered && softFalloutRef.current?.paused) {
+      if (t > 0.4 && softFalloutRef.current?.paused) {
         softFalloutRef.current.play().catch(() => {});
       }
     }
 
     // Soft-Air-Travel: Start when t crosses 0 and t < impactTime (before impact)
     if (
-      isPlaying &&
+      tIncreasing &&
+      playing &&
       t > 0 &&
       t < impactTime &&
-      !soundTriggersRef.current.softAirTravelStarted &&
       prevT < t
     ) {
-      soundTriggersRef.current.softAirTravelStarted = true;
       if (softAirTravelRef.current) {
-        softAirTravelRef.current.currentTime = 0;
         softAirTravelRef.current.play().catch(() => {
-          // Silently catch audio play errors (user may not have interacted with page yet)
         });
       }
     }
 
     // Soft-Explosion: Trigger at t = 0.4 (impact time)
     if (
-      isPlaying &&
+      tIncreasing &&
       t >= 0.4 &&
+      t <= 0.5 &&
       prevT < 0.4 &&
       !soundTriggersRef.current.softExplosionTriggered
     ) {
       soundTriggersRef.current.softExplosionTriggered = true;
-      // Fade out air travel and start explosion
-      if (softAirTravelRef.current) {
-        softAirTravelRef.current.volume = 1;
-        const fadeInterval = setInterval(() => {
-          if (softAirTravelRef.current) {
-            softAirTravelRef.current.volume = Math.max(
-              0,
-              softAirTravelRef.current.volume - 0.2
-            );
-            if (softAirTravelRef.current.volume === 0) {
-              softAirTravelRef.current.pause();
-              clearInterval(fadeInterval);
-            }
-          }
-        }, 50);
-      }
       // Play explosion
       if (softExplosionRef.current) {
         softExplosionRef.current.currentTime = 0;
@@ -414,17 +397,17 @@ export default function EarthImpact({
       }
     }
 
+
+
     // Soft-Medium-Fallout: Trigger after t = 0.4
     if (
-      isPlaying &&
+      tIncreasing &&
+      playing &&
       t > 0.4 &&
-      prevT <= 0.4 &&
-      !soundTriggersRef.current.softFalloutTriggered
+      prevT <= 0.4
     ) {
-      soundTriggersRef.current.softFalloutTriggered = true;
       // Fade in fallout sound smoothly after explosion
       if (softFalloutRef.current) {
-        softFalloutRef.current.currentTime = 0;
         softFalloutRef.current.volume = 0;
         softFalloutRef.current.play().catch(() => {});
         // Smooth fade-in over 0.5 seconds
@@ -439,6 +422,11 @@ export default function EarthImpact({
           }
         }, 30);
       }
+    }
+
+    if (softAirTravelRef.current && t > 0.45) {
+      softAirTravelRef.current.pause();
+      softAirTravelRef.current.volume = 1;
     }
 
     prevTRef.current = t;
