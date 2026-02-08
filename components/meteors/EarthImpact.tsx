@@ -1,7 +1,7 @@
 'use client';
 
 import * as THREE from 'three';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { useFrame, ThreeEvent, useThree } from '@react-three/fiber';
 import { Html, Line, useGLTF } from '@react-three/drei';
 import { GLTF } from 'three-stdlib';
@@ -175,6 +175,39 @@ export default function EarthImpact({
   onShake
 }: Props) {
 
+  // Audio refs for Soft-Air-Travel, Explosion, and Fallout
+  // Create audio elements imperatively (outside React render to avoid Three.js context issues)
+  const softAirTravelRef = useRef<HTMLAudioElement | null>(null);
+  const softExplosionRef = useRef<HTMLAudioElement | null>(null);
+  const softFalloutRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize audio elements once
+  useEffect(() => {
+    if (!softAirTravelRef.current) {
+      const audio = new Audio('/audio/Soft-Air-Travel.wav');
+      audio.preload = 'auto';
+      softAirTravelRef.current = audio;
+    }
+    if (!softExplosionRef.current) {
+      const audio = new Audio('/audio/Soft-Explosion.mp3');
+      audio.preload = 'auto';
+      softExplosionRef.current = audio;
+    }
+    if (!softFalloutRef.current) {
+      const audio = new Audio('/audio/soft-medium-fallout.wav');
+      audio.preload = 'auto';
+      softFalloutRef.current = audio;
+    }
+  }, []);
+
+  // Track timeline progression to detect playback vs seeking
+  const prevTRef = useRef(0);
+  const soundTriggersRef = useRef({
+    softAirTravelStarted: false,
+    softExplosionTriggered: false,
+    softFalloutTriggered: false,
+  });
+
   const height = Math.max(3*damage.zb_breakup/EARTH_R_M, 0.001)
   const impactPos = useMemo(
     () => latLonToVec3(impact.lat, impact.lon, EARTH_R + height),
@@ -271,6 +304,104 @@ export default function EarthImpact({
   };
 
   const customMaterial = getAsteroidMaterial();
+
+  // Audio management: track t progression and trigger sounds
+  useEffect(() => {
+    const isPlaying = t > prevTRef.current; // t is increasing = playback, not user seeking
+    const prevT = prevTRef.current;
+
+    // Reset triggers when user seeks backward (t decreases while scene is playing)
+    if (t < prevT) {
+      soundTriggersRef.current = {
+        softAirTravelStarted: false,
+        softExplosionTriggered: false,
+        softFalloutTriggered: false,
+      };
+      // Stop all audio when seeking backward
+      if (softAirTravelRef.current) softAirTravelRef.current.pause();
+      if (softExplosionRef.current) softExplosionRef.current.pause();
+      if (softFalloutRef.current) softFalloutRef.current.pause();
+    }
+
+
+    // Soft-Air-Travel: Start when t crosses 0 and t < impactTime (before impact)
+    if (
+      isPlaying &&
+      t > 0 &&
+      t < impactTime &&
+      !soundTriggersRef.current.softAirTravelStarted &&
+      prevT < t
+    ) {
+      soundTriggersRef.current.softAirTravelStarted = true;
+      if (softAirTravelRef.current) {
+        softAirTravelRef.current.currentTime = 0;
+        softAirTravelRef.current.play().catch(() => {
+          // Silently catch audio play errors (user may not have interacted with page yet)
+        });
+      }
+    }
+
+    // Soft-Explosion: Trigger at t = 0.4 (impact time)
+    if (
+      isPlaying &&
+      t >= 0.4 &&
+      prevT < 0.4 &&
+      !soundTriggersRef.current.softExplosionTriggered
+    ) {
+      soundTriggersRef.current.softExplosionTriggered = true;
+      // Fade out air travel and start explosion
+      if (softAirTravelRef.current) {
+        softAirTravelRef.current.volume = 1;
+        const fadeInterval = setInterval(() => {
+          if (softAirTravelRef.current) {
+            softAirTravelRef.current.volume = Math.max(
+              0,
+              softAirTravelRef.current.volume - 0.2
+            );
+            if (softAirTravelRef.current.volume === 0) {
+              softAirTravelRef.current.pause();
+              clearInterval(fadeInterval);
+            }
+          }
+        }, 50);
+      }
+      // Play explosion
+      if (softExplosionRef.current) {
+        softExplosionRef.current.currentTime = 0;
+        softExplosionRef.current.volume = 1;
+        softExplosionRef.current.play().catch(() => {});
+      }
+    }
+
+    // Soft-Medium-Fallout: Trigger after t = 0.4
+    if (
+      isPlaying &&
+      t > 0.4 &&
+      prevT <= 0.4 &&
+      !soundTriggersRef.current.softFalloutTriggered
+    ) {
+      soundTriggersRef.current.softFalloutTriggered = true;
+      // Fade in fallout sound smoothly after explosion
+      if (softFalloutRef.current) {
+        softFalloutRef.current.currentTime = 0;
+        softFalloutRef.current.volume = 0;
+        softFalloutRef.current.play().catch(() => {});
+        // Smooth fade-in over 0.5 seconds
+        const startTime = Date.now();
+        const fadeDuration = 500;
+        const fadeInterval = setInterval(() => {
+          if (softFalloutRef.current) {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / fadeDuration, 1);
+            softFalloutRef.current.volume = progress * 1;
+            if (progress === 1) clearInterval(fadeInterval);
+          }
+        }, 30);
+      }
+    }
+
+    prevTRef.current = t;
+  }, [t, impactTime]);
 
   // Flight path
   const asteroidPos = useMemo(() => {
