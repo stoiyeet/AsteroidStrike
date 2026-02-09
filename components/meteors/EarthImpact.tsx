@@ -545,7 +545,7 @@ export default function EarthImpact({
     if (damage.E_J < 10e22 || damage.earth_effect === "destroyed") SHAKE_INTENSITY = 0
     else if (damage.E_J < 10e25) SHAKE_INTENSITY = 0.001 //arbitrary range for shakiness
     else if (damage.E_J < 10e30) SHAKE_INTENSITY = 0.003
-    else SHAKE_INTENSITY = 0.008
+    else SHAKE_INTENSITY = 0.005
 
 
     const inShakePeriod = t >= impactTime && t < impactTime + SHAKE_DURATION;
