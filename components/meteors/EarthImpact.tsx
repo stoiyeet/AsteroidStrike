@@ -260,15 +260,9 @@ export default function EarthImpact({
 
   // Handle muting/unmuting
   useEffect(() => {
-    if (muted) {
-      if (softAirTravelRef.current) softAirTravelRef.current.volume = 0;
-      if (softExplosionRef.current) softExplosionRef.current.volume = 0;
-      if (softFalloutRef.current) softFalloutRef.current.volume = 0;
-    } else {
-      if (softAirTravelRef.current) softAirTravelRef.current.volume = 1;
-      if (softExplosionRef.current) softExplosionRef.current.volume = 1;
-      if (softFalloutRef.current) softFalloutRef.current.volume = 1;
-    }
+    if (softAirTravelRef.current) softAirTravelRef.current.muted = muted;
+    if (softExplosionRef.current) softExplosionRef.current.muted = muted;
+    if (softFalloutRef.current) softFalloutRef.current.muted = muted;
   }, [muted]);
 
   // Track timeline progression to detect playback vs seeking
@@ -440,7 +434,7 @@ export default function EarthImpact({
       // Play explosion
       if (softExplosionRef.current) {
         softExplosionRef.current.currentTime = 0;
-        if (!muted) softExplosionRef.current.volume = 1;
+        softExplosionRef.current.muted = muted
         softExplosionRef.current.play().catch(() => {});
       }
     }
@@ -465,7 +459,7 @@ export default function EarthImpact({
           if (softFalloutRef.current) {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / fadeDuration, 1);
-            if (!muted) softFalloutRef.current.volume = progress * 1;
+            softFalloutRef.current.muted = muted
             if (progress === 1) clearInterval(fadeInterval);
           }
         }, 30);
@@ -474,7 +468,7 @@ export default function EarthImpact({
 
     if (softAirTravelRef.current && t > 0.42) {
       softAirTravelRef.current.pause();
-      if (!muted) softAirTravelRef.current.volume = 1;
+      softAirTravelRef.current.muted = muted
     }
 
     prevTRef.current = t;
