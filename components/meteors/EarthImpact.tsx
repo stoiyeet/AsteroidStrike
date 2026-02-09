@@ -440,7 +440,7 @@ export default function EarthImpact({
       // Play explosion
       if (softExplosionRef.current) {
         softExplosionRef.current.currentTime = 0;
-        softExplosionRef.current.volume = 1;
+        if (!muted) softExplosionRef.current.volume = 1;
         softExplosionRef.current.play().catch(() => {});
       }
     }
@@ -465,7 +465,7 @@ export default function EarthImpact({
           if (softFalloutRef.current) {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / fadeDuration, 1);
-            softFalloutRef.current.volume = progress * 1;
+            if (!muted) softFalloutRef.current.volume = progress * 1;
             if (progress === 1) clearInterval(fadeInterval);
           }
         }, 30);
@@ -474,7 +474,7 @@ export default function EarthImpact({
 
     if (softAirTravelRef.current && t > 0.42) {
       softAirTravelRef.current.pause();
-      softAirTravelRef.current.volume = 1;
+      if (!muted) softAirTravelRef.current.volume = 1;
     }
 
     prevTRef.current = t;
