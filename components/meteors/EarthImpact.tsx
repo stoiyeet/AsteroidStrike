@@ -460,6 +460,7 @@ export default function EarthImpact({
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / fadeDuration, 1);
             softFalloutRef.current.muted = muted
+            if (!muted) softFalloutRef.current.volume = progress
             if (progress === 1) clearInterval(fadeInterval);
           }
         }, 30);
