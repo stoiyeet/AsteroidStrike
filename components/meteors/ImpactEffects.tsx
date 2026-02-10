@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import styles from './ImpactEffects.module.css';
 
@@ -99,8 +99,16 @@ interface ImpactEffectsProps {
   }
 }
 
+
+
 export default function ImpactEffects({ effects, mortality, impactLat, impactLon, name, TsunamiResults }: ImpactEffectsProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(true);
+  useEffect(()=>{
+    if(window.innerWidth > 768){
+      setIsCollapsed(false)
+      
+    }
+  })
   const [activeTab, setActiveTab] = React.useState('overview');
   
   // Get descriptive text for earth effect
