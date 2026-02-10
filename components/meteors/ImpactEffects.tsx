@@ -100,7 +100,7 @@ interface ImpactEffectsProps {
 }
 
 export default function ImpactEffects({ effects, mortality, impactLat, impactLon, name, TsunamiResults }: ImpactEffectsProps) {
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const [isCollapsed, setIsCollapsed] = React.useState(true);
   const [activeTab, setActiveTab] = React.useState('overview');
   
   // Get descriptive text for earth effect
