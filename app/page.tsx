@@ -164,7 +164,7 @@ export default function Home(): React.ReactElement {
           <span className="opacity-80">Lead Developer:</span>
           <a href="https://www.linkedin.com/in/mark-i-kogan/" target="_blank" rel="noopener noreferrer" className="text-gray-200 hover:text-cyan-300 transition-colors">Mark Kogan</a>
           <span className="text-gray-600">•</span>
-          <span className="opacity-80">Feature Developer:</span>
+          <span className="opacity-80">Product Manager:</span>
           <a href="https://www.linkedin.com/in/omid-latifi-2bb380215/" target="_blank" rel="noopener noreferrer" className="text-gray-200 hover:text-cyan-300 transition-colors">Omid Latifi</a>
         </div>
       </div>
