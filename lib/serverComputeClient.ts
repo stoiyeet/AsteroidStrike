@@ -2,6 +2,8 @@
  * Client-side utility for calling the server-side physics engine API
  */
 
+import { useEffect } from "react";
+
 export interface MeteorData {
   name: string;
   mass: number;

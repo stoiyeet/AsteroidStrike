@@ -573,6 +573,27 @@ export async function estimateAsteroidDeaths(
     };
 }
 
+export async function isOverWater(
+    lat: number,
+    lon: number
+): Promise<boolean> {
+    try {
+        const res = await fetch(`/api/overWater?lat=${lat}&lon=${lon}`);
+
+        if (!res.ok) {
+            return false;
+        }
+
+        const data = await res.json();
+        return Boolean(data.overWater);
+
+    } catch {
+        // default to false if failed
+        return false;
+    }
+}
+
+
 export function tsunamiInfo(is_water: boolean, Dtc: number | null, airburst: boolean) {
     if (!is_water || airburst || !Dtc) {
         return {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { computeImpactEffects, Damage_Inputs, Damage_Results, oceanWaterCrater } from '@/lib/serverPhysicsEngine';
+import { computeImpactEffects, Damage_Inputs, Damage_Results,isOverWater, oceanWaterCrater } from '@/lib/serverPhysicsEngine';
 
 interface ComputeImpactRequest {
   meteorData: {
@@ -62,6 +62,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComputeIm
       }
     }
 
+    const is_water = await isOverWater(impactLocation.latitude, impactLocation.longitude)
+
     // Create damage inputs
     const damageInputs: Damage_Inputs = {
       mass: meteorData.mass,
@@ -69,7 +71,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComputeIm
       rho_i: meteorData.density,
       v0: meteorData.speed,
       theta_deg: meteorData.angle,
-      is_water: false, // Default, can be determined by location
+      is_water: is_water,
       latitude: impactLocation.latitude,
       longitude: impactLocation.longitude,
     };
