@@ -88,8 +88,9 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
 
   const typedName = formatAsteroidName(meteor.name);
   const damage = useMemo(() => computeImpactEffects(inputs), [inputs]);
-  const oceanWaterHit = oceanWaterCrater(meteor.diameter, meteor.density, meteor.speed, meteor.angle * Math.PI / 180.0 )
-  const tsunamiResults: TsunamiResults = useMemo(() => tsunamiInfo(inputs.is_water, oceanWaterHit, damage.airburst), [overWater, impactLat,impactLon])
+  const Crater_Results = damage.Crater_Results
+  const oceanWaterHit = oceanWaterCrater(inputs)
+  const tsunamiResults: TsunamiResults = useMemo(() => tsunamiInfo(inputs.is_water, oceanWaterHit, Crater_Results.airburst), [overWater, impactLat,impactLon])
 
   // Debounced mortality calculation with AbortController
   const calculateMortality = useCallback(async (
@@ -102,8 +103,13 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
       abortControllerRef.current.abort();
     }
 
+    const Crater_Results = damageData.Crater_Results
+    const Thermal_Effects = damageData.Thermal_Effects
+    const Seismic_Effects = damageData.Seismic_Results
+    const Strike_Overview = damageData.Strike_Overview
+
     // Early return for global catastrophes - no API call needed
-    if (damageData.earth_effect === "destroyed" || damageData.earth_effect === "strongly_disturbed") {
+    if (Crater_Results.Earth_Effect === "destroyed" || Crater_Results.Earth_Effect === "strongly_disturbed") {
       setMortality({ deathCount: 8_250_000_000, injuryCount: 0 });
       setMortalityLoading(false);
       return;
@@ -119,14 +125,14 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
       const result = await estimateAsteroidDeaths(
         lat, 
         lon, 
-        damageData.r_clothing_m, 
-        damageData.Dtc_m || 0, 
-        damageData.r_2nd_burn_m, 
-        damageData.earth_effect, 
-        damageData.radius_M_ge_7_5_m || 0,
+        Thermal_Effects.Clothes_Burn_Radius, 
+        Crater_Results.Transient_Diameter || 0, 
+        Thermal_Effects.Second_Degree_Burn_Radius, 
+        Crater_Results.Earth_Effect, 
+      Seismic_Effects.Radius_M_ge_7_5 || 0,
         meteor.diameter,
-        damage.airburst,
-        damage.zb_breakup,
+        Crater_Results.airburst,
+        Strike_Overview.Airburst_Altitude,
         controller.signal
       );
       

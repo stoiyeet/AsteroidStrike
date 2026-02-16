@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import Link from 'next/link';
 import styles from './ImpactEffects.module.css';
+import { Damage_Results } from '@/lib/impactTypes';
+import { strict } from 'assert';
 
 // Helper function to format distances
 function formatDistance(meters: number | null): string {
@@ -55,34 +57,7 @@ function formatSpeed(speed: number | null): string {
 }
 
 interface ImpactEffectsProps {
-  effects: {
-    E_J: number;
-    E_Mt: number;
-    Tre_years: number;
-    m_kg: number;
-    zb_breakup: number;
-    airburst: boolean;
-    v_impact_for_crater: number;
-    Rf_m: number | null;
-    r_clothing_m: number;
-    r_2nd_burn_m: number;
-    r_3rd_burn_m: number;
-    Dtc_m: number | null;
-    dtc_m: number | null;
-    Dfr_m: number | null;
-    dfr_m: number | null;
-    Vtc_km3: number | null;
-    Vtc_over_Ve: number | null;
-    earth_effect: 'destroyed' | 'strongly_disturbed' | 'negligible_disturbed';
-    Magnitude: number | null;
-    radius_M_ge_7_5_m: number | null;
-    earthquake_description?: string | undefined;
-    airblast_radius_building_collapse_m: number | null;
-    airblast_radius_glass_shatter_m: number | null;
-    overpressure_at_50_km: number | null;
-    wind_speed_at_50_km: number | null;
-    ionization_radius: number;
-  };
+  effects: Damage_Results;
   mortality: {
     deathCount: number | undefined;
     injuryCount: number | undefined;
@@ -110,19 +85,25 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
     }
   })
   const [activeTab, setActiveTab] = React.useState('overview');
+
+  const Strike_Overview = effects.Strike_Overview
+  const Crater_Results = effects.Crater_Results
+  const Thermal_Effects = effects.Thermal_Effects
+  const Waveblast_Results = effects.Waveblast_Results
+  const Seismic_Results = effects.Seismic_Results
   
   // Get descriptive text for earth effect
   const earthEffectText = {
     destroyed: 'Earth Forms a new asteroid belt orbiting the sun',
     strongly_disturbed: 'Earth\'s orbit is shifted substantially.',
     negligible_disturbed: 'Earth Loses Negligible Mass'
-  }[effects.earth_effect];
+  }[Crater_Results.Earth_Effect];
 
   const earthEffectClass = {
     destroyed: styles.destroyed,
     strongly_disturbed: styles.disturbed,
     negligible_disturbed: styles.negligible
-  }[effects.earth_effect];
+  }[Crater_Results.Earth_Effect];
 
   return (
     <div className={`${styles.effectsPanel} ${isCollapsed ? styles.collapsed : ''}`}>
@@ -191,21 +172,21 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
             </div>
             <div className={styles.dataRow}>
               <span className={styles.label}>Energy</span>
-              <span className={styles.value}>{formatEnergy(effects.E_J)}</span>
+              <span className={styles.value}>{formatEnergy(Strike_Overview.Impact_Energy)}</span>
             </div>
             <div className={styles.dataRow}>
               <span className={styles.label}>Recurrence Period</span>
-              <span className={styles.value}>{formatYears(effects.Tre_years)}</span>
+              <span className={styles.value}>{formatYears(Strike_Overview.Recurrence_Period)}</span>
             </div>
-            <div className={styles.impactType + ' ' + (effects.airburst ? styles.airburst : styles.surface)}>
-              {effects.airburst ? '☁️ Airburst' : '🌋 Surface Impact'}
-              {effects.airburst && (
-                <span> at {formatDistance(effects.zb_breakup)} altitude</span>
+            <div className={styles.impactType + ' ' + (Crater_Results.airburst ? styles.airburst : styles.surface)}>
+              {Crater_Results.airburst ? '☁️ Airburst' : '🌋 Surface Impact'}
+              {Crater_Results.airburst && (
+                <span> at {formatDistance(Strike_Overview.Airburst_Altitude)} altitude</span>
               )}
             </div>
             <div className={styles.dataRow}>
               <span className={styles.label}>Impact Velocity</span>
-              <span className={styles.value}>{(effects.v_impact_for_crater/1000).toFixed(1)} km/s</span>
+              <span className={styles.value}>{(Strike_Overview.Impact_Velocity/1000).toFixed(1)} km/s</span>
             </div>
             <Link href="/meteors/formulas?category=overview" className={styles.scienceButton}>
               🧪 Check the Science
@@ -218,35 +199,35 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
             <div className={styles.sectionInfo}>
               Thermal effects are caused by the intense heat generated during impact or airburst.
             </div>
-            {effects.Rf_m && (
+            {Thermal_Effects.Fireball_Radius && (
               <div className={styles.dataRow}>
                 <span className={styles.label}>Fireball Radius</span>
-                <span className={styles.value}>{formatDistance(effects.Rf_m)}</span>
+                <span className={styles.value}>{formatDistance(Thermal_Effects.Fireball_Radius)}</span>
               </div>
             )}
             <div className={styles.distanceGrid}>
-              {effects.r_3rd_burn_m && (
+              {Thermal_Effects.Third_Degree_Burn_Radius && (
                 <div className={styles.distanceCard}>
-                  <div className={styles.distanceValue}>{formatDistance(effects.r_3rd_burn_m)}</div>
+                  <div className={styles.distanceValue}>{formatDistance(Thermal_Effects.Third_Degree_Burn_Radius)}</div>
                   <div className={styles.distanceLabel}>Third Degree Burns</div>
                   <div className={styles.distanceDesc}>100% thickness burns, requiring immediate medical attention</div>
                 </div>
               )}
-              {effects.r_2nd_burn_m && (
+              {Thermal_Effects.Second_Degree_Burn_Radius && (
                 <div className={styles.distanceCard}>
-                  <div className={styles.distanceValue}>{formatDistance(effects.r_2nd_burn_m)}</div>
+                  <div className={styles.distanceValue}>{formatDistance(Thermal_Effects.Second_Degree_Burn_Radius)}</div>
                   <div className={styles.distanceLabel}>Second Degree Burns</div>
                   <div className={styles.distanceDesc}>Partial thickness burns with blistering</div>
                 </div>
               )}
             </div>
-            {effects.r_clothing_m && (
+            {Thermal_Effects.Clothes_Burn_Radius && (
               <div className={styles.dataRow}>
                 <span className={styles.label}>Clothing Ignition</span>
-                <span className={styles.value}>{formatDistance(effects.r_clothing_m)}</span>
+                <span className={styles.value}>{formatDistance(Thermal_Effects.Clothes_Burn_Radius)}</span>
               </div>
             )}
-            {effects.Rf_m && effects.r_2nd_burn_m >= 1500000 && (
+            {Thermal_Effects.Fireball_Radius && Thermal_Effects.Second_Degree_Burn_Radius >= 1500000 && (
               <div className={styles.dataRow}>
                 <span className={styles.label} style={{ color: '#d34646ff' }}>Due to the curvature of the earth, the heat effects cannot exceed a max of about 1500km in radius at sea level*</span>
               </div>
@@ -262,42 +243,42 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
             <div className={styles.sectionInfo}>
               The wave blast creates a sudden pressure increase that can damage structures and cause injuries.
             </div>
-            {effects.wind_speed_at_50_km && effects.wind_speed_at_50_km < 5000 && (
+            {Waveblast_Results.Wind_Speed_50_km && Waveblast_Results.Wind_Speed_50_km < 5000 && (
                 <div className={styles.dataRow}>
                     <span className={styles.label}>Overpressure At 50km away</span>
-                    <span className={styles.value}>{formatOverPressure(effects.overpressure_at_50_km)}</span>
+                    <span className={styles.value}>{formatOverPressure(Waveblast_Results.Overpressure_50_km)}</span>
               </div>
              )}
 
-            {effects.wind_speed_at_50_km && effects.wind_speed_at_50_km < 5000 && (
+            {Waveblast_Results.Wind_Speed_50_km && Waveblast_Results.Wind_Speed_50_km < 5000 && (
               <div className={styles.dataRow}>
                 <span className={styles.label}>Top Wind Speed at 50km away</span>
-                <span className={styles.value}>{formatSpeed(effects.wind_speed_at_50_km)}</span>
+                <span className={styles.value}>{formatSpeed(Waveblast_Results.Wind_Speed_50_km)}</span>
               </div>
             )}
 
-            {effects.wind_speed_at_50_km && effects.wind_speed_at_50_km > 5000 && (
+            {Waveblast_Results.Wind_Speed_50_km && Waveblast_Results.Wind_Speed_50_km > 5000 && (
               <div className={styles.dataRow}>
                 <span className={styles.label}>Approx distance at which air is shock-heated into plasma</span>
-                <span className={styles.value}>{formatDistance(effects.ionization_radius)}</span>
+                <span className={styles.value}>{formatDistance(Waveblast_Results.Ionization_Radius)}</span>
               </div>
             )}
 
    
             <div className={styles.distanceGrid}>
-              {effects.airblast_radius_building_collapse_m && (
+              {Waveblast_Results.Radius_Building_Collapse_m && (
                 <div className={styles.distanceCard}>
                   <div className={styles.distanceValue}>
-                    {formatDistance(effects.airblast_radius_building_collapse_m)}
+                    {formatDistance(Waveblast_Results.Radius_Building_Collapse_m)}
                   </div>
                   <div className={styles.distanceLabel}>Building Collapse</div>
                   <div className={styles.distanceDesc}>Complete destruction of steel-reinforced skyscrapers</div>
                 </div>
               )}
-              {effects.airblast_radius_glass_shatter_m && (
+              {Waveblast_Results.Radius_Glass_Shatter_m && (
                 <div className={styles.distanceCard}>
                   <div className={styles.distanceValue}>
-                    {formatDistance(effects.airblast_radius_glass_shatter_m)}
+                    {formatDistance(Waveblast_Results.Radius_Glass_Shatter_m)}
                   </div>
                   <div className={styles.distanceLabel}>Window Breakage</div>
                   <div className={styles.distanceDesc}>Glass windows shatter due to pressure wave</div>
@@ -306,7 +287,7 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
               )}
             </div>
             <div className={styles.sectionInfo}>
-                {effects.airblast_radius_building_collapse_m && effects.airblast_radius_building_collapse_m > 1000000 && (
+                {Waveblast_Results.Radius_Building_Collapse_m && Waveblast_Results.Radius_Building_Collapse_m > 1000000 && (
                 <span style={{ color: "#d34646ff" }}>The proposed meteor is too large for conventional wind blast calculations.Though the theoretical ranges are provided, with impacts of this size, global catastrophe is imminent and metrics like &quot;flattened buildings&quot; become irrelevant and calculations break</span>
                 )
                 }
@@ -322,52 +303,52 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
             <div className={styles.sectionInfo}>
               Crater formation occurs in two phases: initial transient crater followed by final crater.
             </div>
-            {effects.Dtc_m && TsunamiResults.rim_wave_height == 0 && (
+            {Crater_Results.Transient_Diameter && TsunamiResults.rim_wave_height == 0 && (
               <>
                 <div className={styles.dataRow}>
                   <span className={styles.label}>Transient Diameter</span>
-                  <span className={styles.value}>{formatDistance(effects.Dtc_m)}</span>
+                  <span className={styles.value}>{formatDistance(Crater_Results.Transient_Diameter)}</span>
                 </div>
-                {effects.dtc_m && (
+                {Crater_Results.Transient_Depth && (
                   <div className={styles.dataRow}>
                     <span className={styles.label}>Transient Depth</span>
-                    <span className={styles.value}>{formatDistance(effects.dtc_m)}</span>
+                    <span className={styles.value}>{formatDistance(Crater_Results.Transient_Depth)}</span>
                   </div>
                 )}
               </>
             )}
-            {effects.Dtc_m && TsunamiResults.rim_wave_height > 0 && (
+            {Crater_Results.Transient_Diameter && TsunamiResults.rim_wave_height > 0 && (
               <>
                 <div className={styles.dataRow}>
                   <span className={styles.label}>Ocean Floor Crater</span>
-                  <span className={styles.value}>{formatDistance(effects.Dtc_m)}</span>
+                  <span className={styles.value}>{formatDistance(Crater_Results.Transient_Diameter)}</span>
                 </div>
               </>
             )}
-            {effects.Dfr_m && TsunamiResults.rim_wave_height == 0 && (
+            {Crater_Results.Final_Diameter && TsunamiResults.rim_wave_height == 0 && (
               <>
                 <div className={styles.dataRow}>
                   <span className={styles.label}>Final Diameter</span>
-                  <span className={styles.value}>{formatDistance(effects.Dfr_m)}</span>
+                  <span className={styles.value}>{formatDistance(Crater_Results.Final_Diameter)}</span>
                 </div>
-                {effects.dfr_m && (
+                {Crater_Results.Final_Depth && (
                   <div className={styles.dataRow}>
                     <span className={styles.label}>Final Depth</span>
-                    <span className={styles.value}>{formatDistance(effects.dfr_m)}</span>
+                    <span className={styles.value}>{formatDistance(Crater_Results.Final_Depth)}</span>
                   </div>
                 )}
               </>
             )}
-            {effects.Vtc_km3 && (
+            {Crater_Results.Crater_Volume && (
               <div className={styles.dataRow}>
                 <span className={styles.label}>Excavated Volume</span>
-                <span className={styles.value}>{effects.Vtc_km3.toFixed(2)} km³</span>
+                <span className={styles.value}>{Crater_Results.Crater_Volume.toFixed(2)} km³</span>
               </div>
             )}
-            {effects.Vtc_over_Ve && (
+            {Crater_Results.Earth_Volume_Ratio && (
               <div className={styles.dataRow}>
                 <span className={styles.label}>Earth Volume Ratio</span>
-                <span className={styles.value}>{(effects.Vtc_over_Ve * 100).toFixed(6)}%</span>
+                <span className={styles.value}>{(Crater_Results.Earth_Volume_Ratio * 100).toFixed(6)}%</span>
               </div>
             )}
             <Link href="/meteors/formulas?category=crater" className={styles.scienceButton}>
@@ -381,22 +362,22 @@ export default function ImpactEffects({ effects, mortality, impactLat, impactLon
             <div className={styles.sectionInfo}>
               The impact generates seismic waves which create an earthquake.
             </div>
-            {effects.Magnitude && (
+            {Seismic_Results.Magnitude && (
               <div className={styles.dataRow}>
                 <span className={styles.label}>Immediate Richter Magnitude</span>
-                <span className={styles.value}>{effects.Magnitude.toFixed(1)}</span>
+                <span className={styles.value}>{Seismic_Results.Magnitude.toFixed(1)}</span>
               </div>
             )}
-            {effects.radius_M_ge_7_5_m && (
+            {Seismic_Results.Radius_M_ge_7_5 && (
               <div className={styles.dataRow}>
                 <span className={styles.label}>Range for widespread building collapse</span>
-                <span className={styles.value}>{formatDistance(effects.radius_M_ge_7_5_m)}</span>
+                <span className={styles.value}>{formatDistance(Seismic_Results.Radius_M_ge_7_5)}</span>
               </div>
             )}
-            {effects.earthquake_description && (
+            {Seismic_Results.Description && (
               <div className={styles.dataRow}>
                 <span className={styles.label}>Mega-Earthquake impacts</span>
-                <span className={styles.description_value}>{effects.earthquake_description}</span>
+                <span className={styles.description_value}>{Seismic_Results.Description}</span>
               </div>
             )}
             <Link href="/meteors/formulas?category=seismic" className={styles.scienceButton}>

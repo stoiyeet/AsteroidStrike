@@ -1,6 +1,7 @@
 // impact_effects.ts
 // Functions extracted from study at https://impact.ese.ic.ac.uk/ImpactEarth/ImpactEffects/effects.pdf
 import { fromUrl, GeoTIFF, GeoTIFFImage } from "geotiff";
+import { Damage_Results, Strike_Overview, Thermal_Effects, Crater_Results, Seismic_Results, Waveblast_Results, Earth_Effect } from "./impactTypes";
 
 const EARTH_R_M = 6371000;
 export type Damage_Inputs = {
@@ -16,35 +17,6 @@ export type Damage_Inputs = {
     H?: number; // scale height (m)
     latitude?: number; // for population check
     longitude?: number; // 
-};
-
-export type Damage_Results = {
-    E_J: number;
-    E_Mt: number;
-    Tre_years: number;
-    m_kg: number;
-    zb_breakup: number; // m
-    airburst: boolean;
-    v_impact_for_crater: number;
-    Rf_m: number | null;
-    r_clothing_m: number;
-    r_2nd_burn_m: number;
-    r_3rd_burn_m: number;
-    Dtc_m: number | null;
-    dtc_m: number | null;
-    Dfr_m: number | null;
-    dfr_m: number | null;
-    Vtc_km3: number | null;
-    Vtc_over_Ve: number | null;
-    earth_effect: 'destroyed' | 'strongly_disturbed' | 'negligible_disturbed';
-    Magnitude: number | null;
-    radius_M_ge_7_5_m: number | null;
-    earthquake_description: string | undefined;
-    airblast_radius_building_collapse_m: number | null; // p=42600 Pa
-    airblast_radius_glass_shatter_m: number | null; // p=6900 Pa
-    overpressure_at_50_km: number | null;
-    wind_speed_at_50_km: number | null;
-    ionization_radius: number;
 };
 
 // Constants
@@ -79,7 +51,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 export function energyFromDiameter(m: number, v0: number) {
     const E_J = 0.5 * m * v0 * v0;
     const E_Mt = E_J / MT_TO_J;
-    return { m, E_J, E_Mt };
+    return { E_J, E_Mt };
 }
 
 // intact surface velocity from drag eq (eq.8* simplified)
@@ -185,11 +157,16 @@ export function transientCrater(L0: number, rho_i: number, v_i: number, theta_ra
 }
 
 
-export function oceanWaterCrater(L0: number, rho_i: number, v_i: number, theta_rad: number) {
+export function oceanWaterCrater(damageInputs: Damage_Inputs) {
+    const diameter = damageInputs.L0
+    const meteor_density = damageInputs.rho_i
+    const impact_velocity = damageInputs.v0
+    const angle = damageInputs.theta_deg * Math.PI / 180
+
     const coeff = 1.365
     const rho_t = 1000 // ocean water density
-    const term = Math.pow(rho_i / rho_t, 1 / 3);
-    const Dtc = coeff * term * Math.pow(L0, 0.78) * Math.pow(v_i, 0.44) * Math.pow(G, -0.22) * Math.pow(Math.sin(theta_rad), 1 / 3);
+    const term = Math.pow(meteor_density / rho_t, 1 / 3);
+    const Dtc = coeff * term * Math.pow(diameter, 0.78) * Math.pow(impact_velocity, 0.44) * Math.pow(G, -0.22) * Math.pow(Math.sin(angle), 1 / 3);
     return Dtc
 }
 
@@ -197,13 +174,13 @@ export function oceanWaterCrater(L0: number, rho_i: number, v_i: number, theta_r
 // 9) transient crater volume and Earth effect
 export function craterVolumeAndEffect(Dtc_m: number) {
     if (Dtc_m >= EARTH_DIAMETER) {
-        return { Vtc_km3: VE_KM3, ratio: 1, effect: 'destroyed' as Damage_Results['earth_effect'] };
+        return { Vtc_km3: VE_KM3, ratio: 1, effect: 'destroyed' as Earth_Effect };
     }
     // Vtc = pi * Dtc^3 / (16*sqrt(2))  (m^3)
     const Vtc_m3 = Math.PI * Math.pow(Dtc_m, 3) / (16 * Math.sqrt(2));
     const Vtc_km3 = Vtc_m3 / 1e9;
     const ratio = Math.min(Vtc_km3 / VE_KM3, 1);
-    let effect: Damage_Results['earth_effect'] = 'negligible_disturbed';
+    let effect: Earth_Effect = 'negligible_disturbed';
     if (ratio > 0.5) effect = 'destroyed';
     else if (ratio >= 0.1) effect = 'strongly_disturbed';
     return { Vtc_km3, ratio, effect };
@@ -463,7 +440,7 @@ export async function estimateAsteroidDeaths(
     r_clothing_m: number,
     Dtc_m: number,
     r_2nd_burn_m: number,
-    earth_effect: string,
+    earth_effect: Earth_Effect,
     BadEarthquake: number,
     diameter_m: number, // New parameter: asteroid mass
     isAirburst: boolean, // New parameter: whether it's an airburst
@@ -642,87 +619,135 @@ function peakWindSpeed(overpressure_Pa: number, P_0 = 1e5, c_0 = 330): number {
     return (5 * overpressure_Pa / (7 * P_0)) * (c_0 / (Math.sqrt(1 + (6 * overpressure_Pa) / (7 * P_0))));
 }
 
-export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
-    const { L0, rho_i, v0, theta_deg, is_water, mass } = inputs;
-    const K = inputs.K ?? DEFAULTS.K;
+function computeStrikeOverview(inputs: Damage_Inputs): Strike_Overview {
+    const { L0, rho_i, v0, theta_deg, mass } = inputs;
     const Cd = inputs.Cd ?? DEFAULTS.Cd;
     const rho0 = inputs.rho0 ?? DEFAULTS.rho0;
     const H = DEFAULTS.H;
 
     const theta_rad = (theta_deg * Math.PI) / 180.0;
-    const { m, E_J, E_Mt } = energyFromDiameter(mass, v0);
+    const { E_J, E_Mt } = energyFromDiameter(mass, v0);
     const Tre_years = 109 * Math.pow(Math.max(E_Mt, 1e-12), 0.78);
 
-    // intact surface velocity
+    // Intact surface velocity
     const v_surface_intact = intactSurfaceVelocity(v0, L0, rho_i, theta_rad, Cd, rho0, H);
 
-    // breakup and airburst
-    const { If, z_star, breakup } = breakupIfAndZstar(L0, rho_i, v0, theta_rad, Cd, H, rho0);
+    // Breakup and airburst
+    const { z_star, breakup } = breakupIfAndZstar(L0, rho_i, v0, theta_rad, Cd, H, rho0);
     const zb = breakup ? pancakeAirburstAltitude(L0, rho_i, theta_rad, z_star) : 0;
-    const airburst = breakup && zb > 0;
 
-    // choose impact velocity for cratering
-    const v_i = v_surface_intact; // assume intact terminal value if not broken to ground
+    return {
+        Impact_Energy: E_J,
+        Impact_Energy_Megatons_TNT: E_Mt,
+        Recurrence_Period: Tre_years,
+        Impact_Velocity: v_surface_intact,
+        Breakup_Altitude: z_star,
+        Airburst_Altitude: zb,
+    };
+}
 
-    // fireball and burns
-    const burns = burnRadii(E_Mt, E_J, K);
-    const Rf_m = fireballRadius(E_J);
+function computeCraterResults(inputs: Damage_Inputs, overview: Strike_Overview): Crater_Results {
+    const { L0, rho_i, is_water } = inputs;
+    const { Airburst_Altitude, Impact_Velocity, Breakup_Altitude } = overview;
 
-    // crater and seismic only if not airburst
-    let Dtc: number | null = null, dtc: number | null = null, Dfr: number | null = null, dfr: number | null = null;
-    let Vtc_km3: number | null = null, ratio: number | null = null;
-    let effect: Damage_Results['earth_effect'] = 'negligible_disturbed';
-    if (!airburst) {
-        const crater = transientCrater(L0, rho_i, v_i, theta_rad, is_water);
-        Dtc = crater.Dtc; dtc = crater.dtc; Dfr = crater.Dfr; dfr = crater.dfr;
-        const vol = craterVolumeAndEffect(Dtc);
-        Vtc_km3 = Math.min(vol.Vtc_km3, VE_KM3);
-        ratio = vol.ratio; effect = vol.effect;
+    // Check for airburst
+    const breakup = Breakup_Altitude > 0; // Assuming z_star > 0 implies breakup logic was true
+    const airburst = breakup && Airburst_Altitude > 0;
+
+    if (airburst) {
+        return {
+            Transient_Diameter: null,
+            Transient_Depth: null,
+            Final_Diameter: null,
+            Final_Depth: null,
+            Crater_Volume: null,
+            Earth_Volume_Ratio: null,
+            Earth_Effect: "negligible_disturbed",
+            airburst: airburst
+        };
     }
 
-    // seismic
-    let Magnitude: number | null = null, radius_km: number | null = null, radius_m: number | null = null, earthquake_description: string | undefined;
-    if (!airburst) {
-        const seismic = seismicMagnitudeAndRadius(E_J);
-        Magnitude = seismic.M; radius_km = seismic.radius_km; radius_m = seismic.radius_m; earthquake_description = seismic.description;
-    }
+    // Crater calculation
+    const theta_rad = (inputs.theta_deg * Math.PI) / 180.0;
+    const crater = transientCrater(L0, rho_i, Impact_Velocity, theta_rad, is_water);
+    const vol = craterVolumeAndEffect(crater.Dtc);
+    const Vtc_km3 = Math.min(vol.Vtc_km3, VE_KM3);
 
-    // airblast radii for thresholds
-    const r_building = findRadiusForOverpressure(273000, E_Mt, zb, Rf_m);
-    const r_glass = findRadiusForOverpressure(6900, E_Mt, zb, Rf_m);
-    const overpressureAt50_km = peakOverpressureAtR(50000, E_Mt, zb);
-    const windspeedAt50_km = peakWindSpeed(overpressureAt50_km)
-    const r_ionization = findRadiusForOverpressure(75750000, E_Mt, zb, 50000);
+    return {
+        Transient_Diameter: crater.Dtc,
+        Transient_Depth: crater.dtc,
+        Final_Diameter: crater.Dfr,
+        Final_Depth: crater.dfr,
+        Crater_Volume: Vtc_km3,
+        Earth_Volume_Ratio: vol.ratio,
+        Earth_Effect: vol.effect,
+        airburst: airburst
+    };
+}
 
+export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
+    const K = inputs.K ?? DEFAULTS.K;
 
-    const results: Damage_Results = {
-        E_J,
-        E_Mt,
-        Tre_years,
-        m_kg: m,
-        zb_breakup: zb,
-        airburst,
-        v_impact_for_crater: v_i,
-        Rf_m,
-        r_clothing_m: burns.clothing,
-        r_2nd_burn_m: burns.second,
-        r_3rd_burn_m: burns.third,
-        Dtc_m: Dtc,
-        dtc_m: dtc,
-        Dfr_m: Dfr,
-        dfr_m: dfr,
-        Vtc_km3,
-        Vtc_over_Ve: ratio,
-        earth_effect: effect,
-        Magnitude,
-        radius_M_ge_7_5_m: radius_m,
-        earthquake_description: earthquake_description,
-        airblast_radius_building_collapse_m: r_building,
-        airblast_radius_glass_shatter_m: r_glass,
-        overpressure_at_50_km: overpressureAt50_km,
-        wind_speed_at_50_km: windspeedAt50_km,
-        ionization_radius: r_ionization
+    // 1. Calculate Strike Overview
+    const strikeOverview = computeStrikeOverview(inputs);
+    const { Impact_Energy, Impact_Energy_Megatons_TNT, Airburst_Altitude, Breakup_Altitude } = strikeOverview;
+
+    // Determine if airburst occurred for logic checks
+    const breakup = Breakup_Altitude > 0;
+    const airburst = breakup && Airburst_Altitude > 0;
+
+    // 2. Thermal Effects
+    const burns = burnRadii(Impact_Energy_Megatons_TNT, Impact_Energy, K);
+    const Rf_m = fireballRadius(Impact_Energy);
+
+    const thermalEffects: Thermal_Effects = {
+        Fireball_Radius: Rf_m,
+        Clothes_Burn_Radius: burns.clothing,
+        Second_Degree_Burn_Radius: burns.second,
+        Third_Degree_Burn_Radius: burns.third
     };
 
-    return results;
+    // 3. Crater Results
+    const craterResults = computeCraterResults(inputs, strikeOverview);
+
+    // 4. Seismic Results
+    let seismicResults: Seismic_Results;
+    if (!airburst) {
+        const seismic = seismicMagnitudeAndRadius(Impact_Energy);
+        seismicResults = {
+            Magnitude: seismic.M,
+            Radius_M_ge_7_5: seismic.radius_m,
+            Description: seismic.description,
+        };
+    } else {
+        seismicResults = {
+            Magnitude: null,
+            Radius_M_ge_7_5: null,
+            Description: undefined,
+        };
+    }
+
+    // 5. Waveblast (Airblast) Results
+    const r_building = findRadiusForOverpressure(273000, Impact_Energy_Megatons_TNT, Airburst_Altitude, Rf_m);
+    const r_glass = findRadiusForOverpressure(6900, Impact_Energy_Megatons_TNT, Airburst_Altitude, Rf_m);
+    const overpressureAt50_km = peakOverpressureAtR(50000, Impact_Energy_Megatons_TNT, Airburst_Altitude);
+    const windspeedAt50_km = peakWindSpeed(overpressureAt50_km);
+    const r_ionization = findRadiusForOverpressure(75750000, Impact_Energy_Megatons_TNT, Airburst_Altitude, 50000);
+
+    const waveblastResults: Waveblast_Results = {
+        Radius_Building_Collapse_m: r_building,
+        Radius_Glass_Shatter_m: r_glass,
+        Overpressure_50_km: overpressureAt50_km,
+        Wind_Speed_50_km: windspeedAt50_km,
+        Ionization_Radius: r_ionization
+    };
+
+    // 6. Return Aggregated Results
+    return {
+        Strike_Overview: strikeOverview,
+        Thermal_Effects: thermalEffects,
+        Crater_Results: craterResults,
+        Seismic_Results: seismicResults,
+        Waveblast_Results: waveblastResults
+    };
 }

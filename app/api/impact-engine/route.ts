@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { computeImpactEffects, Damage_Inputs, Damage_Results,isOverWater, oceanWaterCrater } from '@/lib/serverPhysicsEngine';
+import { computeImpactEffects, Damage_Inputs,isOverWater, oceanWaterCrater, tsunamiInfo } from '@/lib/serverPhysicsEngine';
+import { Damage_Results } from '@/lib/impactTypes';
 
 interface ComputeImpactRequest {
   meteorData: {
@@ -78,6 +79,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComputeIm
 
     // Compute impact effects
     const impactResults = computeImpactEffects(damageInputs);
+    const oceanWaterHit = oceanWaterCrater(damageInputs)
+    const tsunamiResults = tsunamiInfo(is_water, oceanWaterHit, impactResults.Crater_Results.airburst)
+    
 
     // Handle report generation if requested
     let reportData = undefined;
@@ -133,9 +137,9 @@ async function generateReportAction(
       summary: {
         object: meteorData.name || 'Unknown Object',
         location: `${impactLocation.latitude.toFixed(2)}°N, ${impactLocation.longitude.toFixed(2)}°E`,
-        energy: `${results.E_Mt.toFixed(2)} Mt TNT`,
-        impactType: results.airburst ? 'Airburst' : 'Surface Impact',
-        earthEffect: results.earth_effect,
+        energy: `${results.Strike_Overview.Impact_Energy_Megatons_TNT.toFixed(2)} Mt TNT`,
+        impactType: results.Crater_Results.airburst ? 'Airburst' : 'Surface Impact',
+        earthEffect: results.Crater_Results.Earth_Effect,
       },
     };
 

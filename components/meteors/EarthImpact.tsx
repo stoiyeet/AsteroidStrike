@@ -10,7 +10,7 @@ import { getGlbFile } from './asteroidGLB';
 import AsteroidExplosion from './AsteroidExplosion';
 import Earth from "@/components/Earth";
 import ExplosionFlash from '@/components/ExplosionFlash';
-import { Damage_Results } from '@/lib/serverPhysicsEngine';
+import { Damage_Results } from '@/lib/impactTypes';
 import { computeWaveRadii } from './utils/waveRadii';
 import TsunamiWaves  from '@/components/TsunamiWaves'
 
@@ -61,9 +61,6 @@ export function surfacemToChordUnits(m: number): number {
   return EARTH_R * theta * 0.8;
 }
 
-async function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 // Debris field for destroyed Earth - separate component to avoid re-renders
 const DebrisField = ({t}: {t: number}) => {
@@ -190,6 +187,9 @@ export default function EarthImpact({
   const softExplosionRef = useRef<HTMLAudioElement | null>(null);
   const softFalloutRef = useRef<HTMLAudioElement | null>(null);
 
+  const Crater_Results = damage.Crater_Results
+  const Strike_Overview = damage.Strike_Overview
+
   // Initialize audio elements once
   useEffect(() => {
     const SOUND_BASE = "https://glb.asteroidstrike.earth/AudioFiles"
@@ -210,10 +210,10 @@ export default function EarthImpact({
     }
     if (!softExplosionRef.current) {
       let EXPLODE_PICK
-      if (damage.airburst) EXPLODE_PICK = "Airburst"
-      else if (damage.E_J < 10e22) EXPLODE_PICK = "Very-Soft"
-      else if (damage.E_J < 10e25) EXPLODE_PICK = "Soft"
-      else if (damage.E_J < 10e30) EXPLODE_PICK = "Big"
+      if (Crater_Results.airburst) EXPLODE_PICK = "Airburst"
+      else if (Strike_Overview.Impact_Energy < 10e22) EXPLODE_PICK = "Very-Soft"
+      else if (Strike_Overview.Impact_Energy < 10e25) EXPLODE_PICK = "Soft"
+      else if (Strike_Overview.Impact_Energy < 10e30) EXPLODE_PICK = "Big"
       else EXPLODE_PICK = "Massive"
 
       const audio = document.createElement("audio");
@@ -228,7 +228,7 @@ export default function EarthImpact({
     }
     if (!softFalloutRef.current) {
       let FALLOUT_PICK
-      if (damage.earth_effect !== "destroyed") FALLOUT_PICK = "soft-medium"
+      if (Crater_Results.Earth_Effect !== "destroyed") FALLOUT_PICK = "soft-medium"
       else FALLOUT_PICK = "destroyed-earth"
       const audio = document.createElement("audio");
 
@@ -271,7 +271,7 @@ export default function EarthImpact({
     softExplosionTriggered: false,
   });
 
-  const height = Math.max(3*damage.zb_breakup/EARTH_R_M, 0.001)
+  const height = Math.max(3*Strike_Overview.Airburst_Altitude/EARTH_R_M, 0.001)
   const impactPos = useMemo(
     () => latLonToVec3(impact.lat, impact.lon, EARTH_R + height),
     [impact]
@@ -542,9 +542,9 @@ export default function EarthImpact({
     const PEAK_TIME = 0.2;
     const DECAY_TIME = 0.1
     let SHAKE_INTENSITY;
-    if (damage.E_J < 10e22 || damage.earth_effect === "destroyed") SHAKE_INTENSITY = 0
-    else if (damage.E_J < 10e25) SHAKE_INTENSITY = 0.001 //arbitrary range for shakiness
-    else if (damage.E_J < 10e30) SHAKE_INTENSITY = 0.003
+    if (Strike_Overview.Impact_Energy < 10e22 || Crater_Results.Earth_Effect === "destroyed") SHAKE_INTENSITY = 0
+    else if (Strike_Overview.Impact_Energy < 10e25) SHAKE_INTENSITY = 0.001 //arbitrary range for shakiness
+    else if (Strike_Overview.Impact_Energy < 10e30) SHAKE_INTENSITY = 0.003
     else SHAKE_INTENSITY = 0.005
 
 
@@ -603,7 +603,7 @@ export default function EarthImpact({
   return (
     <group>
       {/* Earth - only render if not destroyed or before impact */}
-      {!(damage.earth_effect === "destroyed" && t > impactTime) && (
+      {!(Crater_Results.Earth_Effect === "destroyed" && t > impactTime) && (
         <Earth
           onDoubleClick={handleDoubleClick}
           impactPosition={impactPos}
@@ -612,7 +612,7 @@ export default function EarthImpact({
         />
       )}
 
-      {["destroyed", "strongly_disturbed"].includes(damage.earth_effect) && t > impactTime && <DebrisField t={t}/>}
+      {["destroyed", "strongly_disturbed"].includes(Crater_Results.Earth_Effect) && t > impactTime && <DebrisField t={t}/>}
 
 
       {/* Asteroid flight */}
@@ -669,7 +669,7 @@ export default function EarthImpact({
       {/* Fireball */}
       {effects.fireball && t >= impactTime && t < impactTime + 0.3 && (
         <AsteroidExplosion
-          airburst={damage.airburst}
+          airburst={Crater_Results.airburst}
           position={impactPos}
           intensity={explosionIntensity}
           fireballRadius={surfacemToChordUnits(fireball_radius || 0)}
@@ -677,19 +677,19 @@ export default function EarthImpact({
       )}
 
       {/* Destruction flash */}
-      {["destroyed", "strongly_disturbed"].includes(damage.earth_effect) && t >= impactTime && t < impactTime + 0.8 && (
+      {["destroyed", "strongly_disturbed"].includes(Crater_Results.Earth_Effect) && t >= impactTime && t < impactTime + 0.8 && (
         <ExplosionFlash onFlashComplete={() => setIsFlashing(false)} />
       )}
 
 
-      {damage.earth_effect !== "destroyed" && (
+      {Crater_Results.Earth_Effect !== "destroyed" && (
 
       <>
       {/* Ejecta / crater */}
       {effects.ejecta && t >= impactTime && (
         <mesh position={impactPos.clone().multiplyScalar(1.008)} rotation={ringRotation(impactPos)}>
           <ringGeometry
-            args={[0, surfacemToChordUnits(((damage.Dtc_m || damage.Dfr_m || 0) * damageExpansionCurve(0.05))), 64, 1]}
+            args={[0, surfacemToChordUnits(((Crater_Results.Transient_Diameter || Crater_Results.Final_Diameter || 0) * damageExpansionCurve(0.05))), 64, 1]}
           />
           <meshBasicMaterial
             color="#aa3322"

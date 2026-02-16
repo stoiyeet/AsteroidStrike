@@ -1,7 +1,7 @@
 // components/meteors/utils/waveRadii.ts
 'use client';
 
-import { Damage_Results } from '@/lib/serverPhysicsEngine';
+import { Damage_Results } from '@/lib/impactTypes';
 
 export interface WaveRadii {
   second_degree_burn: number;
@@ -16,14 +16,17 @@ export interface WaveRadii {
 export function computeWaveRadii(
   damage: Damage_Results,
 ): WaveRadii {
+  const Thermal_Effects = damage.Thermal_Effects
+  const Seismic_Effects = damage.Seismic_Results
+  const Waveblast_Results = damage.Waveblast_Results
 
-  const second_degree_burn = damage.r_2nd_burn_m || 0;
-  const third_degree_burn = damage.r_3rd_burn_m || 0;
-  const fireball_radius = damage.Rf_m || 0;
-  const buildingCollapseEarthquake = damage.radius_M_ge_7_5_m || 0;
-  const glassShatter = damage.airblast_radius_glass_shatter_m || 0;
-  const buildingCollapseShockwave = damage.airblast_radius_building_collapse_m || 0;
-  const clothingIgnition = damage.r_clothing_m || 0;
+  const second_degree_burn = Thermal_Effects.Second_Degree_Burn_Radius || 0;
+  const third_degree_burn = Thermal_Effects.Third_Degree_Burn_Radius || 0;
+  const fireball_radius = Thermal_Effects.Fireball_Radius || 0;
+  const buildingCollapseEarthquake = Seismic_Effects.Radius_M_ge_7_5 || 0;
+  const glassShatter = Waveblast_Results.Radius_Glass_Shatter_m || 0;
+  const buildingCollapseShockwave = Waveblast_Results.Radius_Building_Collapse_m || 0;
+  const clothingIgnition = Thermal_Effects.Clothes_Burn_Radius || 0;
 
 
 
