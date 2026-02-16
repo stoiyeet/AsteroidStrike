@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { computeImpactEffects, Damage_Inputs,isOverWater, oceanWaterCrater, tsunamiInfo } from '@/lib/serverPhysicsEngine';
+import { computeImpactEffects, Damage_Inputs,isOverWater, tsunamiInfo } from '@/lib/serverPhysicsEngine';
 import { Damage_Results } from '@/lib/impactTypes';
 
 interface ComputeImpactRequest {
@@ -79,10 +79,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComputeIm
 
     // Compute impact effects
     const impactResults = computeImpactEffects(damageInputs);
-    const oceanWaterHit = oceanWaterCrater(damageInputs)
-    const tsunamiResults = tsunamiInfo(is_water, oceanWaterHit, impactResults.Crater_Results.airburst)
-    
-
+  
     // Handle report generation if requested
     let reportData = undefined;
     if (generateReport) {

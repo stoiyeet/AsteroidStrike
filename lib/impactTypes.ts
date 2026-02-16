@@ -41,12 +41,21 @@ export type Waveblast_Results = {
 
 }
 
+export type TsunamiResults = {
+    rim_wave_height: number,
+    tsunami_radius: number,
+    max_tsunami_speed: number,
+    time_to_reach_1_km: number,
+    time_to_reach_100_km: number
+}
+
 export type Damage_Results = {
     Strike_Overview: Strike_Overview,
     Thermal_Effects: Thermal_Effects,
     Crater_Results: Crater_Results,
     Seismic_Results: Seismic_Results,
-    Waveblast_Results: Waveblast_Results
+    Waveblast_Results: Waveblast_Results,
+    Tsunami_Results: TsunamiResults
 };
 
 export type Earth_Effect = "destroyed" | "negligible_disturbed" | "strongly_disturbed"

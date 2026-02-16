@@ -6,7 +6,7 @@ import { OrbitControls, Html, Stars } from '@react-three/drei';
 import EarthImpact from './EarthImpact';
 import ImpactEffects from './ImpactEffects';
 import styles from './MeteorImpactPage.module.css';
-import { Damage_Inputs, computeImpactEffects, estimateAsteroidDeaths, tsunamiInfo, oceanWaterCrater } from '@/lib/serverPhysicsEngine';
+import { Damage_Inputs, computeImpactEffects, estimateAsteroidDeaths, tsunamiInfo } from '@/lib/serverPhysicsEngine';
 
 // NEW: styles outside Canvas
 import ImpactStyles from './styles/ImpactStyles';
@@ -89,8 +89,6 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
   const typedName = formatAsteroidName(meteor.name);
   const damage = useMemo(() => computeImpactEffects(inputs), [inputs]);
   const Crater_Results = damage.Crater_Results
-  const oceanWaterHit = oceanWaterCrater(inputs)
-  const tsunamiResults: TsunamiResults = useMemo(() => tsunamiInfo(inputs.is_water, oceanWaterHit, Crater_Results.airburst), [overWater, impactLat,impactLon])
 
   // Debounced mortality calculation with AbortController
   const calculateMortality = useCallback(async (
@@ -317,7 +315,7 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
             impactLat={impactLat} 
             impactLon={actualLong} 
             name={meteor.name} 
-            TsunamiResults = {tsunamiResults}
+            TsunamiResults = {damage.Tsunami_Results}
           />
         )}
       </div>
@@ -372,7 +370,7 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
             onImpactSelect={(la, lo) => { setImpactLat(la); setImpactLon(lo); }}
             effects={effects}
             impactTime={IMPACT_TIME}
-            tsunamiRadius={tsunamiResults.tsunami_radius}
+            tsunamiRadius={damage.Tsunami_Results.tsunami_radius}
             onShake={setShakeIntensity}
             playing={playing}
             muted={muted}

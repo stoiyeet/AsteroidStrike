@@ -1,7 +1,7 @@
 // impact_effects.ts
 // Functions extracted from study at https://impact.ese.ic.ac.uk/ImpactEarth/ImpactEffects/effects.pdf
 import { fromUrl, GeoTIFF, GeoTIFFImage } from "geotiff";
-import { Damage_Results, Strike_Overview, Thermal_Effects, Crater_Results, Seismic_Results, Waveblast_Results, Earth_Effect } from "./impactTypes";
+import { Damage_Results, Strike_Overview, Thermal_Effects, Crater_Results, Seismic_Results, Waveblast_Results, Earth_Effect, TsunamiResults } from "./impactTypes";
 
 const EARTH_R_M = 6371000;
 export type Damage_Inputs = {
@@ -157,7 +157,7 @@ export function transientCrater(L0: number, rho_i: number, v_i: number, theta_ra
 }
 
 
-export function oceanWaterCrater(damageInputs: Damage_Inputs) {
+function oceanWaterCraterDiameter(damageInputs: Damage_Inputs) {
     const diameter = damageInputs.L0
     const meteor_density = damageInputs.rho_i
     const impact_velocity = damageInputs.v0
@@ -571,7 +571,9 @@ export async function isOverWater(
 }
 
 
-export function tsunamiInfo(is_water: boolean, Dtc: number | null, airburst: boolean) {
+export function tsunamiInfo(inputs: Damage_Inputs, airburst: boolean) {
+    const {is_water} = inputs
+    const Dtc = oceanWaterCraterDiameter(inputs)
     if (!is_water || airburst || !Dtc) {
         return {
             rim_wave_height: 0,
@@ -698,10 +700,10 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
 
     // 2. Thermal Effects
     const burns = burnRadii(Impact_Energy_Megatons_TNT, Impact_Energy, K);
-    const Rf_m = fireballRadius(Impact_Energy);
+    const Fireball_Radius = fireballRadius(Impact_Energy);
 
     const thermalEffects: Thermal_Effects = {
-        Fireball_Radius: Rf_m,
+        Fireball_Radius: Fireball_Radius,
         Clothes_Burn_Radius: burns.clothing,
         Second_Degree_Burn_Radius: burns.second,
         Third_Degree_Burn_Radius: burns.third
@@ -728,8 +730,8 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
     }
 
     // 5. Waveblast (Airblast) Results
-    const r_building = findRadiusForOverpressure(273000, Impact_Energy_Megatons_TNT, Airburst_Altitude, Rf_m);
-    const r_glass = findRadiusForOverpressure(6900, Impact_Energy_Megatons_TNT, Airburst_Altitude, Rf_m);
+    const r_building = findRadiusForOverpressure(273000, Impact_Energy_Megatons_TNT, Airburst_Altitude, Fireball_Radius);
+    const r_glass = findRadiusForOverpressure(6900, Impact_Energy_Megatons_TNT, Airburst_Altitude, Fireball_Radius);
     const overpressureAt50_km = peakOverpressureAtR(50000, Impact_Energy_Megatons_TNT, Airburst_Altitude);
     const windspeedAt50_km = peakWindSpeed(overpressureAt50_km);
     const r_ionization = findRadiusForOverpressure(75750000, Impact_Energy_Megatons_TNT, Airburst_Altitude, 50000);
@@ -742,12 +744,16 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
         Ionization_Radius: r_ionization
     };
 
+
+    const tsunamiResults: TsunamiResults = tsunamiInfo(inputs, airburst )
+
     // 6. Return Aggregated Results
     return {
         Strike_Overview: strikeOverview,
         Thermal_Effects: thermalEffects,
         Crater_Results: craterResults,
         Seismic_Results: seismicResults,
-        Waveblast_Results: waveblastResults
+        Waveblast_Results: waveblastResults,
+        Tsunami_Results: tsunamiResults
     };
 }
