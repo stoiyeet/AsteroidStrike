@@ -87,6 +87,27 @@ export async function generateServerReport(
   }
 }
 
+export async function isOverWater(
+    lat: number,
+    lon: number
+): Promise<boolean> {
+    try {
+        const res = await fetch(`/api/overWater?lat=${lat}&lon=${lon}`);
+
+        if (!res.ok) {
+            return false;
+        }
+
+        const data = await res.json();
+        return Boolean(data.overWater);
+
+    } catch {
+        // default to false if failed
+        return false;
+    }
+}
+
+
 /**
  * Batch compute multiple impact scenarios
  */

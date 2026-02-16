@@ -6,11 +6,10 @@ import { OrbitControls, Html, Stars } from '@react-three/drei';
 import EarthImpact from './EarthImpact';
 import ImpactEffects from './ImpactEffects';
 import styles from './MeteorImpactPage.module.css';
-import { Damage_Inputs, computeImpactEffects, estimateAsteroidDeaths, tsunamiInfo, oceanWaterCrater } from './DamageValuesOptimized';
+import { Damage_Inputs, computeImpactEffects, estimateAsteroidDeaths, tsunamiInfo, oceanWaterCrater } from '@/lib/serverPhysicsEngine';
 
 // NEW: styles outside Canvas
 import ImpactStyles from './styles/ImpactStyles';
-import { LayoutIcon } from 'lucide-react';
 
 type Meteor = {
   name: string;

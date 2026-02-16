@@ -10,7 +10,7 @@ import { getGlbFile } from './asteroidGLB';
 import AsteroidExplosion from './AsteroidExplosion';
 import Earth from "@/components/Earth";
 import ExplosionFlash from '@/components/ExplosionFlash';
-import { Damage_Results } from './DamageValuesOptimized';
+import { Damage_Results } from '@/lib/serverPhysicsEngine';
 import { computeWaveRadii } from './utils/waveRadii';
 import TsunamiWaves  from '@/components/TsunamiWaves'
 

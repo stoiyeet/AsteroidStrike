@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { computeImpactEffectsServer, DamageInputs, DamageResults, oceanWaterCrater } from '@/lib/serverPhysicsEngine';
+import { computeImpactEffects, Damage_Inputs, Damage_Results, oceanWaterCrater } from '@/lib/serverPhysicsEngine';
 
 interface ComputeImpactRequest {
   meteorData: {
@@ -19,7 +19,7 @@ interface ComputeImpactRequest {
 
 interface ComputeImpactResponse {
   success: boolean;
-  data?: DamageResults;
+  data?: Damage_Results;
   report?: {
     generated: boolean;
     message: string;
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComputeIm
     }
 
     // Create damage inputs
-    const damageInputs: DamageInputs = {
+    const damageInputs: Damage_Inputs = {
       mass: meteorData.mass,
       L0: meteorData.diameter,
       rho_i: meteorData.density,
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComputeIm
     };
 
     // Compute impact effects
-    const impactResults = computeImpactEffectsServer(damageInputs);
+    const impactResults = computeImpactEffects(damageInputs);
 
     // Handle report generation if requested
     let reportData = undefined;
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComputeIm
 async function generateReportAction(
   meteorData: ComputeImpactRequest['meteorData'],
   impactLocation: ComputeImpactRequest['impactLocation'],
-  results: DamageResults
+  results: Damage_Results
 ) {
   try {
     // This is a dummy implementation
