@@ -6,7 +6,8 @@ import { OrbitControls, Html, Stars } from '@react-three/drei';
 import EarthImpact from './EarthImpact';
 import ImpactEffects from './ImpactEffects';
 import styles from './MeteorImpactPage.module.css';
-import { Damage_Inputs, computeImpactEffects, estimateAsteroidDeaths, tsunamiInfo } from '@/lib/serverPhysicsEngine';
+import { Damage_Inputs, computeImpactEffects, estimateAsteroidDeaths } from '@/lib/serverPhysicsEngine';
+import { Mortality } from '@/lib/impactTypes';
 
 // NEW: styles outside Canvas
 import ImpactStyles from './styles/ImpactStyles';
@@ -53,7 +54,7 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [muted, setMuted] = useState(false);
-  const [mortality, setMortality] = useState<{deathCount: number; injuryCount: number} | null>(null);
+  const [mortality, setMortality] = useState<Mortality | null>(null);
   const [mortalityLoading, setMortalityLoading] = useState(false);
   const [overWater, setOverWater] = useState<boolean>(false);
 
@@ -88,7 +89,6 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
 
   const typedName = formatAsteroidName(meteor.name);
   const damage = useMemo(() => computeImpactEffects(inputs), [inputs]);
-  const Crater_Results = damage.Crater_Results
 
   // Debounced mortality calculation with AbortController
   const calculateMortality = useCallback(async (
@@ -121,16 +121,10 @@ export default function MeteorImpactPageOptimized({ meteor }: { meteor: Meteor }
 
     try {
       const result = await estimateAsteroidDeaths(
+        damage,
         lat, 
         lon, 
-        Thermal_Effects.Clothes_Burn_Radius, 
-        Crater_Results.Transient_Diameter || 0, 
-        Thermal_Effects.Second_Degree_Burn_Radius, 
-        Crater_Results.Earth_Effect, 
-      Seismic_Effects.Radius_M_ge_7_5 || 0,
         meteor.diameter,
-        Crater_Results.airburst,
-        Strike_Overview.Airburst_Altitude,
         controller.signal
       );
       

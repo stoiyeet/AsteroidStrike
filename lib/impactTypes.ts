@@ -58,4 +58,9 @@ export type Damage_Results = {
     Tsunami_Results: TsunamiResults
 };
 
+export type Mortality = {
+    deathCount: number, 
+    injuryCount: number,
+}
+
 export type Earth_Effect = "destroyed" | "negligible_disturbed" | "strongly_disturbed"

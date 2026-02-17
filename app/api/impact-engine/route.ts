@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { computeImpactEffects, Damage_Inputs,isOverWater, tsunamiInfo } from '@/lib/serverPhysicsEngine';
-import { Damage_Results } from '@/lib/impactTypes';
+import { computeImpactEffects, Damage_Inputs,isOverWater, estimateAsteroidDeaths } from '@/lib/serverPhysicsEngine';
+import { Damage_Results, Mortality } from '@/lib/impactTypes';
 
 interface ComputeImpactRequest {
   meteorData: {
@@ -18,9 +18,14 @@ interface ComputeImpactRequest {
   generateReport?: boolean;
 }
 
+interface ResponseData {
+  damageResults: Damage_Results,
+  mortalityResults: Mortality
+}
+
 interface ComputeImpactResponse {
   success: boolean;
-  data?: Damage_Results;
+  data?: ResponseData;
   report?: {
     generated: boolean;
     message: string;
@@ -79,6 +84,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComputeIm
 
     // Compute impact effects
     const impactResults = computeImpactEffects(damageInputs);
+
+    const controller = new AbortController();
+
+    const populationEffects = await estimateAsteroidDeaths(impactResults, impactLocation.latitude, impactLocation.longitude, meteorData.diameter, controller.signal)
   
     // Handle report generation if requested
     let reportData = undefined;
@@ -86,10 +95,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComputeIm
       reportData = await generateReportAction(meteorData, impactLocation, impactResults);
     }
 
+    const data: ResponseData = {damageResults: impactResults, mortalityResults: populationEffects}
+
     return NextResponse.json(
       {
         success: true,
-        data: impactResults,
+        data: data,
         report: reportData,
       },
       { status: 200 }

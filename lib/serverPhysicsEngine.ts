@@ -1,7 +1,7 @@
 // impact_effects.ts
 // Functions extracted from study at https://impact.ese.ic.ac.uk/ImpactEarth/ImpactEffects/effects.pdf
 import { fromUrl, GeoTIFF, GeoTIFFImage } from "geotiff";
-import { Damage_Results, Strike_Overview, Thermal_Effects, Crater_Results, Seismic_Results, Waveblast_Results, Earth_Effect, TsunamiResults } from "./impactTypes";
+import { Damage_Results, Strike_Overview, Thermal_Effects, Crater_Results, Seismic_Results, Waveblast_Results, Earth_Effect, TsunamiResults, Mortality } from "./impactTypes";
 
 const EARTH_R_M = 6371000;
 export type Damage_Inputs = {
@@ -435,21 +435,16 @@ function calculateEffectiveDensity(
 
 // Add AbortController support for cancelling requests
 export async function estimateAsteroidDeaths(
+    damage_Info: Damage_Results,
     lat: number,
     lon: number,
-    r_clothing_m: number,
-    Dtc_m: number,
-    r_2nd_burn_m: number,
-    earth_effect: Earth_Effect,
-    BadEarthquake: number,
     diameter_m: number, // New parameter: asteroid mass
-    isAirburst: boolean, // New parameter: whether it's an airburst
-    airburstHeight_m: number, // New parameter: height of airburst (<=0 if no airburst)
     signal?: AbortSignal
-): Promise<{ deathCount: number; injuryCount: number }> {
+): Promise<Mortality> {
 
-    // Early return for global catastrophes - no API call needed
-    if (earth_effect === "destroyed" || earth_effect === "strongly_disturbed") {
+    const {Strike_Overview, Thermal_Effects, Seismic_Results, Crater_Results} = damage_Info
+
+    if (Crater_Results.Earth_Effect === "destroyed" || Crater_Results.Earth_Effect === "strongly_disturbed") {
         return { deathCount: GLOBAL_POP, injuryCount: 0 };
     }
 
@@ -462,8 +457,8 @@ export async function estimateAsteroidDeaths(
     // Get size-based scaling
     let sizeScaling = getSizeScalingFactor(diameter_m);
 
-    if (airburstHeight_m > 0) {
-        sizeScaling /= (2 ** (airburstHeight_m / 2000))
+    if (Strike_Overview.Airburst_Altitude > 0) {
+        sizeScaling /= (2 ** (Strike_Overview.Airburst_Altitude / 2000))
 
     }
 
@@ -491,10 +486,10 @@ export async function estimateAsteroidDeaths(
     }
 
     const scaledPop = (area_km2: number) =>
-        area_km2 * calculateEffectiveDensity(area_km2, localDensity, diameter_m, isAirburst) * sizeScaling;
+        area_km2 * calculateEffectiveDensity(area_km2, localDensity, diameter_m, Crater_Results.airburst) * sizeScaling;
 
     // Calculate death zones
-    const certainRadius_km = Math.max(r_clothing_m, Dtc_m) / 1000;
+    const certainRadius_km = Thermal_Effects.Clothes_Burn_Radius / 1000;
     const certainArea_km2 = Math.PI * certainRadius_km ** 2;
     let deathCount = scaledPop(certainArea_km2);
 
@@ -507,7 +502,7 @@ export async function estimateAsteroidDeaths(
     }
 
     // Calculate burn effects
-    const burnRadius_km = r_2nd_burn_m / 1000;
+    const burnRadius_km = Thermal_Effects.Second_Degree_Burn_Radius / 1000;
     let burnDeaths = 0;
     let burnInjuries = 0;
 
@@ -516,13 +511,13 @@ export async function estimateAsteroidDeaths(
         const burnPopulation = scaledPop(burnArea_km2);
 
         // Burn survival rates depend on distance and asteroid size
-        const burnMortality = isAirburst ? 0.3 : (diameter_m > 1000 ? 0.8 : 0.6);
+        const burnMortality = Crater_Results.airburst ? 0.3 : (diameter_m > 1000 ? 0.8 : 0.6);
         burnDeaths = burnMortality * burnPopulation;
         burnInjuries = burnPopulation - burnDeaths;
     }
 
     // Calculate earthquake effects (more conservative for smaller asteroids)
-    const earthquakeArea = Math.PI * (BadEarthquake ** 2);
+    const earthquakeArea = Math.PI * (Seismic_Results.Radius_M_ge_7_5 ?? 0 ** 2);
     const earthquakePopulation = scaledPop(earthquakeArea);
     const earthquakeInjuryRate = diameter_m < 1000 ? 0.01 : 0.05; // Much lower injury rates
     const earthquakeInjuries = Math.max(earthquakePopulation * earthquakeInjuryRate - deathCount, 0);
