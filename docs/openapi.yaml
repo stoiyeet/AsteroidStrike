@@ -21,7 +21,6 @@ info:
 
 servers:
   - url: https://asteroidstrike.earth
-  - url: http://localhost:3000
 
 tags:
   - name: Impact Engine
@@ -139,7 +138,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
       x-codeSamples:
         - lang: Python
           label: Python (requests)
@@ -166,7 +164,7 @@ paths:
                 "generateReport": False
             }
 
-            r = requests.post("http://localhost:3000/api/impact-engine", json=data)
+            r = requests.post("https://www.asteroidstrike.earth/api/impact-engine", json=data)
             r.raise_for_status()
             print(r.json())
 
@@ -224,11 +222,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CreateKeyResponse"
-              examples:
-                example1:
-                  value:
-                    apiKey: sk_live_example_123
-                    dailyReportLimit: 20
         "400":
           description: Invalid email
           content:
@@ -304,16 +297,136 @@ components:
         error:
           type: string
 
+    # --- UPDATED: Main Damage Wrapper ---
     ImpactData:
       type: object
       required: [damageResults, MortalityResults]
       properties:
         damageResults:
-          type: object
-          description: Physical impact model outputs (nested objects)
-          additionalProperties: true
+          $ref: "#/components/schemas/DamageResults"
         MortalityResults:
           $ref: "#/components/schemas/Mortality"
+
+    # --- NEW: Explicit Damage Sub-Schemas ---
+    DamageResults:
+      type: object
+      required: [Strike_Overview, Thermal_Effects, Crater_Results, Seismic_Results, Waveblast_Results, Tsunami_Results]
+      properties:
+        Strike_Overview:
+          $ref: "#/components/schemas/StrikeOverview"
+        Thermal_Effects:
+          $ref: "#/components/schemas/ThermalEffects"
+        Crater_Results:
+          $ref: "#/components/schemas/CraterResults"
+        Seismic_Results:
+          $ref: "#/components/schemas/SeismicResults"
+        Waveblast_Results:
+          $ref: "#/components/schemas/WaveblastResults"
+        Tsunami_Results:
+          $ref: "#/components/schemas/TsunamiResults"
+
+    StrikeOverview:
+      type: object
+      properties:
+        Impact_Energy:
+          type: number
+        Impact_Energy_Megatons_TNT:
+          type: number
+        Recurrence_Period:
+          type: number
+        Impact_Velocity:
+          type: number
+        Breakup_Altitude:
+          type: number
+        Airburst_Altitude:
+          type: number
+
+    ThermalEffects:
+      type: object
+      properties:
+        Fireball_Radius:
+          type: number
+          nullable: true
+        Clothes_Burn_Radius:
+          type: number
+        Second_Degree_Burn_Radius:
+          type: number
+        Third_Degree_Burn_Radius:
+          type: number
+
+    CraterResults:
+      type: object
+      properties:
+        Transient_Diameter:
+          type: number
+          nullable: true
+        Transient_Depth:
+          type: number
+          nullable: true
+        Final_Diameter:
+          type: number
+          nullable: true
+        Final_Depth:
+          type: number
+          nullable: true
+        Crater_Volume:
+          type: number
+          nullable: true
+        Earth_Volume_Ratio:
+          type: number
+          nullable: true
+        Earth_Effect:
+          type: string
+          enum: [destroyed, negligible_disturbed, strongly_disturbed]
+        airburst:
+          type: boolean
+
+    SeismicResults:
+      type: object
+      properties:
+        Magnitude:
+          type: number
+          nullable: true
+        Radius_M_ge_7_5:
+          type: number
+          nullable: true
+        Description:
+          type: string
+          nullable: true
+
+    WaveblastResults:
+      type: object
+      properties:
+        Radius_Building_Collapse_m:
+          type: number
+          nullable: true
+          description: Pressure ~ 42600 Pa
+        Radius_Glass_Shatter_m:
+          type: number
+          nullable: true
+          description: Pressure ~ 6900 Pa
+        Overpressure_50_km:
+          type: number
+          nullable: true
+        Wind_Speed_50_km:
+          type: number
+          nullable: true
+        Ionization_Radius:
+          type: number
+
+    TsunamiResults:
+      type: object
+      properties:
+        rim_wave_height:
+          type: number
+        tsunami_radius:
+          type: number
+        max_tsunami_speed:
+          type: number
+        time_to_reach_1_km:
+          type: number
+        time_to_reach_100_km:
+          type: number
 
     Mortality:
       type: object
