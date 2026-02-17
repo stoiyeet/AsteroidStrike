@@ -1,0 +1,367 @@
+openapi: 3.0.3
+info:
+  title: AsteroidStrike Impact Engine API
+  version: 1.0.0
+  description: |
+    Compute asteroid impact effects and mortality estimates.
+
+    **Endpoint:** `POST /api/impact-engine`
+
+    By default, this endpoint returns JSON impact results.
+    If `generateReport=true`, the API generates a PDF report asynchronously and returns a `reportId`.
+    The PDF can be downloaded later at:
+
+    `GET /api/reports/{reportId}`
+
+    **Rate limits / Auth (reports only):**
+    - JSON-only requests (`generateReport=false`) are not rate limited.
+    - PDF report generation (`generateReport=true`) requires an API key.
+    - Each API key allows up to **20 report creations per day**.
+    - API keys are associated with a valid email and can be created via `POST /api/keys`.
+
+servers:
+  - url: https://asteroidstrike.earth
+  - url: http://localhost:3000
+
+tags:
+  - name: Impact Engine
+  - name: Reports
+  - name: API Keys
+
+paths:
+  /api/impact-engine:
+    post:
+      tags: [Impact Engine]
+      summary: Compute impact effects (optionally generate a PDF report)
+      description: |
+        Provide asteroid parameters and an impact location.
+
+        - Returns JSON results by default
+        - If `generateReport=true`, returns a `reportId` and a message (PDF retrieved separately)
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImpactRequest"
+            examples:
+              example1:
+                summary: Example request (JSON only)
+                value:
+                  meteorData:
+                    name: Custom Asteroid
+                    mass: 300000000000
+                    diameter: 1600
+                    speed: 20000
+                    angle: 45
+                    density: 900
+                  impactLocation:
+                    latitude: 31.7
+                    longitude: -79
+                  generateReport: false
+      responses:
+        "200":
+          description: Computation completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImpactResponse"
+              examples:
+                exampleSuccess:
+                  summary: Example response (truncated)
+                  value:
+                    success: true
+                    data:
+                      damageResults:
+                        Strike_Overview:
+                          Impact_Energy: 60000000000000000000
+                          Impact_Energy_Megatons_TNT: 14340.34416826004
+                          Recurrence_Period: 190345.6542987587
+                          Impact_Velocity: 19765.681188459817
+                          Breakup_Altitude: 85119.91114979847
+                          Airburst_Altitude: 0
+                        Thermal_Effects:
+                          Fireball_Radius: 7829.7352823377205
+                          Clothes_Burn_Radius: 76237.09756150456
+                          Second_Degree_Burn_Radius: 152474.19512300912
+                          Third_Degree_Burn_Radius: 117636.39545126984
+                        Crater_Results:
+                          Transient_Diameter: 10914.628999040866
+                          Transient_Depth: 3858.9040896785677
+                          Final_Diameter: 14978.437439564217
+                          Final_Depth: 663.9918516989804
+                          Crater_Volume: 180.52685927899216
+                          Earth_Volume_Ratio: 1.666914674782938e-10
+                          Earth_Effect: negligible_disturbed
+                          airburst: false
+                        Seismic_Results:
+                          Magnitude: 7.381361337757043
+                          Radius_M_ge_7_5: null
+                          Description: Very large regional catastrophe...
+                        Waveblast_Results:
+                          Radius_Building_Collapse_m: 37508.07829114048
+                          Radius_Glass_Shatter_m: 283892.75976962177
+                          Overpressure_50_km: 149145.1162559141
+                          Wind_Speed_50_km: 232.90629229456982
+                          Ionization_Radius: 50000
+                        Tsunami_Results:
+                          rim_wave_height: 0
+                          tsunami_radius: 0
+                          max_tsunami_speed: 0
+                          time_to_reach_1_km: 0
+                          time_to_reach_100_km: 0
+                      MortalityResults:
+                        deathCount: 4757624
+                        injuryCount: 839581
+        "400":
+          description: Invalid input (missing required fields)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: API key required for report generation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Report generation daily quota exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+      x-codeSamples:
+        - lang: Python
+          label: Python (requests)
+          source: |
+            import requests
+
+            meteorData = {
+                "name": "Custom Asteroid",
+                "mass": 3e11,
+                "diameter": 1600,
+                "speed": 20000,
+                "angle": 45,
+                "density": 900
+            }
+
+            location = {
+                "latitude": 31.7,
+                "longitude": -79
+            }
+
+            data = {
+                "meteorData": meteorData,
+                "impactLocation": location,
+                "generateReport": False
+            }
+
+            r = requests.post("http://localhost:3000/api/impact-engine", json=data)
+            r.raise_for_status()
+            print(r.json())
+
+  /api/reports/{reportId}:
+    get:
+      tags: [Reports]
+      summary: Download a generated PDF report
+      description: |
+        Retrieve a previously generated PDF report by `reportId`.
+      parameters:
+        - in: path
+          name: reportId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: PDF report
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/keys:
+    post:
+      tags: [API Keys]
+      summary: Create an API key (required for PDF report generation)
+      description: |
+        Creates an API key associated with a valid email address.
+
+        - Keys allow **20 report creations/day**
+        - Use the key via the `X-API-Key` header
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateKeyRequest"
+            examples:
+              example1:
+                summary: Create key
+                value:
+                  email: user@example.com
+      responses:
+        "201":
+          description: API key created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateKeyResponse"
+              examples:
+                example1:
+                  value:
+                    apiKey: sk_live_example_123
+                    dailyReportLimit: 20
+        "400":
+          description: Invalid email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        Required only when `generateReport=true`.
+        JSON-only calls do not require an API key.
+
+  schemas:
+    ImpactRequest:
+      type: object
+      required: [meteorData, impactLocation]
+      properties:
+        meteorData:
+          $ref: "#/components/schemas/MeteorData"
+        impactLocation:
+          $ref: "#/components/schemas/ImpactLocation"
+        generateReport:
+          type: boolean
+          default: false
+          description: If true, generate a PDF report (requires API key)
+
+    MeteorData:
+      type: object
+      required: [mass, diameter, speed, angle, density]
+      properties:
+        name:
+          type: string
+          description: Optional display name
+        mass:
+          type: number
+        diameter:
+          type: number
+        speed:
+          type: number
+        angle:
+          type: number
+        density:
+          type: number
+
+    ImpactLocation:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+
+    ImpactResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/ImpactData"
+        report:
+          $ref: "#/components/schemas/ReportInfo"
+        error:
+          type: string
+
+    ImpactData:
+      type: object
+      required: [damageResults, MortalityResults]
+      properties:
+        damageResults:
+          type: object
+          description: Physical impact model outputs (nested objects)
+          additionalProperties: true
+        MortalityResults:
+          $ref: "#/components/schemas/Mortality"
+
+    Mortality:
+      type: object
+      required: [deathCount, injuryCount]
+      properties:
+        deathCount:
+          type: integer
+        injuryCount:
+          type: integer
+
+    ReportInfo:
+      type: object
+      required: [generated, message, reportId]
+      properties:
+        generated:
+          type: boolean
+        message:
+          type: string
+        reportId:
+          type: string
+      description: |
+        Returned only when `generateReport=true`.
+        Download the PDF at `GET /api/reports/{reportId}`.
+
+    CreateKeyRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    CreateKeyResponse:
+      type: object
+      required: [apiKey, dailyReportLimit]
+      properties:
+        apiKey:
+          type: string
+        dailyReportLimit:
+          type: integer
+          example: 20
+
+    ErrorResponse:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
