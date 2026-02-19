@@ -194,40 +194,81 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+/api/register:
+  post:
+    tags: [API Keys]
+    summary: Start API key registration (email confirmation required)
+    description: |
+      Starts the API key registration flow for a given email address.
 
-  /api/keys:
-    post:
-      tags: [API Keys]
-      summary: Create an API key (required for PDF report generation)
-      description: |
-        Creates an API key associated with a valid email address.
-
-        - Keys allow **20 report creations/day**
-        - Use the key via the `X-API-Key` header
-      requestBody:
-        required: true
+      - Sends a confirmation link to the provided email
+      - No API key is returned until the email link is confirmed
+      - Confirmed keys allow **20 PDF report generations per day**
+      - Use the key via the `X-API-Key` header
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CreateKeyRequest"
+          examples:
+            example1:
+              summary: Start registration
+              value:
+                email: user@example.com
+    responses:
+      "202":
+        description: Confirmation email sent
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateKeyRequest"
-            examples:
-              example1:
-                summary: Create key
-                value:
-                  email: user@example.com
-      responses:
-        "201":
-          description: API key created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CreateKeyResponse"
-        "400":
-          description: Invalid email
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: pending_confirmation
+      "400":
+        description: Invalid email
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/api/register/confirm:
+  get:
+    tags: [API Keys]
+    summary: Confirm email and issue API key
+    description: |
+      Confirms the email address using the one-time token from the confirmation link.
+
+      - On first confirmation, returns the API key (shown once)
+      - Subsequent confirmations do not re-display the key; rotate/regenerate to obtain a new key
+    parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+        description: One-time confirmation token from the email link.
+    responses:
+      "200":
+        description: Email confirmed; API key issued
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateKeyResponse"
+      "400":
+        description: Invalid or expired token
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "409":
+        description: API key already provisioned for this email
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
 
 components:
   securitySchemes:
@@ -238,6 +279,7 @@ components:
       description: |
         Required only when `generateReport=true`.
         JSON-only calls do not require an API key.
+
 
   schemas:
     ImpactRequest:
