@@ -1,3 +1,18 @@
+export type Damage_Inputs = {
+    mass: number; // kg
+    L0: number; // m
+    rho_i: number; // kg/m^3
+    v0: number; // m/s
+    theta_deg: number; // degrees from horizontal
+    is_water: boolean; // true for water target
+    K?: number; // luminous efficiency
+    Cd?: number; // drag coefficient
+    rho0?: number; // atmosphere surface density for breakup (kg/m^3)
+    H?: number; // scale height (m)
+    latitude?: number; // for population check
+    longitude?: number; // 
+};
+
 export type Strike_Overview = {
     Impact_Energy: number,
     Impact_Energy_Megatons_TNT: number,
@@ -64,3 +79,8 @@ export type Mortality = {
 }
 
 export type Earth_Effect = "destroyed" | "negligible_disturbed" | "strongly_disturbed"
+
+export type ResponseData = {
+    damageResults: Damage_Results,
+    mortalityResults: Mortality
+}

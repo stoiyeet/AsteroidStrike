@@ -1,23 +1,9 @@
 // impact_effects.ts
 // Functions extracted from study at https://impact.ese.ic.ac.uk/ImpactEarth/ImpactEffects/effects.pdf
 import { fromUrl, GeoTIFF, GeoTIFFImage } from "geotiff";
-import { Damage_Results, Strike_Overview, Thermal_Effects, Crater_Results, Seismic_Results, Waveblast_Results, Earth_Effect, TsunamiResults, Mortality } from "./impactTypes";
+import { Damage_Inputs, Damage_Results, Strike_Overview, Thermal_Effects, Crater_Results, Seismic_Results, Waveblast_Results, Earth_Effect, TsunamiResults, Mortality } from "./impactTypes";
 
 const EARTH_R_M = 6371000;
-export type Damage_Inputs = {
-    mass: number; // kg
-    L0: number; // m
-    rho_i: number; // kg/m^3
-    v0: number; // m/s
-    theta_deg: number; // degrees from horizontal
-    is_water: boolean; // true for water target
-    K?: number; // luminous efficiency
-    Cd?: number; // drag coefficient
-    rho0?: number; // atmosphere surface density for breakup (kg/m^3)
-    H?: number; // scale height (m)
-    latitude?: number; // for population check
-    longitude?: number; // 
-};
 
 // Constants
 const MT_TO_J = 4.184e15;

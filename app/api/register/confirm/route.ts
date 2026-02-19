@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { Redis } from "@upstash/redis";
 
+
 const DAILY_REPORT_LIMIT = 20;
 
 const redis = new Redis({
