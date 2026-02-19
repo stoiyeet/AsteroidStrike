@@ -98,9 +98,15 @@ export async function POST(req: NextRequest) {
         await sendConfirmationEmail(email, confirmUrl);
 
         return NextResponse.json({ status: "pending_confirmation" }, { status: 202 });
-    } catch (err: any) {
+    } catch (err: unknown) {
+        let message = "Unknown Error"
+        if (err instanceof Error){
+            message = err.message
+        }
+
+    
         return NextResponse.json(
-            { error: "Failed to start registration", detail: err?.message ?? String(err) },
+            { error: "Failed to start registration", detail: message ?? String(err) },
             { status: 500 }
         );
     }

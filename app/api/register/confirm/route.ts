@@ -80,9 +80,14 @@ export async function GET(req: NextRequest) {
 
         // Return the raw key ONCE
         return NextResponse.json({ apiKey, dailyReportLimit: DAILY_REPORT_LIMIT }, { status: 200 });
-    } catch (err: any) {
+    } catch (err: unknown) {
+        let message = "Unknown error";
+
+        if (err instanceof Error) {
+            message = err.message;
+        }
         return NextResponse.json(
-            { error: "Failed to confirm email", detail: err?.message ?? String(err) },
+            { error: "Failed to confirm email", detail: message ?? String(err) },
             { status: 500 }
         );
     }
