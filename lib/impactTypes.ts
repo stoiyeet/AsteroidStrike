@@ -84,3 +84,24 @@ export type ResponseData = {
     damageResults: Damage_Results,
     mortalityResults: Mortality
 }
+
+export type ImpactEngineMeteorData = {
+    name?: string;
+    mass: number;
+    diameter: number;
+    speed: number;
+    angle: number;
+    density: number;
+};
+
+export type ImpactLocation = {
+    latitude: number;
+    longitude: number;
+};
+
+export type ImpactEngineInput = {
+    meteorData: ImpactEngineMeteorData,
+    impactLocation: ImpactLocation,
+    generateReport: boolean
+
+}

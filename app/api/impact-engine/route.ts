@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { Redis } from "@upstash/redis";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { computeImpactEffects, isOverWater, estimateAsteroidDeaths } from '@/lib/serverPhysicsEngine';
-import {Damage_Inputs, ResponseData } from '@/lib/impactTypes';
+import { ResponseData, ImpactEngineInput } from '@/lib/impactTypes';
 import {generateReportAction} from "@/lib/createPdf"
 
 const DAILY_REPORT_LIMIT_DEFAULT = 20;
@@ -83,7 +83,7 @@ interface ComputeImpactResponse {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as any;
+    const body = (await request.json()) as ImpactEngineInput;
     const { meteorData, impactLocation, generateReport } = body ?? {};
 
     if (!meteorData || !impactLocation) {

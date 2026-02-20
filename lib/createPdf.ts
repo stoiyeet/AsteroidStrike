@@ -1,22 +1,7 @@
 // generateReportAction.ts
 // npm i pdf-lib
 import { PDFDocument, PDFFont, PDFPage, StandardFonts, rgb } from "pdf-lib";
-import { Crater_Results, Damage_Results, ResponseData, Seismic_Results, Strike_Overview, Thermal_Effects, Tsunami_Results, Waveblast_Results } from "./impactTypes";
-
-export type MeteorData = {
-    name?: string;
-    mass: number;
-    diameter: number;
-    speed: number;
-    angle: number;
-    density: number;
-};
-
-export type ImpactLocation = {
-    latitude: number;
-    longitude: number;
-};
-
+import * as Types from "./impactTypes";
 
 type PlaceInfo = {
     label: string;
@@ -64,13 +49,13 @@ function safe(v: unknown): string {
     return s.length ? s : "—";
 }
 
-function pickDamage(impactResults: ResponseData) {
+function pickDamage(impactResults: Types.ResponseData) {
     const d =
         impactResults?.damageResults
-    return (d ?? {}) as Damage_Results;
+    return (d ?? {}) as Types.Damage_Results;
 }
 
-function pickMortality(impactResults: ResponseData) {
+function pickMortality(impactResults: Types.ResponseData) {
     return (
         impactResults?.mortalityResults
     ) as { deathCount: number; injuryCount: number } | undefined;
@@ -87,7 +72,7 @@ function flattenObject(obj: unknown, prefix = ""): Array<[string, unknown]> {
     return out;
 }
 
-async function reverseGeocodePlace(loc: ImpactLocation): Promise<PlaceInfo | null> {
+async function reverseGeocodePlace(loc: Types.ImpactLocation): Promise<PlaceInfo | null> {
     const url =
         `https://api-bdc.io/data/reverse-geocode-client` +
         `?latitude=${encodeURIComponent(loc.latitude)}` +
@@ -147,7 +132,7 @@ function classifySeverity(
 
 function buildImpactSummaryText(
     reverseGeo: PlaceInfo | null,
-    strikeOverview: Strike_Overview,
+    strikeOverview: Types.Strike_Overview,
     airburst: boolean,
     mortality: { deathCount?: number; injuryCount?: number } | undefined
 ): string {
@@ -222,9 +207,9 @@ function drawParagraph(
 
 
 export async function generateReportAction(
-    meteorData: MeteorData,
-    impactLocation: ImpactLocation,
-    impactResults: ResponseData
+    meteorData: Types.ImpactEngineMeteorData,
+    impactLocation: Types.ImpactLocation,
+    impactResults: Types.ResponseData
 ): Promise<ReportData> {
     const now = new Date();
     const reportId = generateReportId(now);
@@ -232,12 +217,12 @@ export async function generateReportAction(
     const place = await reverseGeocodePlace(impactLocation);
 
     const damage = pickDamage(impactResults);
-    const strike = (damage["Strike_Overview"] ?? {}) as Strike_Overview;
-    const crater = (damage["Crater_Results"] ?? {}) as Crater_Results;
-    const thermal = (damage["Thermal_Effects"] ?? {}) as Thermal_Effects;
-    const wave = (damage["Waveblast_Results"] ?? {}) as Waveblast_Results;
-    const tsunami = (damage["Tsunami_Results"] ?? {}) as Tsunami_Results;
-    const seismic = (damage["Seismic_Results"] ?? {}) as Seismic_Results;
+    const strike = (damage["Strike_Overview"] ?? {}) as Types.Strike_Overview;
+    const crater = (damage["Crater_Results"] ?? {}) as Types.Crater_Results;
+    const thermal = (damage["Thermal_Effects"] ?? {}) as Types.Thermal_Effects;
+    const wave = (damage["Waveblast_Results"] ?? {}) as Types.Waveblast_Results;
+    const tsunami = (damage["Tsunami_Results"] ?? {}) as Types.Tsunami_Results;
+    const seismic = (damage["Seismic_Results"] ?? {}) as Types.Seismic_Results;
     const mortality = pickMortality(impactResults);
 
     const summaryText = buildImpactSummaryText(place, strike, crater.airburst, mortality)
