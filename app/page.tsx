@@ -45,7 +45,19 @@ export default function Home(): React.ReactElement {
 
   return (
     <main className="relative w-full h-screen bg-black text-white overflow-hidden">
+      <div className="absolute top-3 right-3 z-50 hidden md:flex flex-col items-center pointer-events-auto">
 
+        <a href="https://stoiyeet.github.io/AsteroidStrike/" className="flex items-center gap-2 px-6 py-2.5 text-white text-[15px] cursor-pointer font-medium rounded-full shadow-md hover:shadow-lg transition-all">
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+          </svg>
+        </a>
+
+        <span className="mt-2 text-[10px] font-semibold tracking-wider uppercase drop-shadow-md">
+          Try the API
+        </span>
+
+      </div>
       {mounted && (
         <Joyride
           steps={steps}
