@@ -17,8 +17,9 @@ info:
     - JSON-only requests (`generateReport=false`) are not rate limited.
     - PDF report generation (`generateReport=true`) requires an API key.
     - Each API key allows up to **20 report creations per day**.
-    - Once created, PDFs will be available for access for 1 week**.
-    - API keys are associated with a valid email and can be created via `POST /api/keys`.
+    - Once created, PDFs will be available for access for 1 week.
+    - API keys are associated with a valid email and can be created via `POST /api/register`.
+    - If you API key becomes lost or comprimised, a new one can be created (disabling the prior key) via `POST /api/register/rotate`
 
 servers:
   - url: https://asteroidstrike.earth
@@ -268,6 +269,89 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /api/register/rotate:
+    post:
+      tags: [API Keys]
+      summary: Start API key rotation (email confirmation required)
+      description: |
+        Starts the API key rotation flow for an email address that already has an API key.
+
+        - Sends a confirmation link to the provided email
+        - After confirmation, a **new API key** is issued (shown once)
+        - The old key is revoked immediately
+        - Daily quota does not reset when rotating keys
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateKeyRequest"
+            examples:
+              example1:
+                summary: Start rotation
+                value:
+                  email: user@example.com
+      responses:
+        "202":
+          description: Rotation confirmation email sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: pending_confirmation
+        "400":
+          description: Invalid email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No API key exists for this email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/register/rotate/confirm:
+    get:
+      tags: [API Keys]
+      summary: Confirm rotation and issue a new API key
+      description: |
+        Confirms a key rotation request using the one-time token from the email link.
+
+        - Issues a **new** API key (shown once)
+        - Revokes the previous API key immediately
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: One-time confirmation token from the email link.
+      responses:
+        "200":
+          description: Rotation confirmed; new API key issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateKeyResponse"
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     ApiKeyAuth:
