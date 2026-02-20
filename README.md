@@ -83,9 +83,15 @@ Optional PDF report generation is supported. When report generation is requested
 ## Supporting Endpoints
 
 ```http
-POST /api/keys  
+POST /api/register
 ```
 Creates an API key associated with a valid email address for authenticated features.
+
+```http
+POST /api/register/rotate
+```
+Revoke old API and create a new one for your account, in case API key is lost or comprimised.
+
 
 ```http
 GET /api/reports/{id}  
