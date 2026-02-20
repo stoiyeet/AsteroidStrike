@@ -6,8 +6,8 @@ import { OrbitControls, Html, Stars } from '@react-three/drei';
 import EarthImpact from './EarthImpact';
 import ImpactEffects from './ImpactEffects';
 import styles from './MeteorImpactPage.module.css';
-import { Damage_Inputs, computeImpactEffects, estimateAsteroidDeaths } from '@/lib/serverPhysicsEngine';
-import { Mortality } from '@/lib/impactTypes';
+import {computeImpactEffects, estimateAsteroidDeaths } from '@/lib/serverPhysicsEngine';
+import { Mortality, Damage_Inputs } from '@/lib/impactTypes';
 
 // NEW: styles outside Canvas
 import ImpactStyles from './styles/ImpactStyles';
@@ -31,7 +31,7 @@ type EffectsState = {
   labels: boolean;
 };
 
-type TsunamiResults = {
+type Tsunami_Results = {
   rim_wave_height: number,
   tsunami_radius: number,
   max_tsunami_speed: number,

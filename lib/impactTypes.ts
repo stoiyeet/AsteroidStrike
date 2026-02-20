@@ -56,7 +56,7 @@ export type Waveblast_Results = {
 
 }
 
-export type TsunamiResults = {
+export type Tsunami_Results = {
     rim_wave_height: number,
     tsunami_radius: number,
     max_tsunami_speed: number,
@@ -70,7 +70,7 @@ export type Damage_Results = {
     Crater_Results: Crater_Results,
     Seismic_Results: Seismic_Results,
     Waveblast_Results: Waveblast_Results,
-    Tsunami_Results: TsunamiResults
+    Tsunami_Results: Tsunami_Results
 };
 
 export type Mortality = {

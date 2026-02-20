@@ -1,7 +1,7 @@
 // generateReportAction.ts
 // npm i pdf-lib
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { ResponseData } from "./impactTypes";
+import { PDFDocument, PDFFont, PDFPage, StandardFonts, rgb } from "pdf-lib";
+import { Crater_Results, Damage_Results, ResponseData, Seismic_Results, Strike_Overview, Thermal_Effects, Tsunami_Results, Waveblast_Results } from "./impactTypes";
 
 export type MeteorData = {
     name?: string;
@@ -67,7 +67,7 @@ function safe(v: unknown): string {
 function pickDamage(impactResults: ResponseData) {
     const d =
         impactResults?.damageResults
-    return (d ?? {}) as Record<string, any>;
+    return (d ?? {}) as Damage_Results;
 }
 
 function pickMortality(impactResults: ResponseData) {
@@ -147,10 +147,10 @@ function classifySeverity(
 
 function buildImpactSummaryText(
     reverseGeo: PlaceInfo | null,
-    strikeOverview: any,
+    strikeOverview: Strike_Overview,
+    airburst: boolean,
     mortality: { deathCount?: number; injuryCount?: number } | undefined
 ): string {
-    const airburst = strikeOverview?.airburst ?? false;
     const energyMt = strikeOverview?.Impact_Energy_Megatons_TNT as number | undefined;
 
     const deaths = mortality?.deathCount ?? 0;
@@ -185,12 +185,12 @@ function buildImpactSummaryText(
 }
 
 function drawParagraph(
-    page: any,
+    page: PDFPage,
     text: string,
     x: number,
     y: number,
     maxWidth: number,
-    font: any,
+    font: PDFFont,
     fontSize: number,
     lineHeight: number
 ): number {
@@ -232,15 +232,15 @@ export async function generateReportAction(
     const place = await reverseGeocodePlace(impactLocation);
 
     const damage = pickDamage(impactResults);
-    const strike = (damage["Strike_Overview"] ?? {}) as Record<string, unknown>;
-    const crater = (damage["Crater_Results"] ?? {}) as Record<string, unknown>;
-    const thermal = (damage["Thermal_Effects"] ?? {}) as Record<string, unknown>;
-    const wave = (damage["Waveblast_Results"] ?? {}) as Record<string, unknown>;
-    const tsunami = (damage["Tsunami_Results"] ?? {}) as Record<string, unknown>;
-    const seismic = (damage["Seismic_Results"] ?? {}) as Record<string, unknown>;
+    const strike = (damage["Strike_Overview"] ?? {}) as Strike_Overview;
+    const crater = (damage["Crater_Results"] ?? {}) as Crater_Results;
+    const thermal = (damage["Thermal_Effects"] ?? {}) as Thermal_Effects;
+    const wave = (damage["Waveblast_Results"] ?? {}) as Waveblast_Results;
+    const tsunami = (damage["Tsunami_Results"] ?? {}) as Tsunami_Results;
+    const seismic = (damage["Seismic_Results"] ?? {}) as Seismic_Results;
     const mortality = pickMortality(impactResults);
 
-    const summaryText = buildImpactSummaryText(place, strike, mortality)
+    const summaryText = buildImpactSummaryText(place, strike, crater.airburst, mortality)
 
 
     const pdfDoc = await PDFDocument.create();
@@ -254,7 +254,7 @@ export async function generateReportAction(
 
     const addPage = () => pdfDoc.addPage([612, 792]); // US Letter
 
-    const drawHeader = (page: any, title: string) => {
+    const drawHeader = (page: PDFPage, title: string) => {
         const { width, height } = page.getSize();
 
         page.drawRectangle({
@@ -297,7 +297,7 @@ export async function generateReportAction(
         }
     };
 
-    const drawFooter = (page: any, pageNum: number, totalPages: number) => {
+    const drawFooter = (page: PDFPage, pageNum: number, totalPages: number) => {
         const { width } = page.getSize();
         const footerText = `Page ${pageNum} of ${totalPages}`;
         const tw = font.widthOfTextAtSize(footerText, 9);
@@ -311,14 +311,14 @@ export async function generateReportAction(
         });
     };
 
-    const drawSectionTitle = (page: any, x: number, y: number, text: string) => {
+    const drawSectionTitle = (page: PDFPage, x: number, y: number, text: string) => {
         page.drawText(text, { x, y, size: 13, font: fontBold, color: rgb(0.1, 0.1, 0.1) });
         page.drawLine({ start: { x, y: y - 6 }, end: { x: x + 520, y: y - 6 }, thickness: 1, color: rgb(0.85, 0.85, 0.85) });
         return y - 22;
     };
 
     const drawKeyValueTable = (
-        page: any,
+        page: PDFPage,
         x: number,
         y: number,
         rows: Array<[string, string]>,

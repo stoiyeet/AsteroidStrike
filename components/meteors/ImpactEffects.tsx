@@ -65,7 +65,7 @@ interface ImpactEffectsProps {
   impactLat: number;
   impactLon: number;
   name: string;
-  TsunamiResults: {
+  Tsunami_Results: {
     rim_wave_height: number;
     tsunami_radius: number;
     max_tsunami_speed: number;

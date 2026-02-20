@@ -1,7 +1,7 @@
 // impact_effects.ts
 // Functions extracted from study at https://impact.ese.ic.ac.uk/ImpactEarth/ImpactEffects/effects.pdf
 import { fromUrl, GeoTIFF, GeoTIFFImage } from "geotiff";
-import { Damage_Inputs, Damage_Results, Strike_Overview, Thermal_Effects, Crater_Results, Seismic_Results, Waveblast_Results, Earth_Effect, TsunamiResults, Mortality } from "./impactTypes";
+import { Damage_Inputs, Damage_Results, Strike_Overview, Thermal_Effects, Crater_Results, Seismic_Results, Waveblast_Results, Earth_Effect, Tsunami_Results, Mortality } from "./impactTypes";
 
 const EARTH_R_M = 6371000;
 
@@ -726,7 +726,7 @@ export function computeImpactEffects(inputs: Damage_Inputs): Damage_Results {
     };
 
 
-    const tsunamiResults: TsunamiResults = tsunamiInfo(inputs, airburst )
+    const tsunamiResults: Tsunami_Results = tsunamiInfo(inputs, airburst )
 
     // 6. Return Aggregated Results
     return {
