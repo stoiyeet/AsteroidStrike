@@ -17,6 +17,7 @@ info:
     - JSON-only requests (`generateReport=false`) are not rate limited.
     - PDF report generation (`generateReport=true`) requires an API key.
     - Each API key allows up to **20 report creations per day**.
+    - Once created, PDFs will be available for access for 1 week**.
     - API keys are associated with a valid email and can be created via `POST /api/keys`.
 
 servers:
