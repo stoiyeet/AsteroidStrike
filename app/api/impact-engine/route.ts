@@ -26,7 +26,7 @@ const R2_BUCKET = process.env.CLOUDFLARE_R2_BUCKET!;
 
 const keyKey = (apiKeyHash: string) => `key:${apiKeyHash}`;
 const keyAcct = (email: string) => `acct:${email}`;
-const keyUsage = (apiKeyHash: string, ymd: string) => `usage:${apiKeyHash}:${ymd}`;
+const keyUsage = (email: string, ymd: string) => `usage:${email}:${ymd}`;
 const keyReport = (reportId: string) => `report:${reportId}`;
 
 type AcctRecord = {
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
 
       // Quota check (per-day key; no cron needed)
       const today = getTodayEST();
-      const usageKey = keyUsage(apiKeyHash, today);
+      const usageKey = keyUsage(email, today);
 
       const newCount = await redis.incr(usageKey);
 
