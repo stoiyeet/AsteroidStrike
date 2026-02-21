@@ -208,54 +208,45 @@ export function seismicMagnitudeAndRadius(E_J: number, threshold = 7.5) {
 }
 
 
-export function peakOverpressureAtR(
-    r_m: number,
-    E_Mt: number,
-    zb_m: number
-): number {
-    const P_X = 75000; // Crossover pressure (Pa)
+export function peakOverpressureAtR(r_m: number, E_Mt: number, zb_m: number): number {
+    const PX = 75000;               // Pa
+    const E_kt = E_Mt * 1000;
+    const y = Math.cbrt(E_kt);
 
-    // 1. Convert Energy and Apply Yield Scaling
-    const E_kt = E_Mt * 1000; // Energy in kilotons (kt)
-    const yield_factor = Math.pow(E_kt, 1 / 3);
-    const r_1 = r_m / yield_factor; // Equivalent 1kt distance (m)
+    const r1 = r_m / y;             // m (1 kt equivalent)
+    const zb1 = zb_m / y;           // m (1 kt equivalent)
 
-    // Helper function for Overpressure Formula 54
-    const calculateOverpressureEq54 = (r_x: number, r_1: number): number => {
-        const ratio_term = Math.pow(r_x / r_1, 1.3);
-        const p = (P_X * r_x / (4 * r_1)) * (1 + 3 * ratio_term);
-        return p;
+    if (r1 <= 0) return Infinity;
+
+    // Eq. 54 helper: p = px*rx/(4*r1) * (1 + 3*(rx/r1)^1.3)
+    const pEq54 = (rx: number) => {
+        const t = Math.pow(rx / r1, 1.3);
+        return (PX * rx / (4 * r1)) * (1 + 3 * t);
     };
 
-    let peak_overpressure: number;
-
-    // 2. Determine Burst Type (Surface vs. Airburst)
-
-    // A. Surface Burst (zb_m <= 0)
+    // Surface burst
     if (zb_m <= 0) {
-        const r_x_surface = 290; // Standard crossover distance for 1kt surface burst (m)
-        peak_overpressure = calculateOverpressureEq54(r_x_surface, r_1);
-    }
-    if (zb_m > 10000) {
-        // p = p_0 * e^(-beta * r_1)
-
-        // p_0 = 3.14 * 10^11 * zb_m^(-2.6)
-        const p_0 = 3.14e11 * Math.pow(zb_m, -2.6);
-
-        // beta = 34.87 * zb_m
-        const beta = 34.87 * Math.pow(zb_m, -1.73);
-
-        peak_overpressure = p_0 * Math.exp(-beta * r_1);
-
-    }
-    // B. Airburst (zb_m > 0)
-    else {
-        // Crossover altitude for mach region determination
-        const r_x_airburst = 289 + 0.65 * zb_m / 50;
-        peak_overpressure = calculateOverpressureEq54(r_x_airburst, r_1);
+        return pEq54(290);
     }
 
-    return peak_overpressure;
+    // rm1 = 550*zb1 / (1.2*(550 - zb1))
+    // If zb1 >= 550, the fit breaks (denominator <= 0); treat as "no Mach region" => Eq. 55.
+    if (zb1 >= 550) {
+        const p0 = 3.14e11 * Math.pow(zb1, -2.6);
+        const E = 34.87 * Math.pow(zb1, -1.73);
+        return p0 * Math.exp(-E * r1);
+    }
+
+    const rm1 = (550 * zb1) / (1.2 * (550 - zb1));
+
+    if (r1 >= rm1) {
+        const rx = 289 + 0.65 * zb1;
+        return pEq54(rx);
+    } else {
+        const p0 = 3.14e11 * Math.pow(zb1, -2.6);
+        const E = 34.87 * Math.pow(zb1, -1.73);
+        return p0 * Math.exp(-E * r1);
+    }
 }
 
 
