@@ -19,7 +19,7 @@ info:
     - Each API key allows up to **20 report creations per day**.
     - Once created, PDFs will be available for access for 1 week.
     - API keys are associated with a valid email and can be created via `POST /api/register`.
-    - If you API key becomes lost or comprimised, a new one can be created (disabling the prior key) via `POST /api/register/rotate`
+    - If your API key becomes lost or comprimised, a new one can be created (disabling the prior key) via `POST /api/register/rotate`
 
 servers:
   - url: https://asteroidstrike.earth
