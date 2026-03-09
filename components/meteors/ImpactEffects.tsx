@@ -77,13 +77,15 @@ interface ImpactEffectsProps {
 
 
 export default function ImpactEffects({ effects, mortality, impactLat, impactLon, name, TsunamiResults }: ImpactEffectsProps) {
-  const [isCollapsed, setIsCollapsed] = React.useState(true);
-  useEffect(()=>{
-    if(window.innerWidth > 768){
-      setIsCollapsed(false)
-      
-    }
-  })
+  let collapseState;
+  if (window.innerWidth > 768) {
+    collapseState = false
+  }
+  else{
+    collapseState = true
+  }
+
+  const [isCollapsed, setIsCollapsed] = React.useState(collapseState);
   const [activeTab, setActiveTab] = React.useState('overview');
 
   const Strike_Overview = effects.Strike_Overview
